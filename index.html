@@ -76,6 +76,11 @@ a{color:var(--pin)}
 section{padding-block:56px;border-top:1px solid var(--line)}
 .head{display:flex;flex-direction:column;gap:10px;margin-bottom:28px;max-width:40em}
 .head p{color:var(--muted)}
+.package{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;max-width:760px}
+.incl{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.incl li{display:flex;gap:10px;align-items:flex-start}
+.incl li::before{content:"";flex:none;width:18px;height:18px;margin-top:5px;border-radius:50%;background:var(--go);-webkit-mask:radial-gradient(circle,#000 0,#000 100%);box-shadow:inset 0 0 0 5px var(--surface)}
+.addon{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);color:var(--muted)}
 .grid{display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:18px}
 .item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:6px}
 .item p{color:var(--muted);font-size:.96rem}
@@ -85,7 +90,7 @@ section{padding-block:56px;border-top:1px solid var(--line)}
 .steps li::before{content:"Step " counter(s);font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pin)}
 .steps p{color:var(--muted);font-size:.96rem}
 
-.prices{display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:18px}
+.prices{display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:18px;max-width:760px}
 .price{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px}
 .amount{font:800 2.4rem var(--display);font-variant-numeric:tabular-nums}
 .amount small{font:500 1rem var(--body);color:var(--muted)}
@@ -132,7 +137,7 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
       MapPeak Local
     </a>
     <nav aria-label="Sections">
-      <a href="#services">Services</a>
+      <a href="#services">What's included</a>
       <a href="#how">How it works</a>
       <a href="#pricing">Pricing</a>
       <a href="#contact">Contact</a>
@@ -141,9 +146,9 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
 
   <div class="hero" id="top">
     <div>
-      <p class="label">Google, Facebook and AI search for local service businesses</p>
-      <h1 style="margin-top:12px">Customers find you on Google, Facebook and now AI. <em>Be ready for them.</em></h1>
-      <p class="lead">We help plumbers, HVAC techs, roofers, cleaners and other small US service businesses fix the details that quietly cost them calls: wrong hours, broken links, old photos and unanswered reviews. More people now ask AI tools like ChatGPT and Google's AI answers for a recommendation, and those tools read the same profiles, reviews and websites.</p>
+      <p class="label">Google Business Profile care for local service businesses</p>
+      <h1 style="margin-top:12px">Your Google listing is often the first thing a customer sees. <em>Make it right.</em></h1>
+      <p class="lead">We help plumbers, HVAC techs, roofers, cleaners and other small US service businesses fix the details that quietly cost them calls: wrong hours, broken links, old photos and unanswered reviews. A strong Google profile also helps with AI tools like ChatGPT and Google's AI answers, which read the same profiles and reviews.</p>
       <div class="cta">
         <a class="btn btn-main" href="#contact">Ask for a free profile review</a>
         <a class="btn btn-ghost" href="#how">See how it works</a>
@@ -166,17 +171,21 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
 <section id="services">
   <div class="wrap">
     <div class="head">
-      <p class="label">Services</p>
-      <h2>Everything a local business needs to be found and trusted</h2>
-      <p>Start with the free review. Add only what you need.</p>
+      <p class="label">One specialty</p>
+      <h2>We make local customers find you and choose you</h2>
+      <p>Everything below is part of one job: a Google profile that brings calls. You don't pick and choose separate services.</p>
     </div>
-    <div class="grid">
-      <div class="item"><h3>Google and Facebook profile care</h3><p>We fix and maintain your Google Business Profile and Facebook page so your name, phone, hours and links match everywhere.</p></div>
-      <div class="item"><h3>Ready for AI search</h3><p>We make your profiles, reviews and website clear enough for AI tools to understand what you do and where you work.</p></div>
-      <div class="item"><h3>Honest review system</h3><p>A QR code, a short link and a ready message you send to every customer after a job. No gifts, no picking only happy customers.</p></div>
-      <div class="item"><h3>Monthly AI search check</h3><p>Each month we ask ChatGPT, Gemini and Google's AI answers who they recommend for your service in your town, and report what they say.</p></div>
-      <div class="item"><h3>Local competitor report</h3><p>See how your reviews, rating and profile compare with the top businesses in your area. Free with every profile review.</p></div>
-      <div class="item"><h3>A simple website</h3><p>No website yet? We build a clean one-page site with your services, service area, reviews and a clear way to call you.</p></div>
+    <div class="package">
+      <ul class="incl">
+        <li><span><b>Google Business Profile</b> fixed and kept up to date</span></li>
+        <li><span><b>Facebook page</b> matched to your Google details</span></li>
+        <li><span><b>Honest review system</b>: a QR code and message for every customer</span></li>
+        <li><span><b>Review replies</b> to every review, good or bad</span></li>
+        <li><span><b>Weekly posts</b> so your profile looks active</span></li>
+        <li><span><b>Monthly report</b>, including what AI tools say about your town</span></li>
+        <li><span><b>Local competitor report</b>, free with your first review</span></li>
+      </ul>
+      <p class="addon">No website yet? We can also build a simple one-page site that connects to your Google profile.</p>
     </div>
   </div>
 </section>
@@ -244,18 +253,8 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
           <li>Cancel any time</li>
         </ul>
       </div>
-      <div class="price">
-        <p class="label">Simple website</p>
-        <p class="amount">$250<small> one-time</small></p>
-        <ul>
-          <li>One-page site, phone-friendly</li>
-          <li>Services, area, reviews, contact</li>
-          <li>Linked to your Google and Facebook</li>
-          <li>Updates included with Monthly care</li>
-        </ul>
-      </div>
     </div>
-    <p class="fine">The profile review and competitor report are always free. We sell results, not just files: a profile and website that bring calls, kept in good shape every month. Paid work starts after you approve the plan and pay the invoice.</p>
+    <p class="fine">No website yet? A simple one-page website is $250 one-time, with updates included in Monthly care. The profile review and competitor report are always free. We sell results, not just files: a profile and website that bring calls, kept in good shape every month. Paid work starts after you approve the plan and pay the invoice.</p>
   </div>
 </section>
 
