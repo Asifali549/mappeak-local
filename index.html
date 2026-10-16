@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MapPeak Local</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="MapPeak Local helps small US service businesses fix and maintain their Google Business Profile: hours, categories, photos, posts and review replies.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Layout: a field-guide page. Hero pairs the promise with a live-looking map listing; sections run as a single column of plain, scannable blocks. */
+:root{
+  --paper:#f5f7fa; --surface:#ffffff; --ink:#14202e; --muted:#566476; --line:#dde3ea;
+  --pin:#d6452c; --pin-ink:#ffffff; --go:#0f7a5c; --stop:#b3261e; --soft:#eaf0f6;
+  --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --body:"Public Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f151d; --surface:#17202b; --ink:#e8eef5; --muted:#9aa8b8; --line:#283544;
+    --pin:#f06a50; --pin-ink:#1a0e0b; --go:#43c59a; --stop:#ff8a80; --soft:#1d2836; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f151d; --surface:#17202b; --ink:#e8eef5; --muted:#9aa8b8; --line:#283544;
+  --pin:#f06a50; --pin-ink:#1a0e0b; --go:#43c59a; --stop:#ff8a80; --soft:#1d2836; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+h1,h2,h3{font-family:var(--display);line-height:1.12;text-wrap:balance;margin:0}
+h2{font-size:clamp(1.6rem, 3.4vw, 2.2rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.12rem;font-weight:700}
+p{margin:0}
+a{color:var(--pin)}
+.label{font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+:focus-visible{outline:3px solid var(--pin);outline-offset:2px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:18px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:1.2rem;color:var(--ink);text-decoration:none}
+.brand svg{flex:none}
+.top nav{display:flex;gap:18px;flex-wrap:wrap}
+.top nav a{color:var(--muted);text-decoration:none;font-weight:500;font-size:.95rem}
+.top nav a:hover{color:var(--ink)}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;padding-block:28px 56px}
+.hero > *{min-width:0}
+.hero h1{font-size:clamp(2.1rem, 5.4vw, 3.5rem);font-weight:800;letter-spacing:-.02em}
+.hero h1 em{font-style:normal;color:var(--pin)}
+.hero .lead{margin-top:18px;font-size:1.12rem;color:var(--muted);max-width:34em}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:13px 22px;font:600 1rem var(--body);cursor:pointer;text-decoration:none}
+.btn-main{background:var(--pin);color:var(--pin-ink)}
+.btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+
+/* listing card */
+.listing{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 18px 40px -24px rgba(20,32,46,.35)}
+.listing .name{font:700 1.15rem var(--display)}
+.stars{display:flex;align-items:center;gap:6px;margin-top:4px;color:var(--muted);font-size:.92rem}
+.stars b{color:var(--ink)}
+.row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px dashed var(--line);font-size:.95rem}
+.row:first-of-type{margin-top:12px}
+.row span:first-child{color:var(--muted)}
+.before{color:var(--stop);text-decoration:line-through;text-decoration-thickness:1.5px}
+.after{color:var(--go);font-weight:600}
+.listing .note{margin-top:12px;font-size:.82rem;color:var(--muted)}
+
+/* sections */
+section{padding-block:56px;border-top:1px solid var(--line)}
+.head{display:flex;flex-direction:column;gap:10px;margin-bottom:28px;max-width:40em}
+.head p{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:18px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.item p{color:var(--muted);font-size:.96rem}
+
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4, minmax(0,1fr));gap:18px;counter-reset:s}
+.steps li{counter-increment:s;display:flex;flex-direction:column;gap:6px;padding-top:14px;border-top:3px solid var(--ink)}
+.steps li::before{content:"Step " counter(s);font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pin)}
+.steps p{color:var(--muted);font-size:.96rem}
+
+.prices{display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:18px;max-width:760px}
+.price{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px}
+.amount{font:800 2.4rem var(--display);font-variant-numeric:tabular-nums}
+.amount small{font:500 1rem var(--body);color:var(--muted)}
+.price ul{margin:0;padding-left:18px;color:var(--muted);font-size:.96rem}
+.fine{margin-top:16px;color:var(--muted);font-size:.9rem;max-width:44em}
+
+.never{display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:12px 28px;margin:0;padding:0;list-style:none;max-width:860px}
+.never li{display:flex;gap:10px;align-items:flex-start}
+.never li::before{content:"";flex:none;width:18px;height:18px;margin-top:4px;border-radius:50%;border:2px solid var(--stop);background:linear-gradient(45deg, transparent 44%, var(--stop) 44%, var(--stop) 56%, transparent 56%)}
+
+.about{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.about > *{min-width:0}
+.about p + p{margin-top:12px}
+.contact{background:var(--soft);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.mail{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.mail code{font:500 1.02rem var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;user-select:all;overflow-wrap:anywhere}
+.copy{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;font:600 .9rem var(--body);cursor:pointer}
+footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);font-size:.88rem}
+
+@media (max-width: 860px){
+  .hero{grid-template-columns:1fr;gap:28px}
+  .grid{grid-template-columns:1fr 1fr}
+  .steps{grid-template-columns:1fr 1fr}
+  .about{grid-template-columns:1fr}
+}
+@media (max-width: 560px){
+  .top nav{display:none}
+  .grid,.steps,.prices,.never{grid-template-columns:1fr}
+  section{padding-block:44px}
+}
+@media (prefers-reduced-motion: no-preference){
+  .btn,.copy{transition:transform .15s ease}
+  .btn:hover,.copy:hover{transform:translateY(-1px)}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#top" aria-label="MapPeak Local home">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M15 2C9.5 2 5.5 6 5.5 11.3 5.5 18.5 15 28 15 28s9.5-9.5 9.5-16.7C24.5 6 20.5 2 15 2z" fill="var(--pin)"/><path d="M9.5 15.5l3.6-5 2.6 3.2 1.8-2.2 3 4z" fill="var(--pin-ink)"/></svg>
+      MapPeak Local
+    </a>
+    <nav aria-label="Sections">
+      <a href="#fix">What we fix</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <div class="hero" id="top">
+    <div>
+      <p class="label">Google Business Profile care for local service businesses</p>
+      <h1 style="margin-top:12px">Your Google listing is often the first thing a customer sees. <em>Make it right.</em></h1>
+      <p class="lead">We help plumbers, HVAC techs, roofers, cleaners and other small US service businesses fix the details on their Google Business Profile that quietly cost them calls: wrong hours, broken links, old photos and unanswered reviews.</p>
+      <div class="cta">
+        <a class="btn btn-main" href="#contact">Ask for a free profile review</a>
+        <a class="btn btn-ghost" href="#how">See how it works</a>
+      </div>
+    </div>
+
+    <figure class="listing" aria-label="Example of a listing before and after a fix" style="margin:0">
+      <p class="label">Example listing</p>
+      <p class="name" style="margin-top:6px">Example Plumbing Co.</p>
+      <div class="stars"><b>4.4</b> ★★★★☆ <span>(19 reviews)</span></div>
+      <div class="row"><span>Hours</span><span><span class="before">Closed now</span> → <span class="after">Open 24 hours</span></span></div>
+      <div class="row"><span>Website link</span><span><span class="before">Another company</span> → <span class="after">Your site</span></span></div>
+      <div class="row"><span>Latest review</span><span><span class="before">1 year ago</span> → <span class="after">This week</span></span></div>
+      <div class="row"><span>Review replies</span><span><span class="before">0 of 19</span> → <span class="after">19 of 19</span></span></div>
+      <p class="note">An illustration of common fixes. Not a real business.</p>
+    </figure>
+  </div>
+</div>
+
+<section id="fix">
+  <div class="wrap">
+    <div class="head">
+      <p class="label">What we fix</p>
+      <h2>The small things customers notice first</h2>
+      <p>We check every part of your profile against what people searching for your service actually see on Google Maps.</p>
+    </div>
+    <div class="grid">
+      <div class="item"><h3>Hours and holiday hours</h3><p>If you take emergency calls, your listing should not say "Closed" at night or on weekends.</p></div>
+      <div class="item"><h3>Primary category and services</h3><p>The right category decides which searches you show up for. We set it and list your real services.</p></div>
+      <div class="item"><h3>Website and phone links</h3><p>We make sure the buttons on your listing open your own website and ring your own phone.</p></div>
+      <div class="item"><h3>Photos</h3><p>Real photos of your team, vans and finished jobs, added from pictures you send us.</p></div>
+      <div class="item"><h3>Review replies</h3><p>A short, polite reply to every review, good or bad, written in your voice and approved by you.</p></div>
+      <div class="item"><h3>Weekly updates</h3><p>A short post each week about a job, a seasonal tip or an offer, so your profile looks active.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="head">
+      <p class="label">How it works</p>
+      <h2>Simple, and you stay in control</h2>
+    </div>
+    <ol class="steps">
+      <li><h3>Free profile review</h3><p>We send you a short written review of your listing with the problems we found and how to fix them.</p></li>
+      <li><h3>Add us as a Manager</h3><p>If you want our help, you add our email as a Manager on your profile. You never share a password, and you can remove us any time.</p></li>
+      <li><h3>First-week fixes</h3><p>We correct hours, category, services, links and description, and add your photos.</p></li>
+      <li><h3>Monthly care</h3><p>Review replies within two business days, a weekly post, and a short report at the end of each month.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="head">
+      <p class="label">Pricing (USD)</p>
+      <h2>Two clear prices</h2>
+    </div>
+    <div class="prices">
+      <div class="price">
+        <p class="label">One-time setup</p>
+        <p class="amount">$150</p>
+        <ul>
+          <li>Full profile check and written report</li>
+          <li>Hours, category, services and links fixed</li>
+          <li>Description rewritten, photos added</li>
+        </ul>
+      </div>
+      <div class="price">
+        <p class="label">Monthly care</p>
+        <p class="amount">$120<small> / month</small></p>
+        <ul>
+          <li>Replies to every new review</li>
+          <li>One post per week</li>
+          <li>Monthly report. Cancel any time.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="fine">The profile review is always free. Paid work starts after you approve the plan and pay the invoice.</p>
+  </div>
+</section>
+
+<section id="rules">
+  <div class="wrap">
+    <div class="head">
+      <p class="label">What we never do</p>
+      <h2>We follow Google's rules, always</h2>
+      <p>Shortcuts can get a profile suspended. We don't take them.</p>
+    </div>
+    <ul class="never">
+      <li>We never write or buy fake reviews.</li>
+      <li>We never offer customers gifts or discounts for reviews.</li>
+      <li>We never ask only happy customers for reviews and hide the rest.</li>
+      <li>We never ask for your password.</li>
+      <li>We never promise a #1 ranking. Nobody can honestly promise that.</li>
+      <li>We never remove genuine reviews. We only report ones that break Google's policies.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="wrap about">
+    <div>
+      <p class="label">About</p>
+      <h2 style="margin-top:10px">A small, careful team</h2>
+      <p style="margin-top:14px">MapPeak Local is run by Muhammad Asif Raza from Rajanpur, Pakistan. We work remotely with small service businesses in the United States, and we keep the work simple: clear reports, honest advice, and steady monthly care.</p>
+      <p>We reply to every email, usually within one business day.</p>
+    </div>
+    <div class="contact">
+      <p class="label">Contact</p>
+      <h3>Ask for your free profile review</h3>
+      <p>Send us your business name and city. We'll reply with a short review of your Google listing.</p>
+      <div class="mail">
+        <code id="email">mappeak.local@gmail.com</code>
+        <button class="copy" id="copyBtn" type="button">Copy email</button>
+      </div>
+      <p style="color:var(--muted);font-size:.92rem">Mailing address: Fix Daam Shop, Chah Farida, Basti Chhina, Tehsil Jampur, District Rajanpur, Punjab 33000, Pakistan</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">© 2026 MapPeak Local. Not affiliated with Google. Google Business Profile and Google Maps are trademarks of Google LLC.</div>
+</footer>
+
+<script>
+(function(){
+  var btn = document.getElementById("copyBtn");
+  var email = document.getElementById("email");
+  btn.addEventListener("click", function(){
+    var text = email.textContent.trim();
+    function done(){ btn.textContent = "Copied"; setTimeout(function(){ btn.textContent = "Copy email"; }, 1600); }
+    function fallback(){
+      var r = document.createRange(); r.selectNodeContents(email);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      btn.textContent = "Selected, press copy";
+    }
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done, fallback); }
+      else fallback();
+    }catch(e){ fallback(); }
+  });
+})();
+</script>
+</body>
+</html>
