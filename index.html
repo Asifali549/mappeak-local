@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MapPeak Local</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="logo.png">
 <meta name="description" content="MapPeak Local helps small US service businesses fix and maintain their Google Business Profile: hours, categories, photos, posts and review replies.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +15,7 @@
 /* Layout: a field-guide page. Hero pairs the promise with a live-looking map listing; sections run as a single column of plain, scannable blocks. */
 :root{
   --paper:#f5f7fa; --surface:#ffffff; --ink:#14202e; --muted:#566476; --line:#dde3ea;
-  --pin:#d6452c; --pin-ink:#ffffff; --go:#0f7a5c; --stop:#b3261e; --soft:#eaf0f6;
+  --pin:#1f6f8b; --pin-ink:#ffffff; --sun:#f2c25a; --go:#1a8a6e; --stop:#b3261e; --soft:#e7f1f1;
   --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
   --body:"Public Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -21,12 +23,12 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --paper:#0f151d; --surface:#17202b; --ink:#e8eef5; --muted:#9aa8b8; --line:#283544;
-    --pin:#f06a50; --pin-ink:#1a0e0b; --go:#43c59a; --stop:#ff8a80; --soft:#1d2836; color-scheme:dark;
+    --pin:#5cc2c0; --pin-ink:#0b1a1f; --sun:#f2c25a; --go:#43c59a; --stop:#ff8a80; --soft:#18292f; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --paper:#0f151d; --surface:#17202b; --ink:#e8eef5; --muted:#9aa8b8; --line:#283544;
-  --pin:#f06a50; --pin-ink:#1a0e0b; --go:#43c59a; --stop:#ff8a80; --soft:#1d2836; color-scheme:dark;
+  --pin:#5cc2c0; --pin-ink:#0b1a1f; --sun:#f2c25a; --go:#43c59a; --stop:#ff8a80; --soft:#18292f; color-scheme:dark;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
@@ -125,7 +127,7 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
 <div class="wrap">
   <header class="top">
     <a class="brand" href="#top" aria-label="MapPeak Local home">
-      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M15 2C9.5 2 5.5 6 5.5 11.3 5.5 18.5 15 28 15 28s9.5-9.5 9.5-16.7C24.5 6 20.5 2 15 2z" fill="var(--pin)"/><path d="M9.5 15.5l3.6-5 2.6 3.2 1.8-2.2 3 4z" fill="var(--pin-ink)"/></svg>
+      <img src="logo.png" alt="" width="38" height="38" style="display:block">
       MapPeak Local
     </a>
     <nav aria-label="Sections">
