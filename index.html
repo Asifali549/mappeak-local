@@ -85,7 +85,7 @@ section{padding-block:56px;border-top:1px solid var(--line)}
 .steps li::before{content:"Step " counter(s);font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pin)}
 .steps p{color:var(--muted);font-size:.96rem}
 
-.prices{display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:18px;max-width:760px}
+.prices{display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:18px}
 .price{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px}
 .amount{font:800 2.4rem var(--display);font-variant-numeric:tabular-nums}
 .amount small{font:500 1rem var(--body);color:var(--muted)}
@@ -107,6 +107,7 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
 
 @media (max-width: 860px){
   .hero{grid-template-columns:1fr;gap:28px}
+  .prices{grid-template-columns:1fr 1fr}
   .grid{grid-template-columns:1fr 1fr}
   .steps{grid-template-columns:1fr 1fr}
   .about{grid-template-columns:1fr}
@@ -131,7 +132,7 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
       MapPeak Local
     </a>
     <nav aria-label="Sections">
-      <a href="#fix">What we fix</a>
+      <a href="#services">Services</a>
       <a href="#how">How it works</a>
       <a href="#pricing">Pricing</a>
       <a href="#contact">Contact</a>
@@ -140,9 +141,9 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
 
   <div class="hero" id="top">
     <div>
-      <p class="label">Google Business Profile care for local service businesses</p>
-      <h1 style="margin-top:12px">Your Google listing is often the first thing a customer sees. <em>Make it right.</em></h1>
-      <p class="lead">We help plumbers, HVAC techs, roofers, cleaners and other small US service businesses fix the details on their Google Business Profile that quietly cost them calls: wrong hours, broken links, old photos and unanswered reviews.</p>
+      <p class="label">Google, Facebook and AI search for local service businesses</p>
+      <h1 style="margin-top:12px">Customers find you on Google, Facebook and now AI. <em>Be ready for them.</em></h1>
+      <p class="lead">We help plumbers, HVAC techs, roofers, cleaners and other small US service businesses fix the details that quietly cost them calls: wrong hours, broken links, old photos and unanswered reviews. More people now ask AI tools like ChatGPT and Google's AI answers for a recommendation, and those tools read the same profiles, reviews and websites.</p>
       <div class="cta">
         <a class="btn btn-main" href="#contact">Ask for a free profile review</a>
         <a class="btn btn-ghost" href="#how">See how it works</a>
@@ -162,12 +163,30 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
   </div>
 </div>
 
+<section id="services">
+  <div class="wrap">
+    <div class="head">
+      <p class="label">Services</p>
+      <h2>Everything a local business needs to be found and trusted</h2>
+      <p>Start with the free review. Add only what you need.</p>
+    </div>
+    <div class="grid">
+      <div class="item"><h3>Google and Facebook profile care</h3><p>We fix and maintain your Google Business Profile and Facebook page so your name, phone, hours and links match everywhere.</p></div>
+      <div class="item"><h3>Ready for AI search</h3><p>We make your profiles, reviews and website clear enough for AI tools to understand what you do and where you work.</p></div>
+      <div class="item"><h3>Honest review system</h3><p>A QR code, a short link and a ready message you send to every customer after a job. No gifts, no picking only happy customers.</p></div>
+      <div class="item"><h3>Monthly AI search check</h3><p>Each month we ask ChatGPT, Gemini and Google's AI answers who they recommend for your service in your town, and report what they say.</p></div>
+      <div class="item"><h3>Local competitor report</h3><p>See how your reviews, rating and profile compare with the top businesses in your area. Free with every profile review.</p></div>
+      <div class="item"><h3>A simple website</h3><p>No website yet? We build a clean one-page site with your services, service area, reviews and a clear way to call you.</p></div>
+    </div>
+  </div>
+</section>
+
 <section id="fix">
   <div class="wrap">
     <div class="head">
       <p class="label">What we fix</p>
       <h2>The small things customers notice first</h2>
-      <p>We check every part of your profile against what people searching for your service actually see on Google Maps.</p>
+      <p>We check every part of your profile against what people searching for your service actually see on Google Maps, Facebook and AI answers.</p>
     </div>
     <div class="grid">
       <div class="item"><h3>Hours and holiday hours</h3><p>If you take emergency calls, your listing should not say "Closed" at night or on weekends.</p></div>
@@ -175,6 +194,9 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
       <div class="item"><h3>Website and phone links</h3><p>We make sure the buttons on your listing open your own website and ring your own phone.</p></div>
       <div class="item"><h3>Photos</h3><p>Real photos of your team, vans and finished jobs, added from pictures you send us.</p></div>
       <div class="item"><h3>Review replies</h3><p>A short, polite reply to every review, good or bad, written in your voice and approved by you.</p></div>
+      <div class="item"><h3>Same details everywhere</h3><p>Name, address, phone and hours that match on Google, Facebook and your website. Mismatches confuse customers and search tools.</p></div>
+      <div class="item"><h3>Questions and answers</h3><p>Short, plain answers to the questions customers ask most, on your profile and website, so people and AI tools find them.</p></div>
+      <div class="item"><h3>Service area</h3><p>The towns and zip codes you really cover, so nearby customers see you and far-away ones don't waste your time.</p></div>
       <div class="item"><h3>Weekly updates</h3><p>A short post each week about a job, a seasonal tip or an offer, so your profile looks active.</p></div>
     </div>
   </div>
@@ -187,10 +209,10 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
       <h2>Simple, and you stay in control</h2>
     </div>
     <ol class="steps">
-      <li><h3>Free profile review</h3><p>We send you a short written review of your listing with the problems we found and how to fix them.</p></li>
+      <li><h3>Free profile review</h3><p>We send you a short written review of your Google and Facebook listings, plus a local competitor report.</p></li>
       <li><h3>Add us as a Manager</h3><p>If you want our help, you add our email as a Manager on your profile. You never share a password, and you can remove us any time.</p></li>
       <li><h3>First-week fixes</h3><p>We correct hours, category, services, links and description, and add your photos.</p></li>
-      <li><h3>Monthly care</h3><p>Review replies within two business days, a weekly post, and a short report at the end of each month.</p></li>
+      <li><h3>Monthly care</h3><p>Review replies within two business days, a weekly post, your review system, and a monthly report that includes the AI search check.</p></li>
     </ol>
   </div>
 </section>
@@ -199,16 +221,17 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
   <div class="wrap">
     <div class="head">
       <p class="label">Pricing (USD)</p>
-      <h2>Two clear prices</h2>
+      <h2>Clear prices, no surprises</h2>
     </div>
     <div class="prices">
       <div class="price">
         <p class="label">One-time setup</p>
         <p class="amount">$150</p>
         <ul>
-          <li>Full profile check and written report</li>
-          <li>Hours, category, services and links fixed</li>
-          <li>Description rewritten, photos added</li>
+          <li>Google and Facebook profiles fixed</li>
+          <li>Hours, category, services and links</li>
+          <li>Description, Q&amp;A and photos</li>
+          <li>Your honest review system set up</li>
         </ul>
       </div>
       <div class="price">
@@ -217,11 +240,22 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
         <ul>
           <li>Replies to every new review</li>
           <li>One post per week</li>
-          <li>Monthly report. Cancel any time.</li>
+          <li>Monthly report with AI search check</li>
+          <li>Cancel any time</li>
+        </ul>
+      </div>
+      <div class="price">
+        <p class="label">Simple website</p>
+        <p class="amount">$250<small> one-time</small></p>
+        <ul>
+          <li>One-page site, phone-friendly</li>
+          <li>Services, area, reviews, contact</li>
+          <li>Linked to your Google and Facebook</li>
+          <li>Updates included with Monthly care</li>
         </ul>
       </div>
     </div>
-    <p class="fine">The profile review is always free. Paid work starts after you approve the plan and pay the invoice.</p>
+    <p class="fine">The profile review and competitor report are always free. We sell results, not just files: a profile and website that bring calls, kept in good shape every month. Paid work starts after you approve the plan and pay the invoice.</p>
   </div>
 </section>
 
@@ -229,7 +263,7 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
   <div class="wrap">
     <div class="head">
       <p class="label">What we never do</p>
-      <h2>We follow Google's rules, always</h2>
+      <h2>We follow the rules, always</h2>
       <p>Shortcuts can get a profile suspended. We don't take them.</p>
     </div>
     <ul class="never">
@@ -237,7 +271,7 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
       <li>We never offer customers gifts or discounts for reviews.</li>
       <li>We never ask only happy customers for reviews and hide the rest.</li>
       <li>We never ask for your password.</li>
-      <li>We never promise a #1 ranking. Nobody can honestly promise that.</li>
+      <li>We never promise a #1 ranking or a spot in AI answers. Nobody can honestly promise that.</li>
       <li>We never remove genuine reviews. We only report ones that break Google's policies.</li>
     </ul>
   </div>
@@ -254,7 +288,7 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
     <div class="contact">
       <p class="label">Contact</p>
       <h3>Ask for your free profile review</h3>
-      <p>Send us your business name and city. We'll reply with a short review of your Google listing.</p>
+      <p>Send us your business name and city. We'll reply with a short review of your Google and Facebook listings and a local competitor report.</p>
       <div class="mail">
         <code id="email">mappeak.local@gmail.com</code>
         <button class="copy" id="copyBtn" type="button">Copy email</button>
@@ -265,7 +299,7 @@ footer{border-top:1px solid var(--line);padding-block:28px;color:var(--muted);fo
 </section>
 
 <footer>
-  <div class="wrap">© 2026 MapPeak Local. Not affiliated with Google. Google Business Profile and Google Maps are trademarks of Google LLC.</div>
+  <div class="wrap">© 2026 MapPeak Local. Not affiliated with Google, Meta or OpenAI. Google Business Profile and Google Maps are trademarks of Google LLC; Facebook is a trademark of Meta Platforms, Inc.; ChatGPT is a trademark of OpenAI.</div>
 </footer>
 
 <script>
