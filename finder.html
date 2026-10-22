@@ -216,7 +216,7 @@ function applyCountry(first){
     $("towns").value = pk ? "Jampur\nRajanpur\nDera Ghazi Khan" : "Abilene, TX\nSan Angelo, TX";
   }
 }
-$("country").onchange = function(){ applyCountry(false); if(leads.length) render(); };
+$("country").onchange = function(){ applyCountry(false); render(true); };
 applyCountry(true);
 if(!store.get("mp_apiKey","")) $("setBox").open = true;
 function hiddenNames(){ try{ return JSON.parse(store.get("mp_hideNames","[]")); }catch(e){ return []; } }
@@ -612,10 +612,12 @@ function render(keepOrder){
   var adsFirst = function(L){ return (L.manual && L.manual.ads === "yes") ? -1000 : 0; };
   var urg = function(L){ return urgentOf(L).length ? -500 : 0; };
   if(!keepOrder) leads.sort(function(a,b){ return (adsFirst(a) + urg(a) + a.score) - (adsFirst(b) + urg(b) + b.score); });
-  $("foundCount").textContent = leads.length;
+  var curC = $("country").value === "PK" ? "PK" : "US";
+  $("foundCount").textContent = leads.filter(function(L){ return (L.country||"US") === curC; }).length;
   var box = $("results"); box.innerHTML = "";
   var onlyUrgent = $("urgentOnly").checked;
   leads.forEach(function(L, idx){
+    if((L.country||"US") !== curC) return;
     if(onlyUrgent && !urgentOf(L).length) return;
     var d = document.createElement("div"); d.className = "lead";
     var urIssues = allIssues(L).map(function(k){ return "<li>"+CHECKS[k][1]+"</li>"; }).join("") || "<li>کوئی بڑی غلطی نہیں ملی</li>";
@@ -793,7 +795,7 @@ $("go").onclick = async function(){
   if(!lastTrade || !lastTowns.length){ log("کام کی قسم اور کم از کم ایک شہر لکھیں۔"); return; }
   var ctry = $("country").value === "PK" ? "PK" : "US";
   running = true; $("go").textContent = "تلاش جاری ہے...";
-  leads = []; pool = {}; render();
+  leads = leads.filter(function(L){ return L.country !== ctry; }); pool = {}; render();   // keep the other country's list
   var seen = seenIds(), ids = {}, runCount = 0, stopWhy = "";
   try{
     outer:
