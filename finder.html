@@ -285,7 +285,7 @@ var CHECKS = {
   fbStale:    [5,"فیس بک پر تین مہینے سے پوسٹ نہیں","No recent activity on the Facebook page","Post a short update or photo of recent work every week"],
   noAttributes:[4,"ادائیگی اور سہولت کی معلومات نہیں","Payment and accessibility details are missing on the listing","Fill in payment options and accessibility details"]
 };
-var FREEHOST = /(^|\.)(godaddysites\.com|wixsite\.com|business\.site|weebly\.com|square\.site|wordpress\.com|blogspot\.com|webflow\.io|carrd\.co|sites\.google\.com|yolasite\.com|jimdosite\.com)$/i;
+var FREEHOST = /(^|\.)(godaddysites\.com|wixsite\.com|business\.site|weebly\.com|square\.site|wordpress\.com|blogspot\.com|webflow\.io|carrd\.co|sites\.google\.com|yolasite\.com|jimdosite\.com|generacdealers\.com|dealerlocator\.com|homeadvisor\.com|angi\.com|yelp\.com|nextdoor\.com|linktr\.ee)$/i;
 function hostOf(url){ try{ return new URL(url).hostname.toLowerCase().replace(/^www\./,""); }catch(e){ return ""; } }
 
 function evaluate(p){
@@ -317,8 +317,9 @@ function allIssues(L){
   if(L.parked){   // the domain is up for sale: website and email checks measured the sale page, so leave them out
     a.push("siteParked");
   }
-  if(!L.parked && L.mail === "missing") a.push("noDmarc");
-  if(!L.parked && L.spf === false) a.push("noSpf");
+  var onPlatform = L.website && FREEHOST.test(hostOf(L.website));   // a page on someone else's domain: email and domain-expiry checks measured that company, not this business
+  if(!L.parked && !onPlatform && L.mail === "missing") a.push("noDmarc");
+  if(!L.parked && !onPlatform && L.spf === false) a.push("noSpf");
   if(!L.parked && L.speed != null && L.speed >= 0 && L.speed < 50) a.push("slowSite");
   if(!L.parked && L.https === false) a.push("noHttps");
   if(L.broken) a.push("siteBroken");
@@ -328,7 +329,7 @@ function allIssues(L){
     if(L.seo.title === false) a.push("noTitle");
     if(L.seo.mobile === false) a.push("notMobile");
   }
-  if(L.expiring) a.push("domainExpiring");
+  if(L.expiring && !onPlatform) a.push("domainExpiring");
   if(L.risk === "flagged") a.push("unsafeSite");
   if(m.replies === "no") a.push("noReplies");
   if(m.posts === "no") a.push("noPosts");
@@ -449,7 +450,7 @@ async function dns(name, type){
 }
 async function mailCheck(L){
   var d = domainOf(L.website);
-  if(!d){ L.mail = "na"; return; }
+  if(!d || FREEHOST.test(hostOf(L.website))){ L.mail = "na"; return; }
   try{
     var mx = await dns(d, "MX");
     if(!mx.Answer || !mx.Answer.some(function(a){ return a.type === 15; })){ L.mail = "na"; return; }
@@ -466,7 +467,7 @@ async function mailCheck(L){
 async function expiryCheck(L){
   var d = domainOf(L.website);
   L.exp = "done";
-  if(!d) return;
+  if(!d || FREEHOST.test(hostOf(L.website))) return;
   var base = d.split(".").slice(-2).join(".");
   var tld = base.split(".").pop();
   var urls = (tld === "com" || tld === "net")
