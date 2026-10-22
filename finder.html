@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="ur">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MapPeak Lead Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f6f9; --card:#ffffff; --ink:#14213d; --muted:#5b6475; --line:#e2e6ee;
+  --brand:#1a56db; --brand-ink:#ffffff; --good:#0e9f6e; --warn:#d97706; --bad:#e02424;
+  --chip:#eef2ff;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1420; --card:#171e2e; --ink:#e7ecf5; --muted:#9aa4b8; --line:#283248;
+    --brand:#5b8def; --brand-ink:#0b1020; --good:#34d399; --warn:#fbbf24; --bad:#f87171; --chip:#1f2a44;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1420; --card:#171e2e; --ink:#e7ecf5; --muted:#9aa4b8; --line:#283248;
+  --brand:#5b8def; --brand-ink:#0b1020; --good:#34d399; --warn:#fbbf24; --bad:#f87171; --chip:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Naskh Arabic","Inter",system-ui,sans-serif;font-size:17px;line-height:1.7}
+.en{font-family:"Inter",system-ui,sans-serif;direction:ltr;unicode-bidi:isolate}
+.wrap{max-width:720px;margin:0 auto;padding:12px 16px 80px}
+header{display:flex;align-items:center;gap:10px;padding:8px 0 4px}
+header .logo{width:40px;height:40px;border-radius:10px;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center;font:700 18px Inter}
+header h1{font:700 20px Inter;margin:0}
+header small{display:block;color:var(--muted);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.card h2{font-size:19px;margin:0 0 8px}
+label{display:block;font-weight:600;margin:10px 0 4px}
+.hint{color:var(--muted);font-size:14px;margin:2px 0 0}
+input,textarea,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:16px}
+textarea{min-height:80px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:inherit;border:0;border-radius:10px;padding:12px 14px;cursor:pointer;font-weight:700}
+.btn{background:var(--brand);color:var(--brand-ink);width:100%;font-size:18px}
+.btn2{background:var(--chip);color:var(--ink)}
+.btn-sm{padding:8px 10px;font-size:15px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.stat{display:flex;gap:10px;flex-wrap:wrap}
+.pill{background:var(--chip);border-radius:999px;padding:4px 12px;font-size:15px}
+details summary{cursor:pointer;font-weight:700;font-size:18px}
+.check{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:600}
+.check input{width:22px;height:22px}
+#log{white-space:pre-wrap;font-size:15px;color:var(--muted)}
+.lead{border:1px solid var(--line);border-radius:14px;background:var(--card);margin:12px 0;overflow:hidden}
+.lead .top{display:flex;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+.score{min-width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font:700 20px Inter;color:#fff}
+.lead .name{font:700 17px Inter;direction:ltr;text-align:left}
+.lead .meta{color:var(--muted);font-size:14px}
+.lead .body{padding:10px 14px}
+.lead ul{margin:6px 0;padding-inline-start:20px}
+.lead li{margin:2px 0}
+.manual{background:var(--chip);border-radius:10px;padding:8px 10px;margin-top:8px}
+.yn{display:flex;gap:6px;margin:4px 0 8px}
+.yn button{flex:1;padding:8px;background:var(--card);border:1px solid var(--line)}
+.yn button.on{background:var(--brand);color:var(--brand-ink)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;opacity:0;transition:.3s;pointer-events:none}
+.toast.show{opacity:1}
+.warnbox{border-inline-start:4px solid var(--warn);padding:8px 12px;background:var(--chip);border-radius:8px;font-size:15px}
+a{color:var(--brand)}
+</style>
+</head>
+<body>
+<div class="wrap" dir="rtl">
+  <header>
+    <div class="logo">MP</div>
+    <div>
+      <h1 class="en" style="text-align:right">MapPeak Lead Finder</h1>
+      <small>کمزور گوگل پروفائل والے کاروبار تلاش کرنے کا ٹول · نیا: نام سے تلاش</small>
+    </div>
+  </header>
+
+  <details class="card" id="setBox">
+    <summary>ترتیبات (پہلی بار ضرور بھریں)</summary>
+    <label>گوگل کی خفیہ چابی</label>
+    <input id="apiKey" type="password" class="en" placeholder="AIza..." autocomplete="off">
+    <p class="hint">چابی صرف آپ کے اسی موبائل یا کمپیوٹر میں محفوظ رہے گی۔ کسی کو یہ چابی نہ دیں۔</p>
+    <label>آپ کا نام (انگریزی میں)</label>
+    <input id="myName" class="en" placeholder="Muhammad Asif Raza">
+    <label>آپ کی ای میل</label>
+    <input id="myEmail" class="en" value="mappeak.local@gmail.com">
+    <label>ڈاک کا پتہ (امریکی قانون کے مطابق ای میل میں لکھنا ضروری ہے)</label>
+    <textarea id="myAddr" class="en" placeholder="Your mailing address"></textarea>
+    <label>پاکستانی گاہکوں کے پیغام میں آپ کا تعارف (اردو میں)</label>
+    <input id="myIntroUr" value="محمد آصف رضا، فکس دام، جام پور">
+    <p class="hint">یہ جملہ واٹس ایپ پیغام میں آپ کے تعارف کے طور پر جائے گا۔</p>
+    <label>کاروبار کا نام لکھ کر آئندہ تلاش سے ہٹائیں</label>
+    <input id="hideName" class="en" placeholder="Business name">
+    <div class="btns"><button class="btn2 btn-sm" id="hideBtn">اس نام کو ہٹا دیں</button></div>
+    <p class="hint" id="hiddenList"></p>
+    <label class="check"><input type="checkbox" id="useSig"> جی میل میں دستخط لگا ہوا ہے (ای میل کے آخر میں نام اور پتہ ٹول نہیں لکھے گا)</label>
+    <div class="btns"><button class="btn2 btn-sm" id="saveSet">محفوظ کریں</button><button class="btn2 btn-sm" id="clearSeen">پرانے کاروبار کی یادداشت صاف کریں</button></div>
+  </details>
+
+  <details class="card" id="fuBox">
+    <summary>یاد دہانی والے پیغام (<span class="en" id="fuDue">0</span> آج بھیجنے ہیں)</summary>
+    <p class="hint">جس کاروبار کو پیغام بھیجا اور چار دن تک جواب نہیں آیا، اسے ایک چھوٹی سی یاد دہانی بھیجیں۔ صرف ایک بار، اس سے زیادہ نہیں۔ جواب آ جائے تو "جواب آ گیا" دبا دیں۔</p>
+    <div id="fuList"></div>
+  </details>
+
+  <div class="card">
+    <h2>تلاش</h2>
+    <label>ملک</label>
+    <select id="country">
+      <option value="US">امریکہ (ای میل، انگریزی میں)</option>
+      <option value="PK">پاکستان (واٹس ایپ، اردو میں)</option>
+    </select>
+    <div style="background:#eef4ff;border:1px solid #c9dafc;border-radius:12px;padding:10px 12px;margin:10px 0">
+    <label style="margin-top:0">نام سے تلاش: جیسے گوگل پر لکھتے ہیں، دکان کا نام اور شہر لکھیں</label>
+    <input id="byName" class="en" placeholder="Alhamdulillah Solar Jampur">
+    <div class="btns">
+      <button class="btn" id="goName">نام سے تلاش کریں</button>
+    </div>
+    </div>
+    <label>کام کی قسم (انگریزی میں)</label>
+    <input id="trade" class="en" value="plumber">
+    <label>شہر (ہر لائن میں ایک شہر)</label>
+    <textarea id="towns" class="en">Abilene, TX
+San Angelo, TX</textarea>
+    <div class="row">
+      <div><label>ریٹنگ اس سے زیادہ نہ ہو</label><input id="maxRating" class="en" type="number" step="0.1" value="4.6"></div>
+      <div><label>ریویو اس سے زیادہ نہ ہوں</label><input id="maxReviews" class="en" type="number" value="150"></div>
+    </div>
+    <div class="row">
+      <div><label>ریویو کم از کم</label><input id="minReviews" class="en" type="number" value="5"></div>
+      <div></div>
+    </div>
+    <div class="row">
+      <div><label>کتنے کاروبار چاہئیں</label><input id="target" class="en" type="number" value="30"></div>
+      <div><label>اس بار زیادہ سے زیادہ تلاش</label><input id="runLimit" class="en" type="number" value="5"></div>
+    </div>
+    <label>روزانہ کی زیادہ سے زیادہ تلاش</label>
+    <input id="dayLimit" class="en" type="number" value="25">
+    <label class="check"><input type="checkbox" id="urgentOnly"> صرف فوری مسئلے والے کاروبار دکھائیں</label>
+    <label class="check"><input type="checkbox" id="needWeb" checked> صرف ویب سائٹ والے کاروبار (ای میل ویب سائٹ سے ملتی ہے)</label>
+    <div class="stat" style="margin-top:12px">
+      <span class="pill">آج کی تلاش: <b class="en" id="todayCount">0</b></span>
+      <span class="pill">ملے: <b class="en" id="foundCount">0</b></span>
+      <span class="pill">آج بھیجے: <b class="en" id="sentToday">0</b> / <b class="en">5</b></span>
+    </div>
+    <div class="btns">
+      <button class="btn" id="go">تلاش شروع کریں</button>
+    </div>
+    <div class="btns">
+      <button class="btn2 btn-sm" id="demo">نمونہ دیکھیں (مفت، کریڈٹ نہیں لگتا)</button>
+      <button class="btn2 btn-sm" id="csv">فہرست ڈاؤن لوڈ کریں</button>
+      <button class="btn2 btn-sm" id="adsAll">اس کام کے فیس بک اشتہار دیکھیں</button>
+    </div>
+    <p id="log"></p>
+  </div>
+
+  <div class="warnbox">ہر تلاش پر گوگل کا تھوڑا کریڈٹ لگتا ہے۔ ٹول مطلوبہ تعداد پوری ہوتے ہی خود رک جاتا ہے۔ نیچے دیے گئے بٹن سے گوگل میپس کھول کر دیکھنا مفت ہے۔</div>
+
+  <div id="results"></div>
+
+  <details class="card" id="watchBox">
+    <summary>بند لسٹنگ کی نگرانی</summary>
+    <p class="hint">ہر تلاش میں جتنے بھی کاروبار آتے ہیں، ٹول ان سب کو یہاں یاد رکھتا ہے۔ ہفتے میں ایک بار نیچے والا بٹن دبائیں۔ ٹول دیکھے گا کہ ان میں سے کون سا کاروبار گوگل نقشے سے غائب ہو گیا ہے۔ غائب کاروبار کی لسٹنگ شاید بند ہوئی ہے۔</p>
+    <div class="stat" style="margin-top:8px">
+      <span class="pill">نگرانی میں: <b class="en" id="watchCount">0</b></span>
+      <span class="pill">غائب ملے: <b class="en" id="goneCount">0</b></span>
+    </div>
+    <p class="hint" id="watchLast"></p>
+    <div class="btns"><button class="btn" id="watchGo">غائب لسٹنگ چیک کریں</button></div>
+    <p class="hint">ایک بار میں زیادہ سے زیادہ تین سو کاروبار چیک ہوں گے۔ اس جانچ میں گوگل سے صرف کاروبار کی پہچان مانگی جاتی ہے، جو بہت سستی یا مفت ہوتی ہے۔ پہلی بار کے بعد بلنگ والا صفحہ ایک بار ضرور دیکھ لیں۔</p>
+    <p id="watchLog" class="hint"></p>
+    <div id="goneList"></div>
+  </details>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+var store = {
+  get: function(k, d){ try{ var v = localStorage.getItem(k); return v === null ? d : v; }catch(e){ return d; } },
+  set: function(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+};
+var FIELDS = ["places.id","places.displayName","places.formattedAddress","places.rating","places.userRatingCount",
+  "places.websiteUri","places.nationalPhoneNumber","places.regularOpeningHours","places.primaryTypeDisplayName","places.primaryType",
+  "places.photos","places.reviews","places.googleMapsUri","places.businessStatus",
+  "places.paymentOptions","places.accessibilityOptions","nextPageToken"].join(",");
+
+var leads = [];
+var pool = {};      // town -> businesses in Google's order (used to name a competitor)
+var shots = {};     // website screenshots, kept only in memory
+var lastTrade = "", lastTowns = [];
+
+function today(){ var d = new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
+function getCount(){ return parseInt(store.get("mp_cnt_"+today(), "0"), 10) || 0; }
+function addCount(){ var c = getCount()+1; store.set("mp_cnt_"+today(), String(c)); $("todayCount").textContent = c; return c; }
+function seenIds(){ try{ return JSON.parse(store.get("mp_seen","[]")); }catch(e){ return []; } }
+function addSeen(id){ var s = seenIds(); if(s.indexOf(id)<0){ s.push(id); store.set("mp_seen", JSON.stringify(s.slice(-3000))); } }
+function toast(t){ var el=$("toast"); el.textContent=t; el.classList.add("show"); setTimeout(function(){el.classList.remove("show");},1800); }
+function log(t){ $("log").textContent = t; }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
+
+/* settings */
+["apiKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v!==null) $(k).value = v; });
+$("country").value = store.get("mp_country","US");
+function applyCountry(first){
+  var pk = $("country").value === "PK";
+  store.set("mp_country", $("country").value);
+  if(!first){
+    $("needWeb").checked = !pk;
+    $("urgentOnly").checked = !pk; store.set("mp_urgentOnly", pk ? "0" : "1");
+    $("trade").value = pk ? "solar company" : "plumber";
+    $("minReviews").value = pk ? 0 : 5; store.set("mp_n_minReviews", $("minReviews").value);
+    $("towns").value = pk ? "Jampur\nRajanpur\nDera Ghazi Khan" : "Abilene, TX\nSan Angelo, TX";
+  }
+}
+$("country").onchange = function(){ applyCountry(false); if(leads.length) render(); };
+applyCountry(true);
+if(!store.get("mp_apiKey","")) $("setBox").open = true;
+function hiddenNames(){ try{ return JSON.parse(store.get("mp_hideNames","[]")); }catch(e){ return []; } }
+function normName(s){ return String(s||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,""); }
+function showHidden(){ var h = hiddenNames(); $("hiddenList").textContent = h.length ? ("ہٹائے گئے نام: " + h.length) : ""; }
+$("hideBtn").onclick = function(){
+  var n = ($("hideName").value||"").trim(); if(!n) return;
+  var h = hiddenNames(); if(h.indexOf(n) < 0) h.push(n); store.set("mp_hideNames", JSON.stringify(h));
+  $("hideName").value = ""; showHidden(); toast("ہٹا دیا، یہ آئندہ تلاش میں نہیں آئے گا");
+};
+showHidden();
+$("useSig").checked = store.get("mp_useSig","0") === "1";
+$("saveSet").onclick = function(){ ["apiKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ store.set("mp_"+k, $(k).value.trim()); }); store.set("mp_useSig", $("useSig").checked ? "1" : "0"); toast("محفوظ ہو گیا"); };
+$("clearSeen").onclick = function(){ if(confirm("پہلے دیکھے گئے سب کاروبار دوبارہ نظر آنے لگیں گے۔ صاف کریں؟")){ store.set("mp_seen","[]"); toast("صاف ہو گیا"); } };
+$("todayCount").textContent = getCount();
+["target","runLimit","dayLimit","minReviews","maxReviews","maxRating"].forEach(function(k){
+  var v = store.get("mp_n_"+k, null); if(v !== null) $(k).value = v;
+  $(k).onchange = function(){ store.set("mp_n_"+k, $(k).value); };
+});
+function sentCount(){ return parseInt(store.get("mp_sent_"+today(), "0"), 10) || 0; }
+function addSent(){ var c = sentCount()+1; store.set("mp_sent_"+today(), String(c)); $("sentToday").textContent = c;
+  if(c === 5) setTimeout(function(){ toast("آج کے پانچ پیغام پورے ہو گئے، شاباش"); }, 1900); }
+$("sentToday").textContent = sentCount();
+
+/* checks: weight, urdu, english problem, english fix */
+var CHECKS = {
+  noRating:   [15,"ابھی تک کوئی ریٹنگ نہیں","The profile has no star rating yet","Start asking happy customers for honest reviews"],
+  ratingLow:  [15,"ریٹنگ چار سے کم ہے","Star rating is below 4.0","Reply to every review and ask satisfied customers to share their experience"],
+  ratingMid:  [8,"ریٹنگ ساڑھے چار سے کم ہے","Star rating is below 4.5","A steady flow of new genuine reviews can lift the average"],
+  reviews10:  [20,"دس سے کم ریویو","Fewer than 10 reviews","Competitors with more reviews usually get the call first"],
+  reviews20:  [12,"بیس سے کم ریویو","Fewer than 20 reviews","More recent reviews build trust with new customers"],
+  reviews50:  [5,"پچاس سے کم ریویو","Fewer than 50 reviews","Keep collecting genuine reviews every month"],
+  noWebsite:  [15,"ویب سائٹ کا لنک نہیں","No website linked on the profile","Add a website link so customers can learn more"],
+  noPhone:    [10,"فون نمبر نہیں","No phone number on the profile","Add a phone number so customers can call directly"],
+  noHours:    [10,"کھلنے کے اوقات درج نہیں","Business hours are missing","Add opening hours so customers know when to call"],
+  fewPhotos:  [10,"پانچ سے کم تصویریں","Fewer than 5 photos","Add real photos of the team, vans and finished jobs"],
+  stale:      [10,"تین مہینے سے کوئی نیا ریویو نہیں","No new reviews in the last 3 months","Recent reviews show customers the business is active"],
+  noReplies:  [10,"ریویو کے جواب نہیں دیے","Reviews are not being answered","Reply to every review within a couple of days"],
+  noPosts:    [5,"کوئی پوسٹ نہیں","No recent Google posts","Share a short update or offer once a week"],
+  slowSite:   [10,"ویب سائٹ موبائل پر سست ہے","Your website scores low on Google's own mobile speed test","Speed up the site (smaller images, lighter pages) or move to a simple fast site"],
+  noHttps:    [10,"ویب سائٹ پر حفاظتی تالا نہیں، براؤزر غیر محفوظ لکھتا ہے","Your website is not secure (no HTTPS), so browsers show a 'Not secure' warning","Add a free SSL certificate so the site opens with HTTPS"],
+  noDmarc:    [10,"ای میل کی حفاظتی مہر نہیں، ان کی ای میلیں فضول خانے میں جا سکتی ہیں","Your website domain is missing an email security (DMARC) record","Add SPF, DKIM and DMARC records so quotes and invoices reach customers' inboxes"],
+  noSpf:      [8,"ای میل کی دوسری مہر بھی نہیں، ای میل جعلی سمجھی جا سکتی ہے","Your domain has no SPF record","Add an SPF record that lists the services allowed to send your email"],
+  unsafeSite: [30,"گوگل ان کی ویب سائٹ کو خطرناک دکھا رہا ہے","Google flags your website as unsafe","Clean the site, then request a review in Google Search Console"],
+  siteBroken: [20,"گوگل لسٹنگ والی ویب سائٹ کھلتی ہی نہیں","The website link on your Google listing doesn't open","Fix the website or update the link on the listing"],
+  siteParked: [25,"ویب سائٹ کا پتہ بک رہا ہے، کھولنے پر برائے فروخت کا صفحہ آتا ہے","The website on your Google listing shows a 'domain for sale' page","Renew or buy back the domain, or update the website link on the listing"],
+  catMismatch:[11,"بنیادی کیٹیگری اوپر والے کاروباروں سے مختلف ہے","The main Google category differs from the top-ranked businesses","Review the main category and pick the one that best matches the core service"],
+  unclaimed:  [25,"لسٹنگ کسی کے نام نہیں، گوگل پر کلیم کا بٹن ہے","Your Google listing hasn't been claimed yet","Claim and verify the listing so only you can edit it"],
+  notIndexable:[15,"ویب سائٹ گوگل تلاش سے چھپی ہوئی ہے","Your website is set to be hidden from Google search","Remove the 'noindex' setting so Google can show the site"],
+  recentBadReview:[18,"پچھلے دو مہینے میں ایک یا دو ستارے والا ریویو آیا ہے","A recent 1 or 2-star review is showing on the listing","Reply to it calmly and professionally, and ask happy customers for honest reviews"],
+  phoneMismatch:[18,"ویب سائٹ اور گوگل پر فون نمبر الگ ہے","The phone number on Google doesn't match your website","Use the same phone number everywhere"],
+  hoursMismatch:[12,"اوقات ویب سائٹ پر ہیں مگر گوگل پر نہیں","Hours are on the website but missing on Google","Copy the website hours to the Google listing"],
+  domainExpiring:[22,"ویب سائٹ کا پتہ جلد ختم ہونے والا ہے","The website address (domain) expires soon","Renew the domain and turn on auto-renew"],
+  notMobile:  [10,"ویب سائٹ موبائل کی اسکرین پر پوری نہیں آتی","The website doesn't fit mobile screens","Use a mobile-friendly layout"],
+  fbAsSite:   [8,"ویب سائٹ کی جگہ فیس بک کا لنک","The listing links to Facebook instead of a website","Add a real website and keep Facebook as an extra link"],
+  freeDomain: [8,"اپنا ڈومین نہیں، مفت پتے پر ویب سائٹ","The website is on a free address, not its own domain","Move to its own domain, which also allows a professional email"],
+  noMetaDesc: [8,"ویب سائٹ پر گوگل کے لیے تعارف نہیں","The website is missing a description for Google search results","Add a short page description with the service and city"],
+  noTitle:    [5,"ویب سائٹ کے صفحے کا عنوان نہیں","The website has no page title for Google","Add a page title with the business name, service and city"],
+  fbStale:    [5,"فیس بک پر تین مہینے سے پوسٹ نہیں","No recent activity on the Facebook page","Post a short update or photo of recent work every week"],
+  noAttributes:[4,"ادائیگی اور سہولت کی معلومات نہیں","Payment and accessibility details are missing on the listing","Fill in payment options and accessibility details"]
+};
+var FREEHOST = /(^|\.)(godaddysites\.com|wixsite\.com|business\.site|weebly\.com|square\.site|wordpress\.com|blogspot\.com|webflow\.io|carrd\.co|sites\.google\.com|yolasite\.com|jimdosite\.com)$/i;
+function hostOf(url){ try{ return new URL(url).hostname.toLowerCase().replace(/^www\./,""); }catch(e){ return ""; } }
+
+function evaluate(p){
+  var issues = [];
+  var r = p.rating, n = p.userRatingCount || 0;
+  if(r == null) issues.push("noRating"); else if(r < 4.0) issues.push("ratingLow"); else if(r < 4.5) issues.push("ratingMid");
+  if(n < 10) issues.push("reviews10"); else if(n < 20) issues.push("reviews20"); else if(n < 50) issues.push("reviews50");
+  if(!p.websiteUri) issues.push("noWebsite");
+  if(!p.nationalPhoneNumber) issues.push("noPhone");
+  if(!p.regularOpeningHours) issues.push("noHours");
+  if(!p.photos || p.photos.length < 5) issues.push("fewPhotos");
+  if(p.reviews && p.reviews.length){
+    var latest = 0;
+    p.reviews.forEach(function(rv){ var t = Date.parse(rv.publishTime||""); if(t>latest) latest=t; });
+    if(latest && (Date.now()-latest) > 90*864e5) issues.push("stale");
+  }
+  if(p.websiteUri){
+    var h = hostOf(p.websiteUri);
+    if(/(^|\.)(facebook\.com|fb\.com|instagram\.com)$/.test(h)) issues.push("fbAsSite");
+    else if(FREEHOST.test(h)) issues.push("freeDomain");
+  }
+  if(!p.paymentOptions && !p.accessibilityOptions) issues.push("noAttributes");
+  if(p.reviews && p.reviews.some(function(rv){ var t = Date.parse(rv.publishTime||""); return rv.rating && rv.rating <= 2 && t && (Date.now()-t) < 60*864e5; })) issues.push("recentBadReview");
+  return issues;
+}
+function allIssues(L){
+  var m = L.manual || {};
+  var a = L.issues.slice();
+  if(L.parked){   // the domain is up for sale: website and email checks measured the sale page, so leave them out
+    a.push("siteParked");
+  }
+  if(!L.parked && L.mail === "missing") a.push("noDmarc");
+  if(!L.parked && L.spf === false) a.push("noSpf");
+  if(!L.parked && L.speed != null && L.speed >= 0 && L.speed < 50) a.push("slowSite");
+  if(!L.parked && L.https === false) a.push("noHttps");
+  if(L.broken) a.push("siteBroken");
+  if(L.seo && !L.parked){
+    if(L.seo.crawl === false) a.push("notIndexable");
+    if(L.seo.desc === false) a.push("noMetaDesc");
+    if(L.seo.title === false) a.push("noTitle");
+    if(L.seo.mobile === false) a.push("notMobile");
+  }
+  if(L.expiring) a.push("domainExpiring");
+  if(L.risk === "flagged") a.push("unsafeSite");
+  if(m.replies === "no") a.push("noReplies");
+  if(m.posts === "no") a.push("noPosts");
+  if(m.unclaimed === "yes") a.push("unclaimed");
+  if(m.phone === "yes") a.push("phoneMismatch");
+  if(m.hours === "yes"){ a = a.filter(function(k){ return k !== "noHours"; }); a.push("hoursMismatch"); }
+  if(m.fb === "no") a.push("fbStale");
+  a = a.filter(function(k, i){ return CHECKS[k] && a.indexOf(k) === i; });
+  return a.sort(function(x,y){ return CHECKS[y][0]-CHECKS[x][0]; });
+}
+var URGENT = ["siteParked","siteBroken","unsafeSite","unclaimed","domainExpiring","phoneMismatch","recentBadReview"];
+function urgentOf(L){ return allIssues(L).filter(function(k){ return URGENT.indexOf(k) >= 0; }); }
+function scoreOf(L){
+  var w = 0; allIssues(L).forEach(function(k){ w += CHECKS[k][0]; });
+  return Math.max(0, 100 - Math.min(100, w));
+}
+function color(s){ return s < 45 ? "var(--bad)" : (s < 70 ? "var(--warn)" : "var(--good)"); }
+
+/* one short, specific English line per issue (uses the business's own details) */
+function lineFor(k, L, used){
+  used = used || {};
+  var c = L.comp, n = L.reviews;
+  if(c && used.comp && /^(noRating|ratingLow|ratingMid)$/.test(k)) c = null;   // name the competitor only once
+  if(c && /^(noRating|reviews10|reviews20|reviews50)$/.test(k)) used.comp = true;
+  var compRev = c ? (c.above ? c.n + ", which shows up ahead of you on Google Maps, has " + c.r : c.n + " nearby has " + c.r) : "";
+  switch(k){
+    case "noRating": return "Your listing has no star rating yet" + (c ? ", while " + compRev + " reviews." : ".");
+    case "ratingLow": case "ratingMid":
+      if(c && c.rt && c.rt > L.rating) return "Your rating is " + L.rating + " stars, while " + c.n + " nearby has " + c.rt + ".";
+      return "Your rating is " + L.rating + " stars" + (k === "ratingLow" ? ", below the 4-star mark many customers look for." : ", just under the 4.5 that stands out in search.");
+    case "reviews10": case "reviews20": case "reviews50":
+      if(n === 0) return "You have no reviews on Google yet" + (c ? ", while " + compRev + "." : ".");
+      return c ? "You have " + n + " review" + (n === 1 ? "" : "s") + ", while " + compRev + "." : "You have only " + n + " reviews on Google.";
+    case "noWebsite": return "No website is linked on your Google listing.";
+    case "noPhone": return "No phone number is shown on your Google listing.";
+    case "noHours": return "Your business hours are missing on Google, so customers can't tell when to call.";
+    case "hoursMismatch": return "Your hours are on your website but missing on Google.";
+    case "phoneMismatch": return "The phone number on Google" + (L.phone ? " (" + L.phone + ")" : "") + " doesn't match the one on your website.";
+    case "unclaimed": return "Your listing hasn't been claimed. Google shows a \"Claim this business\" button, so anyone can suggest edits to it.";
+    case "fewPhotos": return "Your listing has fewer than 5 photos.";
+    case "stale": return "There have been no new reviews in the last 3 months.";
+    case "noReplies": return "Your reviews have no replies from the owner.";
+    case "noPosts": return "There are no recent posts on your Google listing.";
+    case "slowSite": return "Your website scores " + L.speed + "/100 on Google's own mobile speed test.";
+    case "noHttps": return "Your website shows a \"Not secure\" warning in browsers.";
+    case "noDmarc": return "Your email domain is missing a security record, so your quotes and invoices may land in spam.";
+    case "noSpf": return "Your domain has no SPF record, so your emails may be marked as fake.";
+    case "siteParked": return "The website link on your Google listing (" + hostOf(L.website) + ") now opens a \"domain for sale\" page, so customers who click it can't reach you.";
+    case "catMismatch":
+      if(/^(services?|contractor|service establishment|establishment|point of interest|store|business)$/i.test(L.cat||""))
+        return "Your main Google category is just \"" + L.cat + "\", which is too general, so Google may not show you when people search for " + (lastTrade || "your service") + " in " + cityOf(L) + ".";
+      return "Your main Google category is \"" + (L.cat || "not set") + "\", while the top-ranked businesses for this search in " + cityOf(L) + " use \"" + L.topCat + "\". The main category decides which searches you show up in.";
+    case "recentBadReview": return "A recent low-star review from the last two months is one of the first things new customers see on your listing.";
+    case "siteBroken": return "The website link on your Google listing doesn't open.";
+    case "notIndexable": return "Your website is set to be hidden from Google search.";
+    case "noMetaDesc": return "Your website is missing a description for Google search results.";
+    case "noTitle": return "Your website has no page title for Google.";
+    case "notMobile": return "Your website doesn't fit mobile screens.";
+    case "freeDomain": return "Your website is on a free address (" + hostOf(L.website).split(".").slice(-2).join(".") + ") instead of your own domain.";
+    case "fbAsSite": return "Your Google listing links to Facebook instead of a website.";
+    case "domainExpiring": return "Your website address expires on " + L.expiring + ". If it lapses, your site and email stop working.";
+    case "unsafeSite": return "Google flags your website as unsafe, so some visitors see a red warning.";
+    case "noAttributes": return "Payment and accessibility details are missing on your listing.";
+    case "fbStale": return "Your Facebook page has had no new posts in the last 3 months.";
+  }
+  return CHECKS[k] ? CHECKS[k][2] + "." : "";
+}
+function mailIssues(L){   // drop "no rating" when "no reviews" already says it
+  var a = allIssues(L);
+  if(L.reviews === 0 && a.indexOf("reviews10") >= 0) a = a.filter(function(k){ return k !== "noRating"; });
+  return a;
+}
+function emailFor(L){
+  var all = mailIssues(L), top = all.slice(0,3), used = {};
+  var count = all.length;
+  var subject = count >= 3 ? L.name + ": 3 issues on your Google listing" : "A quick note about " + L.name + "'s Google listing";
+  var adsNote = (L.manual && L.manual.ads === "yes") ? "I noticed you're running Facebook ads, but your Google listing may be losing the customers who search on Google instead. " : "";
+  var intro = adsNote + (count > 3
+    ? "I reviewed your Google Maps listing and found " + count + " issues that may be costing you calls. The top three:"
+    : "I reviewed your Google Maps listing and found a few issues that may be costing you calls:");
+  var lines = top.map(function(k, i){ return (i+1) + ". " + lineFor(k, L, used); }).join("\n");
+  var offer = count > 3
+    ? "I can send you the full list with step-by-step fixes, free of charge. Would that be helpful?"
+    : "I can send you the step-by-step fixes, free of charge. Would that be helpful?";
+  return "Subject: " + subject + "\n\n" +
+    "Hi " + L.name + " team,\n\n" +
+    intro + "\n\n" + (lines || "1. Your listing could use a few updates.") + "\n\n" +
+    offer + signature();
+}
+function signature(){
+  var s = function(id){ return ($(id).value||"").trim(); };
+  var optOut = "If you'd prefer not to hear from me, just reply \"no\" and I won't contact you again.";
+  return $("useSig").checked ? "" : "\n\n" +   // Gmail's own signature already has the name, address and opt-out line
+    "Best regards,\n" + (s("myName")||"[Your name]") + "\nMapPeak Local | Google Business Profile Support\n" + (s("myEmail")||"[Your email]") + "\nhttps://asifali549.github.io/mappeak-local/\n\n" +
+    (s("myAddr")||"[Your mailing address]") + "\n\n" + optOut;
+}
+
+/* ---------- email security (DMARC) check: free public DNS, no Google credit ---------- */
+var PLATFORM = /(^|\.)(facebook\.com|instagram\.com|google\.com|business\.site|g\.page|yelp\.com|linktr\.ee|nextdoor\.com|angi\.com|homeadvisor\.com|thumbtack\.com|wixsite\.com|godaddysites\.com|square\.site|weebly\.com)$/i;
+function domainOf(url){
+  try{ var h = new URL(url).hostname.toLowerCase().replace(/^www\./,""); return PLATFORM.test(h) ? "" : h; }catch(e){ return ""; }
+}
+async function dns(name, type){
+  var q = "name=" + encodeURIComponent(name) + "&type=" + type;
+  try{
+    var r = await fetch("https://dns.google/resolve?" + q);
+    if(r.ok) return await r.json();
+  }catch(e){}
+  try{   // second free public DNS service, in case the first is blocked on this phone
+    var r2 = await fetch("https://cloudflare-dns.com/dns-query?" + q, { headers:{ "accept":"application/dns-json" } });
+    if(r2.ok) return await r2.json();
+  }catch(e){}
+  try{
+    var r3 = await fetch("https://dns.quad9.net:5053/dns-query?" + q);
+    if(r3.ok) return await r3.json();
+  }catch(e){}
+  throw new Error("dns");
+}
+async function mailCheck(L){
+  var d = domainOf(L.website);
+  if(!d){ L.mail = "na"; return; }
+  try{
+    var mx = await dns(d, "MX");
+    if(!mx.Answer || !mx.Answer.some(function(a){ return a.type === 15; })){ L.mail = "na"; return; }
+    var dm = await dns("_dmarc." + d, "TXT");
+    var has = (dm.Answer||[]).some(function(a){ return /v=DMARC1/i.test(a.data||""); });
+    L.mail = has ? "ok" : "missing";
+    try{
+      var sp = await dns(d, "TXT");
+      L.spf = (sp.Answer||[]).some(function(a){ return /v=spf1/i.test(a.data||""); });
+    }catch(e){}
+  }catch(e){ L.mail = "unknown"; }
+}
+/* domain expiry: free public registry lookup (RDAP), no key, no Google credit */
+async function expiryCheck(L){
+  var d = domainOf(L.website);
+  L.exp = "done";
+  if(!d) return;
+  var base = d.split(".").slice(-2).join(".");
+  var tld = base.split(".").pop();
+  var urls = (tld === "com" || tld === "net")
+    ? ["https://rdap.verisign.com/" + tld + "/v1/domain/" + base, "https://rdap.org/domain/" + base]
+    : ["https://rdap.org/domain/" + base];
+  for(var i=0;i<urls.length;i++){
+    try{
+      var r = await fetch(urls[i]); if(!r.ok) continue;
+      var j = await r.json();
+      var ev = (j.events||[]).filter(function(e){ return /expiration/i.test(e.eventAction||""); })[0];
+      if(ev){
+        var t = Date.parse(ev.eventDate);
+        if(t && t - Date.now() < 60*864e5 && t > Date.now() - 30*864e5){ L.expiring = new Date(t).toISOString().slice(0,10); }
+      }
+      return;
+    }catch(e){}
+  }
+}
+/* unsafe-site check: Google Web Risk, Lookup API only (first 100,000 a month free) */
+async function riskCheck(L){
+  var key = ($("apiKey").value||"").trim();
+  if(!key || !L.website){ L.risk = "na"; return; }
+  try{
+    var u = "https://webrisk.googleapis.com/v1/uris:search?threatTypes=MALWARE&threatTypes=SOCIAL_ENGINEERING&threatTypes=UNWANTED_SOFTWARE" +
+      "&uri=" + encodeURIComponent(L.website) + "&key=" + encodeURIComponent(key);
+    var r = await fetch(u);
+    if(!r.ok){ L.risk = "unknown"; return; }
+    var j = await r.json();
+    L.risk = (j && j.threat) ? "flagged" : "safe";
+  }catch(e){ L.risk = "unknown"; }
+}
+async function checkMailAll(){
+  var todo = leads.filter(function(L){ return L.website && L.country !== "PK" &&
+    (!L.mail || L.mail === "unknown" || ((L.mail === "ok" || L.mail === "missing") && L.spf === undefined)); });
+  for(var i=0;i<todo.length;i++){ await mailCheck(todo[i]); }
+  var t2 = leads.filter(function(L){ return L.website && !L.exp; });
+  for(var j=0;j<t2.length;j++){ await expiryCheck(t2[j]); }
+  var t3 = leads.filter(function(L){ return L.website && (!L.risk || L.risk === "unknown"); });
+  for(var k=0;k<t3.length;k++){ await riskCheck(t3[k]); }
+  if(todo.length || t2.length || t3.length) render();
+  checkSpeedAll();
+}
+
+/* ---------- website check: Google PageSpeed Insights (mobile score + HTTPS), free API ---------- */
+async function psi(url, key){
+  var base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?strategy=mobile&category=performance&category=seo&url=" + encodeURIComponent(url);
+  var r = await fetch(base + (key ? "&key=" + encodeURIComponent(key) : ""));
+  if((r.status === 403 || r.status === 400) && key){ r = await fetch(base); }   // key not allowed for this API: try without key
+  if(!r.ok){
+    var body = ""; try{ body = await r.text(); }catch(e){}
+    var err = new Error("psi " + r.status);
+    err.broken = /FAILED_DOCUMENT_REQUEST|ERRORED_DOCUMENT_REQUEST|DNS_FAILURE|NOT_HTML/.test(body);
+    throw err;
+  }
+  return r.json();
+}
+function auditOk(lr, id){ var a = lr.audits && lr.audits[id]; return (a && a.score === 0) ? false : (a && a.score != null ? true : undefined); }
+async function speedCheck(L){
+  if(!L.website || !domainOf(L.website)){ L.speed = -1; return; }
+  try{
+    var j = await psi(L.website, ($("apiKey").value||"").trim());
+    var lr = j.lighthouseResult || {};
+    var perf = lr.categories && lr.categories.performance && lr.categories.performance.score;
+    L.speed = (perf == null) ? -2 : Math.round(perf * 100);
+    var fin = String(lr.finalDisplayedUrl || lr.finalUrl || L.website);
+    var httpsAudit = lr.audits && lr.audits["is-on-https"];
+    L.https = /^https:/i.test(fin) && !(httpsAudit && httpsAudit.score === 0);
+    L.broken = auditOk(lr, "http-status-code") === false;
+    var finHost = hostOf(fin);
+    L.parked = /(^|\.)(forsale\.godaddy\.com|afternic\.com|sedo\.com|dan\.com|hugedomains\.com|bodis\.com|parkingcrew\.net|above\.com|undeveloped\.com|sav\.com|atom\.com|squadhelp\.com|domainmarket\.com|buydomains\.com)$/.test(finHost);
+    L.seo = { crawl:auditOk(lr,"is-crawlable"), desc:auditOk(lr,"meta-description"), title:auditOk(lr,"document-title"), mobile:auditOk(lr,"viewport") };
+    var shot = lr.audits && lr.audits["final-screenshot"] && lr.audits["final-screenshot"].details;
+    if(shot && shot.data) shots[L.id] = shot.data;
+  }catch(e){ L.speed = -2; if(e && e.broken) L.broken = true; }
+}
+var speedRunning = false;
+async function checkSpeedAll(){
+  if(speedRunning) return; speedRunning = true;
+  try{
+    var todo = leads.filter(function(L){ return L.website && (L.speed == null || (L.speed >= 0 && L.seo === undefined)); });
+    for(var i=0;i<todo.length;i++){ await speedCheck(todo[i]); render(true); }
+    if(todo.length) render();
+  } finally { speedRunning = false; }
+}
+function speedBadge(L){
+  if(!L.website) return "";
+  if(L.speed == null) return '<span class="pill">ویب سائٹ کی جانچ ہو رہی ہے</span>';
+  if(L.parked) return '<span class="pill" style="color:var(--bad)">ویب سائٹ کا پتہ برائے فروخت</span>';
+  if(L.broken) return '<span class="pill" style="color:var(--bad)">ویب سائٹ نہیں کھلتی</span>';
+  if(L.speed === -2) return '<span class="pill">ویب سائٹ کی جانچ نہیں ہو سکی</span>';
+  if(L.speed < 0) return "";
+  var c = L.speed < 50 ? "var(--bad)" : (L.speed < 90 ? "var(--warn)" : "var(--good)");
+  return '<span class="pill" style="color:'+c+'">موبائل رفتار: <b class="en">'+L.speed+'</b></span>' +
+    (L.https === false ? '<span class="pill" style="color:var(--bad)">حفاظتی تالا نہیں</span>' : "");
+}
+function mailBadge(L){
+  if(L.country === "PK" || L.parked) return "";
+  if(L.mail === "ok") return '<span class="pill" style="color:var(--good)">ای میل کی مہر: ٹھیک</span>';
+  if(L.mail === "missing") return '<span class="pill" style="color:var(--bad)">ای میل کی مہر: نہیں</span>';
+  if(L.mail === "na") return '<span class="pill">اپنی ای میل نہیں</span>';
+  if(L.website && !L.mail) return '<span class="pill">ای میل کی جانچ ہو رہی ہے</span>';
+  if(L.mail === "unknown") return '<span class="pill">ای میل کی جانچ نہیں ہو سکی</span>';
+  return "";
+}
+function riskBadge(L){
+  if(L.risk === "flagged") return '<span class="pill" style="color:var(--bad)">گوگل: خطرناک ویب سائٹ</span>';
+  if(L.risk === "safe") return '<span class="pill" style="color:var(--good)">ویب سائٹ محفوظ</span>';
+  return "";
+}
+function compLine(L){
+  var catLine = L.cat ? '<div class="en" style="text-align:left;font-size:14px;margin-top:4px;color:#667">API type: ' + esc(L.cat) +
+    (L.topCat ? ' (top businesses: ' + esc(L.topCat) + ')' : '') + '</div>' : '';
+  if(!L.comp) return catLine;
+  return catLine + '<div class="en" style="text-align:left;font-size:14px;margin-top:4px">' +
+    (L.comp.above ? "Above them on Google: " : "Nearby: ") + esc(L.comp.n) + " &middot; " + L.comp.r + " reviews" + (L.comp.rt ? " &middot; " + L.comp.rt + "&#9733;" : "") + "</div>";
+}
+function reportFor(L){
+  var used = {};
+  var lines = mailIssues(L).map(function(k,i){ return (i+1) + ". " + lineFor(k, L, used) + "\n   Fix: " + CHECKS[k][3]; }).join("\n");
+  return "Google Business Profile Review\n" + L.name + " - " + L.address + "\n\n" +
+    "Rating: " + (L.rating==null?"none":L.rating) + " | Reviews: " + L.reviews + "\n" +
+    "Profile score: " + scoreOf(L) + "/100\n\n" +
+    "What we found:\n" + (lines || "No major issues found.") + "\n\n" +
+    "Prepared by MapPeak Local. We never post fake reviews or offer incentives for reviews; all recommendations follow Google's guidelines.";
+}
+
+function copy(t){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){ toast("کاپی ہو گیا"); }, function(){ fallbackCopy(t); });
+  } else fallbackCopy(t);
+}
+function fallbackCopy(t){
+  var ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); toast("کاپی ہو گیا"); }catch(e){ alert(t); }
+  document.body.removeChild(ta);
+}
+
+function saveLeads(){ store.set("mp_leads", JSON.stringify({trade:lastTrade, leads:leads})); }
+function removeLead(id){ leads = leads.filter(function(x){ return x.id !== id; }); render(); }
+function cityOf(L){ var parts = (L.address||"").split(","); return parts.length > 2 ? parts[parts.length-3].trim() : (L.town||""); }
+function gUrl(L){ return "https://www.google.com/search?q=" + encodeURIComponent('"' + L.name + '" ' + cityOf(L) + ' email'); }
+function adsUrl(L){ return "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=" + (L.country === "PK" ? "PK" : "US") + "&search_type=keyword_unordered&q=" + encodeURIComponent(L.name); }
+function fbUrl(L){ return "https://www.facebook.com/search/pages/?q=" + encodeURIComponent(L.name + " " + cityOf(L)); }
+function q(text, key){
+  return '<div>'+text+'</div><div class="yn" data-k="'+key+'"><button class="btn2" data-v="yes">ہاں</button><button class="btn2" data-v="no">نہیں</button></div>';
+}
+function render(keepOrder){
+  saveLeads();
+  leads.forEach(function(L){ L.score = scoreOf(L); });
+  var adsFirst = function(L){ return (L.manual && L.manual.ads === "yes") ? -1000 : 0; };
+  var urg = function(L){ return urgentOf(L).length ? -500 : 0; };
+  if(!keepOrder) leads.sort(function(a,b){ return (adsFirst(a) + urg(a) + a.score) - (adsFirst(b) + urg(b) + b.score); });
+  $("foundCount").textContent = leads.length;
+  var box = $("results"); box.innerHTML = "";
+  var onlyUrgent = $("urgentOnly").checked;
+  leads.forEach(function(L, idx){
+    if(onlyUrgent && !urgentOf(L).length) return;
+    var d = document.createElement("div"); d.className = "lead";
+    var urIssues = allIssues(L).map(function(k){ return "<li>"+CHECKS[k][1]+"</li>"; }).join("") || "<li>کوئی بڑی غلطی نہیں ملی</li>";
+    d.innerHTML =
+      '<div class="top"><div class="score" style="background:'+color(L.score)+'">'+L.score+'</div>'+
+      '<div style="flex:1;min-width:0"><div class="name">'+esc(L.name)+'</div>'+
+      '<div class="meta en" style="text-align:left">'+esc(L.address)+'</div>'+
+      '<div class="stat" style="margin-top:4px"><span class="pill">ریٹنگ <b class="en">'+(L.rating==null?"-":L.rating)+'</b></span>'+
+      '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+mailBadge(L)+speedBadge(L)+riskBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
+      '<div class="body"><b>غلطیاں:</b><ul>'+urIssues+'</ul>'+
+      '<div class="en" style="text-align:left;font-size:15px">'+(L.phone?esc(L.phone)+" &middot; ":"")+(L.website?'<a target="_blank" rel="noopener" href="'+esc(L.website)+'">Website</a>':'No website')+'</div>'+
+      compLine(L)+
+      (shots[L.id] ? '<div style="margin-top:8px"><div class="hint" style="margin:0 0 4px">ان کی ویب سائٹ موبائل پر ایسی دکھتی ہے:</div><img alt="" src="'+shots[L.id]+'" style="max-width:150px;border:1px solid #ccd;border-radius:8px"></div>' : '')+
+      '<div class="manual"><b>گوگل میپس کھول کر یہ چیزیں دیکھیں:</b>'+
+      q("کیا لسٹنگ پر کلیم کرنے کا بٹن نظر آتا ہے؟", "unclaimed")+
+      q("کیا مالک نے ریویو کے جواب دیے ہیں؟", "replies")+
+      q("کیا پچھلے مہینے میں کوئی پوسٹ ہے؟", "posts")+
+      (L.website && !L.parked && !/fbAsSite/.test(L.issues.join(",")) ?
+        '<b style="display:block;margin-top:8px">ویب سائٹ کھول کر دیکھیں:</b>'+
+        q("کیا ویب سائٹ کا فون نمبر گوگل والے نمبر سے الگ ہے؟", "phone")+
+        (L.issues.indexOf("noHours") >= 0 ? q("کیا ویب سائٹ پر کھلنے کے اوقات لکھے ہیں؟", "hours") : "") : "")+
+      '<b style="display:block;margin-top:8px">فیس بک پر تلاش کر کے دیکھیں:</b>'+
+      q("کیا فیس بک پر پچھلے تین مہینے میں کوئی پوسٹ ہے؟", "fb")+
+      q("کیا اس کاروبار کے فیس بک اشتہار چل رہے ہیں؟", "ads")+
+      '</div>'+
+      '<div class="btns">'+
+      (L.maps?'<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(L.maps)+'">گوگل میپس پر کھولیں</a>':'')+
+      '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(gUrl(L))+'">گوگل پر تلاش</a>'+
+      '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(fbUrl(L))+'">فیس بک پر تلاش</a>'+
+      '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(adsUrl(L))+'">فیس بک اشتہار دیکھیں</a>'+
+      (L.country === "PK"
+        ? (waNum(L.phone) ? '<a class="btn btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
+          '<button class="btn2 btn-sm" data-a="urdu">بنیادی پیغام کاپی کریں</button>'
+        : '<button class="btn2 btn-sm" data-a="email">ای میل کاپی کریں</button>'+
+          '<button class="btn2 btn-sm" data-a="report">رپورٹ کاپی کریں</button>')+
+      '<button class="btn2 btn-sm" data-a="sent">'+(L.country === "PK" ? "پیغام بھیج دیا" : "ای میل بھیج دی")+'</button>'+
+      '<button class="btn2 btn-sm" data-a="skip">چھوڑ دیں</button></div></div>';
+    d.querySelectorAll(".yn").forEach(function(g){
+      var k = g.getAttribute("data-k");
+      g.querySelectorAll("button").forEach(function(b){
+        if(L.manual[k] === b.getAttribute("data-v")) b.classList.add("on");
+        b.onclick = function(){ L.manual[k] = b.getAttribute("data-v"); render(true); };   // keep cards in place while answering
+      });
+    });
+    var eb = d.querySelector('[data-a="email"]'); if(eb) eb.onclick = function(){ copy(emailFor(L)); };
+    var rb = d.querySelector('[data-a="report"]'); if(rb) rb.onclick = function(){ copy(reportFor(L)); };
+    var ub = d.querySelector('[data-a="urdu"]'); if(ub) ub.onclick = function(){ copy(urduMsg(L)); };
+    d.querySelector('[data-a="sent"]').onclick = function(){ if(!L.sent){ addSent(); addFollow(L); } addSeen(L.id); L.sent = true; render(true); toast("نشان لگ گیا، یہ دوبارہ تلاش میں نہیں آئے گا"); };
+    d.querySelector('[data-a="skip"]').onclick = function(){ if(confirm("اس کاروبار کو فہرست سے ہٹا دیں؟")){ addSeen(L.id); removeLead(L.id); toast("ہٹا دیا"); } };
+    if(L.sent){ var sb = d.querySelector('[data-a="sent"]'); sb.textContent = L.country === "PK" ? "پیغام جا چکا" : "ای میل بھیجی جا چکی"; sb.style.background = "var(--good)"; sb.style.color = "#fff"; }
+    box.appendChild(d);
+  });
+  var pending = leads.filter(function(L){ return L.website && (L.speed == null || L.risk == null || !L.exp); }).length;
+  if(onlyUrgent && leads.length && !box.children.length && pending){
+    box.innerHTML = '<p class="hint">ویب سائٹ کی جانچیں ابھی جاری ہیں، <b class="en">' + pending + '</b> کاروبار باقی ہیں۔ دو تین منٹ رکیں، فوری مسئلے والے خود یہاں آ جائیں گے۔</p>';
+  } else if(onlyUrgent && leads.length && !box.children.length){
+    box.innerHTML = '<p class="hint">اس تلاش میں کوئی فوری مسئلے والا کاروبار نہیں ملا۔ اوپر والا نشان ہٹا کر سب دیکھیں، یا دوسرا شہر یا کام تلاش کریں۔ کلیم اور فون نمبر والے فوری مسئلے صرف ہاتھ سے دیکھنے پر پکڑے جاتے ہیں۔</p>';
+  }
+}
+
+/* pick one real local competitor: the business with the most reviews that Google shows ahead of this one */
+function assignComps(){
+  leads.forEach(function(L){
+    var list = pool[L.town] || []; if(!list.length) return;
+    var idx = -1; list.forEach(function(x, i){ if(idx < 0 && x.id === L.id) idx = i; });
+    var better = list.filter(function(x){ return x.id !== L.id && x.r > L.reviews && x.n; });
+    var local = better.filter(function(x){ return x.r <= 1500; });
+    if(local.length) better = local;
+    var above = better.filter(function(x){ return idx >= 0 && list.indexOf(x) < idx; });
+    var pickFrom = above.length ? above : better;
+    if(!pickFrom.length){ L.comp = null; return; }
+    var c = pickFrom.slice().sort(function(a,b){ return b.r - a.r; })[0];
+    L.comp = { n:c.n, r:c.r, rt:c.rt, above: above.length > 0, cat:c.c };
+  });
+  /* main category check: what do the top 3 businesses Google shows for this search use? */
+  leads.forEach(function(L){
+    var list = (pool[L.town] || []).filter(function(x){ return x.id !== L.id && x.t; }).slice(0,3);
+    var cnt = {}; list.forEach(function(x){ cnt[x.t] = (cnt[x.t]||0) + 1; });
+    var best = Object.keys(cnt).sort(function(a,b){ return cnt[b]-cnt[a]; })[0];
+    L.topCat = null;
+    if(best && cnt[best] >= 2 && L.ptype && L.ptype !== best){
+      var x = list.filter(function(y){ return y.t === best; })[0];
+      L.topCat = x.c || best.replace(/_/g," ");
+    }
+  });
+  render();
+}
+function countryOf(addr, fallback){
+  var a = String(addr||"");
+  if(/(USA|United States)\s*$/i.test(a)) return "US";
+  if(/Pakistan\s*$/i.test(a)) return "PK";
+  return fallback || "US";
+}
+function toLead(p, town, country){
+  country = countryOf(p.formattedAddress, country);
+  var L = { id:p.id, name:(p.displayName&&p.displayName.text)||"", address:p.formattedAddress||"", town:town,
+    rating:(p.rating==null?null:p.rating), reviews:p.userRatingCount||0, phone:p.nationalPhoneNumber||"",
+    website:p.websiteUri||"", maps:p.googleMapsUri||"", issues:evaluate(p), manual:{replies:null,posts:null},
+    cat:(p.primaryTypeDisplayName&&p.primaryTypeDisplayName.text)||"", ptype:p.primaryType||"",
+    country: country || "US" };
+  if(L.country === "PK") L.mail = "na";
+  return L;
+}
+/* ---------- Pakistan: WhatsApp + Urdu message (no links inside the message) ---------- */
+function waNum(phone){
+  var d = String(phone||"").replace(/[^0-9]/g,"");
+  if(/^03\d{9}$/.test(d)) return "92" + d.slice(1);
+  if(/^923\d{9}$/.test(d)) return d;
+  return "";
+}
+var UR_ISSUE = {
+  noRating:"ابھی تک کوئی ریٹنگ نہیں", ratingLow:"ریٹنگ کم ہے", ratingMid:"ریٹنگ کچھ کم ہے",
+  reviews10:"بہت کم ریویو ہیں", reviews20:"ریویو کم ہیں", reviews50:"ریویو اور ہونے چاہئیں",
+  noPhone:"فون نمبر نہیں لکھا", noHours:"کھلنے اور بند ہونے کا وقت نہیں لکھا", fewPhotos:"تصویریں بہت کم ہیں",
+  stale:"کافی عرصے سے کوئی نیا ریویو نہیں", noReplies:"ریویو کے جواب نہیں دیے گئے", noPosts:"کوئی نئی پوسٹ نہیں",
+  unclaimed:"لسٹنگ ابھی آپ کے نام پر نہیں، کوئی بھی اس میں تبدیلی کی تجویز دے سکتا ہے", fbStale:"فیس بک پیج پر کافی عرصے سے کوئی پوسٹ نہیں",
+  phoneMismatch:"گوگل اور دوسری جگہوں پر فون نمبر الگ الگ ہے"
+};
+function urduMsg(L){
+  var top = allIssues(L).filter(function(k){ return UR_ISSUE[k]; }).slice(0,3).map(function(k){ return "• " + UR_ISSUE[k]; }).join("\n");
+  var me = ($("myIntroUr").value||"").trim() || "محمد آصف رضا";
+  return "السلام علیکم،\n" +
+    "میں " + me + " سے بات کر رہا ہوں۔\n\n" +
+    (L.manual && L.manual.ads === "yes" ? "میں نے دیکھا کہ آپ فیس بک پر اشتہار کے پیسے لگا رہے ہیں، لیکن گوگل پر گاہک آپ کو آسانی سے نہیں ڈھونڈ پاتے۔\n" : "") +
+    "میں نے گوگل نقشے پر آپ کا کاروبار " + L.name + " دیکھا۔ اس میں یہ کمی ہے، جس کی وجہ سے کئی گاہک آپ تک نہیں پہنچ پاتے:\n" +
+    (top || "• لسٹنگ کو مکمل کرنے کی ضرورت ہے") + "\n" +
+    (L.comp ? "• آپ کے علاقے میں " + L.comp.n + " کے " + L.comp.r + " ریویو ہیں، اس لیے گاہک پہلے انہیں دیکھتا ہے\n" : "") + "\n" +
+    "میں یہ ٹھیک کرتا ہوں۔ پہلے کام کروں گا، پسند آئے تو پیسے دیجیے گا۔ نہ کوئی پاس ورڈ چاہیے، نہ کوئی کوڈ۔\n\n" +
+    "اگر دلچسپی ہو تو جواب دے دیجیے۔ شکریہ۔";
+}
+function waUrl(L){ return "https://wa.me/" + waNum(L.phone); }   // opens an empty chat: each business gets its own written message
+function passes(p, f){
+  if(p.businessStatus && p.businessStatus !== "OPERATIONAL") return false;
+  var nm = normName(p.displayName && p.displayName.text);
+  if(hiddenNames().some(function(h){ var x = normName(h); return x && nm && (nm === x || nm.indexOf(x) === 0 || x.indexOf(nm) === 0); })) return false;
+  if(p.rating != null && p.rating > f.maxRating) return false;
+  if((p.userRatingCount||0) > f.maxReviews) return false;
+  if((p.userRatingCount||0) < f.minReviews) return false;
+  if(p.reviews && (p.userRatingCount||0) >= 5){   // many reviews but newest older than two years: probably inactive (few reviews = just neglected, keep)
+    var newest = 0; p.reviews.forEach(function(rv){ var t = Date.parse(rv.publishTime||""); if(t > newest) newest = t; });
+    if(newest && (Date.now() - newest) > 730*864e5) return false;
+  }
+  if(f.needWeb && !p.websiteUri) return false;
+  return true;
+}
+
+function apiError(status, body){
+  var msg = (body && body.error && body.error.message) || "";
+  if(status === 403 || status === 400 && /API key/i.test(msg)) return "چابی میں مسئلہ ہے۔ ترتیبات میں چابی دوبارہ چیک کریں۔";
+  if(status === 429) return "گوگل کی حد پوری ہو گئی ہے۔ کل دوبارہ کوشش کریں۔";
+  return "گوگل سے غلطی آئی: " + status;
+}
+
+async function search(text, key, token){
+  var body = { textQuery:text, pageSize:20, languageCode:"en", regionCode:($("country").value === "PK" ? "PK" : "US") };
+  if(token) body.pageToken = token;
+  var res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method:"POST", headers:{ "Content-Type":"application/json", "X-Goog-Api-Key":key, "X-Goog-FieldMask":FIELDS },
+    body: JSON.stringify(body) });
+  var data = null; try{ data = await res.json(); }catch(e){}
+  if(!res.ok) throw new Error(apiError(res.status, data));
+  return data || {};
+}
+
+var running = false;
+$("go").onclick = async function(){
+  if(running) return;
+  var key = ($("apiKey").value||"").trim();
+  if(!key){ $("setBox").open = true; log("پہلے ترتیبات میں گوگل کی چابی لکھ کر محفوظ کریں۔"); return; }
+  var f = { maxRating: parseFloat($("maxRating").value)||5, maxReviews: parseInt($("maxReviews").value,10)||0,
+    target: parseInt($("target").value,10)||10, minReviews: parseInt($("minReviews").value,10)||0, runLimit: parseInt($("runLimit").value,10)||1,
+    dayLimit: parseInt($("dayLimit").value,10)||1, needWeb: $("needWeb").checked };
+  lastTrade = ($("trade").value||"").trim();
+  lastTowns = ($("towns").value||"").split("\n").map(function(s){return s.trim();}).filter(Boolean);
+  if(!lastTrade || !lastTowns.length){ log("کام کی قسم اور کم از کم ایک شہر لکھیں۔"); return; }
+  var ctry = $("country").value === "PK" ? "PK" : "US";
+  running = true; $("go").textContent = "تلاش جاری ہے...";
+  leads = []; pool = {}; render();
+  var seen = seenIds(), ids = {}, runCount = 0, stopWhy = "";
+  try{
+    outer:
+    for(var t=0; t<lastTowns.length; t++){
+      var town = lastTowns[t], token = null, pages = 0;
+      do{
+        if(getCount() >= f.dayLimit){ stopWhy = "آج کی روزانہ حد پوری ہو گئی۔"; break outer; }
+        if(runCount >= f.runLimit){ stopWhy = "اس بار کی تلاش کی حد پوری ہو گئی۔"; break outer; }
+        log("تلاش ہو رہی ہے: " + town);
+        var data = await search(lastTrade + " in " + town + (ctry === "PK" && !/pakistan/i.test(town) ? ", Pakistan" : ""), key, token);
+        runCount++; addCount(); pages++;
+        (data.places||[]).forEach(function(p){
+          addWatch(p, town);
+          if(!p.businessStatus || p.businessStatus === "OPERATIONAL"){
+            (pool[town] = pool[town] || []).push({ id:p.id, n:(p.displayName&&p.displayName.text)||"", r:p.userRatingCount||0, rt:p.rating||null,
+              t:p.primaryType||"", c:(p.primaryTypeDisplayName&&p.primaryTypeDisplayName.text)||"" });
+          }
+          if(ids[p.id] || seen.indexOf(p.id) >= 0) return;
+          ids[p.id] = 1;
+          if(passes(p, f)) leads.push(toLead(p, town, ctry));
+        });
+        render();
+        if(leads.length >= f.target){ stopWhy = "مطلوبہ تعداد پوری ہو گئی، تلاش روک دی۔"; break outer; }
+        token = data.nextPageToken || null;
+      } while(token && pages < 3);
+    }
+    if(!stopWhy) stopWhy = "سب شہر دیکھ لیے۔";
+    assignComps();
+    log(stopWhy + " اس بار " + runCount + " تلاش ہوئیں، " + leads.length + " کاروبار ملے۔");
+    saveWatch(); showWatch();
+    checkMailAll();
+  }catch(e){
+    log((e && e.message && /[؀-ۿ]/.test(e.message)) ? e.message : "انٹرنیٹ یا گوگل سے رابطہ نہیں ہو سکا۔ انٹرنیٹ چیک کر کے دوبارہ کوشش کریں۔");
+  }
+  running = false; $("go").textContent = "تلاش شروع کریں";
+};
+
+/* look up one business by name: ignores filters and the already-contacted list */
+$("goName").onclick = async function(){
+  if(running) return;
+  var key = ($("apiKey").value||"").trim();
+  if(!key){ $("setBox").open = true; log("پہلے ترتیبات میں گوگل کی چابی لکھ کر محفوظ کریں۔"); return; }
+  var q = ($("byName").value||"").trim();
+  if(!q){ log("کاروبار کا نام لکھیں، ساتھ شہر بھی۔"); return; }
+  var ctry = $("country").value === "PK" ? "PK" : "US";
+  if(getCount() >= (parseInt($("dayLimit").value,10)||1)){ log("آج کی روزانہ حد پوری ہو گئی۔"); return; }
+  running = true; $("goName").textContent = "تلاش جاری ہے...";
+  try{
+    var data = await search(q + (ctry === "PK" && !/pakistan/i.test(q) ? ", Pakistan" : ""), key, null);
+    addCount();
+    var found = (data.places||[]).slice(0, 3), added = 0;
+    found.forEach(function(p){
+      if(leads.some(function(L){ return L.id === p.id; })) return;
+      var L = toLead(p, q, ctry); leads.unshift(L); added++;
+    });
+    render(true);
+    log(found.length ? ("نام سے " + found.length + " نتیجے ملے، سب سے اوپر دکھا دیے۔ ایک کریڈٹ لگا۔") : "اس نام سے کچھ نہیں ملا۔ نام انگریزی میں اور ساتھ شہر لکھ کر دوبارہ کوشش کریں۔");
+    if(added) checkMailAll();
+  }catch(e){
+    log((e && e.message && /[؀-ۿ]/.test(e.message)) ? e.message : "انٹرنیٹ یا گوگل سے رابطہ نہیں ہو سکا۔");
+  }
+  running = false; $("goName").textContent = "نام سے تلاش کریں";
+};
+
+/* restore last results so a page reload never costs a new search */
+try{
+  var saved = JSON.parse(store.get("mp_leads","null"));
+  if(saved && saved.leads && saved.leads.length){ lastTrade = saved.trade || ""; leads = saved.leads;
+    leads.forEach(function(L){ var c = countryOf(L.address, L.country); if(L.country === "PK" && c === "US"){ delete L.mail; } L.country = c;
+      if(L.website && L.issues.indexOf("freeDomain") < 0 && L.issues.indexOf("fbAsSite") < 0){   // older saved results: add the free-address check
+        var h = hostOf(L.website);
+        if(/(^|\.)(facebook\.com|fb\.com|instagram\.com)$/.test(h)) L.issues.push("fbAsSite"); else if(FREEHOST.test(h)) L.issues.push("freeDomain");
+      } });
+    render(); log("پچھلی تلاش کے نتیجے واپس آ گئے۔ اس پر کوئی کریڈٹ نہیں لگا۔"); checkMailAll(); }
+}catch(e){}
+
+/* ---------- suspended-listing watch ---------- */
+var watch = {}; try{ watch = JSON.parse(store.get("mp_watch","{}")) || {}; }catch(e){ watch = {}; }
+var gone = []; try{ gone = JSON.parse(store.get("mp_gone","[]")) || []; }catch(e){ gone = []; }
+function saveWatch(){
+  var keys = Object.keys(watch);
+  if(keys.length > 3000){ keys.sort(function(a,b){ return (watch[a].d||0)-(watch[b].d||0); }).slice(0, keys.length-3000).forEach(function(k){ delete watch[k]; }); }
+  store.set("mp_watch", JSON.stringify(watch));
+}
+function saveGone(){ store.set("mp_gone", JSON.stringify(gone)); }
+function addWatch(p, town){
+  if(!p || !p.id) return;
+  if(p.businessStatus && p.businessStatus !== "OPERATIONAL") return;
+  if(watch[p.id]) return;
+  watch[p.id] = { n:(p.displayName&&p.displayName.text)||"", w:p.websiteUri||"", p:p.nationalPhoneNumber||"",
+    a:p.formattedAddress||"", t:town, tr:lastTrade, r:p.userRatingCount||0, d:Date.now() };
+}
+function showWatch(){
+  $("watchCount").textContent = Object.keys(watch).length;
+  $("goneCount").textContent = gone.length;
+  var last = store.get("mp_watchLast","");
+  $("watchLast").textContent = last ? ("پچھلی جانچ: " + last) : "ابھی تک کوئی جانچ نہیں ہوئی۔";
+  renderGone();
+}
+function mapsSearch(g){ return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(g.n + " " + (g.t||"")); }
+function goneEmail(g){
+  return "Subject: Your Google Maps listing for " + g.n + "\n\n" +
+    "Hi " + g.n + " team,\n\n" +
+    "I was looking at local " + (g.tr||"service") + " businesses in " + (g.t||"your area") + " and noticed that " + g.n + " no longer shows up on Google Maps, even though your website is still online.\n\n" +
+    "This sometimes happens when Google suspends a Business Profile, often after a small edit or an automated check, and appeals are currently taking several weeks.\n\n" +
+    "If your profile was suspended, I help genuine local businesses prepare a clear reinstatement request with the right documents, following Google's guidelines. If it's already sorted, or you removed the listing on purpose, please ignore this note.\n\n" +
+    "Would you like a hand with it?" + signature();
+}
+function renderGone(){
+  var box = $("goneList"); box.innerHTML = "";
+  gone.forEach(function(g){
+    var d = document.createElement("div"); d.className = "lead";
+    d.innerHTML =
+      '<div class="body"><div class="name">'+esc(g.n)+'</div>'+
+      '<div class="meta en" style="text-align:left">'+esc(g.a||g.t||"")+'</div>'+
+      '<div class="en" style="text-align:left;font-size:15px">'+(g.p?esc(g.p)+" &middot; ":"")+(g.w?'<a target="_blank" rel="noopener" href="'+esc(g.w)+'">Website</a>':'No website')+'</div>'+
+      '<div class="manual"><b>پہلے یہ دو چیزیں دیکھیں:</b><div>ایک: نیچے والے بٹن سے گوگل نقشے پر نام تلاش کریں۔ اگر کاروبار وہاں مل جائے تو یہ غلط نشان ہے، اسے ہٹا دیں۔</div><div>دو: ویب سائٹ کھولیں۔ اگر ویب سائٹ بند ہے تو شاید کاروبار ہی بند ہو گیا ہے، اسے بھی ہٹا دیں۔</div></div>'+
+      '<div class="btns">'+
+      '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(mapsSearch(g))+'">گوگل نقشے پر نام تلاش کریں</a>'+
+      '<button class="btn2 btn-sm" data-a="mail">ای میل کاپی کریں</button>'+
+      '<button class="btn2 btn-sm" data-a="sent">'+(g.sent?"ای میل بھیجی جا چکی":"ای میل بھیج دی")+'</button>'+
+      '<button class="btn2 btn-sm" data-a="del">غلط نشان، ہٹا دیں</button></div></div>';
+    d.querySelector('[data-a="mail"]').onclick = function(){ copy(goneEmail(g)); };
+    var sb = d.querySelector('[data-a="sent"]');
+    if(g.sent){ sb.style.background = "var(--good)"; sb.style.color = "#fff"; }
+    sb.onclick = function(){ g.sent = true; saveGone(); renderGone(); toast("نشان لگ گیا"); };
+    d.querySelector('[data-a="del"]').onclick = function(){ if(confirm("اسے فہرست سے ہٹا دیں؟")){ gone = gone.filter(function(x){ return x.id !== g.id; }); saveGone(); showWatch(); } };
+    box.appendChild(d);
+  });
+}
+var watching = false;
+$("watchGo").onclick = async function(){
+  if(watching) return;
+  var key = ($("apiKey").value||"").trim();
+  if(!key){ $("setBox").open = true; $("watchLog").textContent = "پہلے ترتیبات میں گوگل کی چابی لکھ کر محفوظ کریں۔"; return; }
+  var ids = Object.keys(watch).filter(function(id){ return !gone.some(function(g){ return g.id === id; }); });
+  if(!ids.length){ $("watchLog").textContent = "ابھی نگرانی میں کوئی کاروبار نہیں۔ پہلے عام تلاش کریں، ٹول خود کاروبار یاد رکھے گا۔"; return; }
+  ids.sort(function(a,b){ return (watch[a].c||0)-(watch[b].c||0); });
+  ids = ids.slice(0, 300);
+  watching = true; $("watchGo").textContent = "جانچ جاری ہے...";
+  var found = 0, done = 0, skipped = 0;
+  try{
+    for(var i=0;i<ids.length;i++){
+      var id = ids[i];
+      var url = "https://places.googleapis.com/v1/places/" + encodeURIComponent(id);
+      var opts = { headers:{ "X-Goog-Api-Key":key, "X-Goog-FieldMask":"id" } };
+      var res = await fetch(url, opts);
+      if(res.status === 429 || res.status >= 500){   // Google busy for a moment: wait and try once more
+        await new Promise(function(r){ setTimeout(r, 2000); });
+        res = await fetch(url, opts);
+        if(res.status === 429 || res.status >= 500){ skipped++; done++; continue; }
+      }
+      if(res.status === 404){
+        var w = watch[id]; gone.unshift({ id:id, n:w.n, w:w.w, p:w.p, a:w.a, t:w.t, tr:w.tr, when:today() }); found++;
+        delete watch[id];
+      } else if(!res.ok){
+        var body = null; try{ body = await res.json(); }catch(e){}
+        throw new Error(apiError(res.status, body));
+      } else { watch[ids[i]].c = Date.now(); }
+      done++;
+      if(done % 10 === 0) $("watchLog").textContent = "چیک ہو گئے: " + done + " / " + ids.length;
+    }
+    $("watchLog").textContent = "جانچ مکمل۔ " + done + " کاروبار دیکھے، " + found + " نئے غائب ملے۔" +
+      (skipped ? " " + skipped + " کاروبار گوگل کی عارضی مصروفیت کی وجہ سے رہ گئے، اگلی بار خود چیک ہوں گے۔" : "");
+  }catch(e){
+    $("watchLog").textContent = (e && e.message && /[؀-ۿ]/.test(e.message)) ? e.message : "انٹرنیٹ یا گوگل سے رابطہ نہیں ہو سکا۔ دوبارہ کوشش کریں۔";
+  }
+  store.set("mp_watchLast", today()); saveWatch(); saveGone(); showWatch();
+  watching = false; $("watchGo").textContent = "غائب لسٹنگ چیک کریں";
+};
+showWatch();
+
+$("demo").onclick = function(){
+  lastTrade = "plumber";
+  var old = new Date(Date.now()-200*864e5).toISOString(), recent = new Date(Date.now()-10*864e5).toISOString();
+  var sample = [
+    {id:"d1",displayName:{text:"Lone Star Plumbing Co"},formattedAddress:"Abilene, TX 79601, USA",rating:3.8,userRatingCount:6,websiteUri:"https://example.com",nationalPhoneNumber:"(325) 555-0101",photos:[1,2],reviews:[{publishTime:old}],googleMapsUri:"https://maps.google.com"},
+    {id:"d2",displayName:{text:"Big Country Drain & Pipe"},formattedAddress:"Abilene, TX 79605, USA",rating:4.4,userRatingCount:14,websiteUri:"https://example.com",nationalPhoneNumber:"(325) 555-0144",regularOpeningHours:{},photos:[1,2,3,4,5,6],reviews:[{publishTime:recent}],googleMapsUri:"https://maps.google.com"},
+    {id:"d3",displayName:{text:"Concho Valley Rooter"},formattedAddress:"San Angelo, TX 76903, USA",rating:null,userRatingCount:0,websiteUri:"https://example.com",googleMapsUri:"https://maps.google.com"}
+  ];
+  if($("country").value === "PK"){
+    lastTrade = "solar company";
+    var pkS = [
+      {id:"p1",displayName:{text:"Sun Power Solar Jampur"},formattedAddress:"Jampur, Rajanpur, Pakistan",rating:4.0,userRatingCount:3,nationalPhoneNumber:"0300 1234567",photos:[1],googleMapsUri:"https://maps.google.com"},
+      {id:"p2",displayName:{text:"Al Madina Solar Energy"},formattedAddress:"Rajanpur, Pakistan",rating:null,userRatingCount:0,nationalPhoneNumber:"0604 123456",googleMapsUri:"https://maps.google.com"}
+    ];
+    leads = pkS.map(function(p){ return toLead(p, "Jampur", "PK"); });
+  } else {
+    leads = sample.map(function(p){ return toLead(p, "Abilene, TX"); });
+    leads[0].mail = "missing"; leads[1].mail = "ok"; leads[2].mail = "na";
+    leads[0].speed = 31; leads[0].https = false; leads[1].speed = 82; leads[1].https = true; leads[2].speed = -2; leads[2].broken = true;
+    leads[0].spf = false; leads[1].spf = true;
+    leads[0].seo = {crawl:true, desc:false, title:true, mobile:true}; leads[1].seo = {crawl:true, desc:true, title:true, mobile:true};
+    leads[0].risk = "safe"; leads[1].risk = "safe"; leads[0].exp = leads[1].exp = leads[2].exp = "done";
+    leads[1].expiring = new Date(Date.now()+20*864e5).toISOString().slice(0,10);
+    leads[0].comp = {n:"Air-Tech Plumbing", r:227, rt:4.7, above:true};
+    leads[1].comp = {n:"Anytime Drain Service", r:69, rt:4.7, above:false};
+  }
+  render(); log("یہ صرف نمونہ ہے، اصل تلاش نہیں۔ کوئی کریڈٹ نہیں لگا۔");
+};
+
+$("urgentOnly").checked = store.get("mp_urgentOnly", $("country").value === "PK" ? "0" : "1") === "1";
+if($("urgentOnly").checked && leads.length) render();
+$("urgentOnly").onchange = function(){ store.set("mp_urgentOnly", $("urgentOnly").checked ? "1" : "0"); render(); };
+/* ---------- follow-ups: one polite reminder 4 days after the first message ---------- */
+var follows = []; try{ follows = JSON.parse(store.get("mp_follow","[]")) || []; }catch(e){ follows = []; }
+function saveFollow(){ store.set("mp_follow", JSON.stringify(follows.slice(-500))); }
+function addFollow(L){
+  if(follows.some(function(f){ return f.id === L.id; })) return;
+  var top = mailIssues(L)[0];
+  follows.push({ id:L.id, n:L.name, c:L.country, phone:L.phone, w:L.website, maps:L.maps, town:cityOf(L),
+    first: top ? lineFor(top, L, {}) : "", ur: top && UR_ISSUE[top] ? UR_ISSUE[top] : "",
+    subj: L.country === "PK" ? "" : (mailIssues(L).length >= 3 ? L.name + ": 3 issues on your Google listing" : "A quick note about " + L.name + "'s Google listing"),
+    at: Date.now(), state: "waiting" });
+  saveFollow(); renderFollow();
+}
+function followText(f){
+  if(f.c === "PK"){
+    return "السلام علیکم،\n" +
+      "چند دن پہلے میں نے گوگل پر آپ کے کاروبار " + f.n + " کے بارے میں پیغام بھیجا تھا" + (f.ur ? "، کہ " + f.ur : "") + "۔\n\n" +
+      "اگر آپ چاہیں تو میں ایک کمی مفت میں ٹھیک کر کے دکھا دیتا ہوں، پسند آئے تو آگے بات کر لیں گے۔\n\n" +
+      "اگر ابھی فرصت نہیں تو کوئی بات نہیں۔ شکریہ۔";
+  }
+  var first = f.first ? f.first.replace(/\.$/, "") : "";
+  return "Subject: Re: " + f.subj + "\n\n" +
+    "Hi " + f.n + " team,\n\n" +
+    "Just following up on my note from a few days ago about your Google listing." + (first ? " One quick example that's still showing today: " + first.charAt(0).toLowerCase() + first.slice(1) + "." : "") + "\n\n" +
+    "I'm happy to send the free list of fixes if it's useful. If now isn't a good time, no problem at all." + signature();
+}
+function renderFollow(){
+  var box = $("fuList"); box.innerHTML = "";
+  var now = Date.now(), due = 0;
+  var list = follows.filter(function(f){ return f.state === "waiting"; });
+  list.sort(function(a,b){ return a.at - b.at; });
+  list.forEach(function(f){
+    var days = Math.floor((now - f.at) / 864e5), isDue = days >= 4;
+    if(isDue) due++;
+    var d = document.createElement("div"); d.className = "lead";
+    d.innerHTML = '<div class="body"><div class="name">' + esc(f.n) + '</div>' +
+      '<div class="meta en" style="text-align:left">' + esc(f.town||"") + '</div>' +
+      (isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج یاد دہانی بھیجیں</span>'
+             : '<span class="pill">پہلا پیغام بھیجے ہوئے <b class="en">' + days + '</b> دن، یاد دہانی <b class="en">' + (4 - days) + '</b> دن بعد</span>') +
+      '<div class="btns">' +
+      (f.c === "PK" && waNum(f.phone) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone) + '">واٹس ایپ کھولیں</a>' : '') +
+      (f.c !== "PK" && f.w ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.w) + '">Website</a>' : '') +
+      '<button class="btn2 btn-sm" data-a="copy">یاد دہانی کاپی کریں</button>' +
+      '<button class="btn2 btn-sm" data-a="done">یاد دہانی بھیج دی</button>' +
+      '<button class="btn2 btn-sm" data-a="reply">جواب آ گیا</button></div></div>';
+    d.querySelector('[data-a="copy"]').onclick = function(){ copy(followText(f)); };
+    d.querySelector('[data-a="done"]').onclick = function(){ f.state = "followed"; f.fat = Date.now(); saveFollow(); renderFollow(); toast("نشان لگ گیا، اب اسے دوبارہ پیغام نہیں بھیجنا"); };
+    d.querySelector('[data-a="reply"]').onclick = function(){ f.state = "replied"; saveFollow(); renderFollow(); toast("بہت اچھا! جواب کی تفصیل مجھے بتائیں"); };
+    box.appendChild(d);
+  });
+  if(!list.length) box.innerHTML = '<p class="hint">ابھی کوئی یاد دہانی نہیں۔ جب آپ کسی کاروبار پر "ای میل بھیج دی" یا "پیغام بھیج دیا" دبائیں گے، وہ یہاں آ جائے گا۔</p>';
+  var replied = follows.filter(function(f){ return f.state === "replied"; }).length;
+  if(follows.length) box.insertAdjacentHTML("beforeend", '<p class="hint">کل پیغام: <b class="en">' + follows.length + '</b> · جواب آئے: <b class="en">' + replied + '</b></p>');
+  $("fuDue").textContent = due;
+  if(due) $("fuBox").open = true;
+}
+renderFollow();
+$("adsAll").onclick = function(){
+  var trade = ($("trade").value||"").trim(), town = (($("towns").value||"").split("\n")[0]||"").replace(/,.*$/,"").trim();
+  var c = $("country").value === "PK" ? "PK" : "US";
+  window.open("https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=" + c + "&search_type=keyword_unordered&q=" + encodeURIComponent((trade + " " + town).trim()), "_blank");
+};
+$("csv").onclick = function(){
+  if(!leads.length){ toast("پہلے تلاش کریں"); return; }
+  var rows = [["Name","Score","Rating","Reviews","Phone","Website","Address","Google Maps","Issues"]];
+  leads.forEach(function(L){ rows.push([L.name, scoreOf(L), L.rating==null?"":L.rating, L.reviews, L.phone, L.website, L.address, L.maps,
+    allIssues(L).map(function(k){return CHECKS[k][2];}).join("; ")]); });
+  var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(","); }).join("\r\n");
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿"+csv], {type:"text/csv"}));
+  a.download = "mappeak_leads_" + today() + ".csv"; document.body.appendChild(a); a.click(); a.remove();
+};
+})();
+</script>
+</body>
+</html>
