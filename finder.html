@@ -85,7 +85,7 @@ a{color:var(--brand)}
     <input id="myName" class="en" placeholder="Muhammad Asif Raza">
     <label>آپ کی ای میل</label>
     <input id="myEmail" class="en" value="mappeak.local@gmail.com">
-    <label>ڈاک کا پتہ (امریکی قانون کے مطابق ای میل میں لکھنا ضروری ہے)</label>
+    <label>ڈاک کا پتہ (امریکی اور برطانوی قانون کے مطابق ای میل میں لکھنا ضروری ہے)</label>
     <textarea id="myAddr" class="en" placeholder="Your mailing address"></textarea>
     <label>پاکستانی گاہکوں کے پیغام میں آپ کا تعارف (اردو میں)</label>
     <input id="myIntroUr" value="محمد آصف رضا، فکس دام، جام پور">
@@ -114,7 +114,10 @@ a{color:var(--brand)}
     <select id="country">
       <option value="US">امریکہ (ای میل، انگریزی میں)</option>
       <option value="PK">پاکستان (واٹس ایپ، اردو میں)</option>
+      <option value="GB">برطانیہ (ای میل، انگریزی میں)</option>
+      <option value="IE">آئرلینڈ (ای میل، انگریزی میں)</option>
     </select>
+    <p class="hint" id="euHint" style="display:none">برطانیہ اور آئرلینڈ میں قانون سخت ہے: صرف کمپنیوں کو ای میل کریں (نام میں Ltd یا Limited ہو تو بہتر)، اکیلے کام کرنے والے شخص کو نہیں۔ ہر ای میل میں بند کرنے کا طریقہ ضرور ہو۔ وہاں صبح نو بجے پاکستان میں دوپہر ایک یا دو بجے ہوتے ہیں۔</p>
     <div style="background:#eef4ff;border:1px solid #c9dafc;border-radius:12px;padding:10px 12px;margin:10px 0">
     <label style="margin-top:0">نام سے تلاش: جیسے گوگل پر لکھتے ہیں، دکان کا نام اور شہر لکھیں</label>
     <input id="byName" class="en" placeholder="Alhamdulillah Solar Jampur">
@@ -209,15 +212,18 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){retu
 /* settings */
 ["apiKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v!==null) $(k).value = v; });
 $("country").value = store.get("mp_country","US");
+function selC(){ var v = $("country").value; return (v === "PK" || v === "GB" || v === "IE") ? v : "US"; }
+var TOWNS = { PK:"Jampur\nRajanpur\nDera Ghazi Khan", US:"Abilene, TX\nSan Angelo, TX", GB:"Leicester\nCoventry", IE:"Cork\nLimerick" };
 function applyCountry(first){
   var pk = $("country").value === "PK";
+  $("euHint").style.display = (selC() === "GB" || selC() === "IE") ? "" : "none";
   store.set("mp_country", $("country").value);
   if(!first){
     $("needWeb").checked = !pk;
     $("urgentOnly").checked = !pk; store.set("mp_urgentOnly", pk ? "0" : "1");
     $("trade").value = pk ? "solar company" : "plumber";
     $("minReviews").value = pk ? 0 : 5; store.set("mp_n_minReviews", $("minReviews").value);
-    $("towns").value = pk ? "Jampur\nRajanpur\nDera Ghazi Khan" : "Abilene, TX\nSan Angelo, TX";
+    $("towns").value = TOWNS[selC()];
   }
 }
 $("country").onchange = function(){ applyCountry(false); render(true); };
@@ -609,7 +615,7 @@ function saveLeads(){ store.set("mp_leads", JSON.stringify({trade:lastTrade, lea
 function removeLead(id){ leads = leads.filter(function(x){ return x.id !== id; }); render(); }
 function cityOf(L){ var parts = (L.address||"").split(","); return parts.length > 2 ? parts[parts.length-3].trim() : (L.town||""); }
 function gUrl(L){ return "https://www.google.com/search?q=" + encodeURIComponent('"' + L.name + '" ' + cityOf(L) + ' email'); }
-function adsUrl(L){ return "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=" + (L.country === "PK" ? "PK" : "US") + "&search_type=keyword_unordered&q=" + encodeURIComponent(L.name); }
+function adsUrl(L){ return "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=" + (L.country || "US") + "&search_type=keyword_unordered&q=" + encodeURIComponent(L.name); }
 function fbUrl(L){ return "https://www.facebook.com/search/pages/?q=" + encodeURIComponent(L.name + " " + cityOf(L)); }
 function q(text, key){
   return '<div>'+text+'</div><div class="yn" data-k="'+key+'"><button class="btn2" data-v="yes">ہاں</button><button class="btn2" data-v="no">نہیں</button></div>';
@@ -620,7 +626,7 @@ function render(keepOrder){
   var adsFirst = function(L){ return (L.manual && L.manual.ads === "yes") ? -1000 : 0; };
   var urg = function(L){ return urgentOf(L).length ? -500 : 0; };
   if(!keepOrder) leads.sort(function(a,b){ return (adsFirst(a) + urg(a) + a.score) - (adsFirst(b) + urg(b) + b.score); });
-  var curC = $("country").value === "PK" ? "PK" : "US";
+  var curC = selC();
   $("foundCount").textContent = leads.filter(function(L){ return (L.country||"US") === curC; }).length;
   var box = $("results"); box.innerHTML = "";
   var onlyUrgent = $("urgentOnly").checked;
@@ -717,6 +723,8 @@ function countryOf(addr, fallback){
   var a = String(addr||"");
   if(/(USA|United States)\s*$/i.test(a)) return "US";
   if(/Pakistan\s*$/i.test(a)) return "PK";
+  if(/(UK|United Kingdom)\s*$/i.test(a)) return "GB";
+  if(/Ireland\s*$/i.test(a)) return "IE";
   return fallback || "US";
 }
 function toLead(p, town, country){
@@ -779,8 +787,14 @@ function apiError(status, body){
   return "گوگل سے غلطی آئی: " + status;
 }
 
+function townSuffix(c, t){
+  if(c === "PK" && !/pakistan/i.test(t)) return ", Pakistan";
+  if(c === "GB" && !/(uk|united kingdom|england|scotland|wales)\s*$/i.test(t)) return ", UK";
+  if(c === "IE" && !/ireland\s*$/i.test(t)) return ", Ireland";
+  return "";
+}
 async function search(text, key, token){
-  var body = { textQuery:text, pageSize:20, languageCode:"en", regionCode:($("country").value === "PK" ? "PK" : "US") };
+  var body = { textQuery:text, pageSize:20, languageCode:"en", regionCode:selC() };
   if(token) body.pageToken = token;
   var res = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method:"POST", headers:{ "Content-Type":"application/json", "X-Goog-Api-Key":key, "X-Goog-FieldMask":FIELDS },
@@ -801,7 +815,7 @@ $("go").onclick = async function(){
   lastTrade = ($("trade").value||"").trim();
   lastTowns = ($("towns").value||"").split("\n").map(function(s){return s.trim();}).filter(Boolean);
   if(!lastTrade || !lastTowns.length){ log("کام کی قسم اور کم از کم ایک شہر لکھیں۔"); return; }
-  var ctry = $("country").value === "PK" ? "PK" : "US";
+  var ctry = selC();
   running = true; $("go").textContent = "تلاش جاری ہے...";
   leads = leads.filter(function(L){ return L.country !== ctry; }); pool = {}; render();   // keep the other country's list
   var seen = seenIds(), ids = {}, runCount = 0, stopWhy = "";
@@ -813,7 +827,7 @@ $("go").onclick = async function(){
         if(getCount() >= f.dayLimit){ stopWhy = "آج کی روزانہ حد پوری ہو گئی۔"; break outer; }
         if(runCount >= f.runLimit){ stopWhy = "اس بار کی تلاش کی حد پوری ہو گئی۔"; break outer; }
         log("تلاش ہو رہی ہے: " + town);
-        var data = await search(lastTrade + " in " + town + (ctry === "PK" && !/pakistan/i.test(town) ? ", Pakistan" : ""), key, token);
+        var data = await search(lastTrade + " in " + town + townSuffix(ctry, town), key, token);
         runCount++; addCount(); pages++;
         (data.places||[]).forEach(function(p){
           addWatch(p, town);
@@ -848,11 +862,11 @@ $("goName").onclick = async function(){
   if(!key){ $("setBox").open = true; log("پہلے ترتیبات میں گوگل کی چابی لکھ کر محفوظ کریں۔"); return; }
   var q = ($("byName").value||"").trim();
   if(!q){ log("کاروبار کا نام لکھیں، ساتھ شہر بھی۔"); return; }
-  var ctry = $("country").value === "PK" ? "PK" : "US";
+  var ctry = selC();
   if(getCount() >= (parseInt($("dayLimit").value,10)||1)){ log("آج کی روزانہ حد پوری ہو گئی۔"); return; }
   running = true; $("goName").textContent = "تلاش جاری ہے...";
   try{
-    var data = await search(q + (ctry === "PK" && !/pakistan/i.test(q) ? ", Pakistan" : ""), key, null);
+    var data = await search(q + townSuffix(ctry, q), key, null);
     addCount();
     var found = (data.places||[]).slice(0, 3), added = 0;
     found.forEach(function(p){
@@ -1066,7 +1080,7 @@ function renderFollow(){
 renderFollow();
 $("adsAll").onclick = function(){
   var trade = ($("trade").value||"").trim(), town = (($("towns").value||"").split("\n")[0]||"").replace(/,.*$/,"").trim();
-  var c = $("country").value === "PK" ? "PK" : "US";
+  var c = selC();
   window.open("https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=" + c + "&search_type=keyword_unordered&q=" + encodeURIComponent((trade + " " + town).trim()), "_blank");
 };
 $("csv").onclick = function(){
