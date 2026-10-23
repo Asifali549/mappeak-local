@@ -115,9 +115,10 @@ a{color:var(--brand)}
       <option value="US">امریکہ (ای میل، انگریزی میں)</option>
       <option value="PK">پاکستان (واٹس ایپ، اردو میں)</option>
       <option value="GB">برطانیہ (ای میل، انگریزی میں)</option>
-      <option value="IE">آئرلینڈ (ای میل، انگریزی میں)</option>
+      <option value="AU">آسٹریلیا (ای میل، انگریزی میں)</option>
+      <option value="AE">امارات (واٹس ایپ، اردو یا انگریزی)</option>
     </select>
-    <p class="hint" id="euHint" style="display:none">برطانیہ اور آئرلینڈ میں قانون سخت ہے: صرف کمپنیوں کو ای میل کریں (نام میں Ltd یا Limited ہو تو بہتر)، اکیلے کام کرنے والے شخص کو نہیں۔ ہر ای میل میں بند کرنے کا طریقہ ضرور ہو۔ وہاں صبح نو بجے پاکستان میں دوپہر ایک یا دو بجے ہوتے ہیں۔</p>
+    <p class="hint" id="lawHint" style="background:#fff8e6;border:1px solid #f1d79a;border-radius:10px;padding:8px 10px"></p>
     <div style="background:#eef4ff;border:1px solid #c9dafc;border-radius:12px;padding:10px 12px;margin:10px 0">
     <label style="margin-top:0">نام سے تلاش: جیسے گوگل پر لکھتے ہیں، دکان کا نام اور شہر لکھیں</label>
     <input id="byName" class="en" placeholder="Alhamdulillah Solar Jampur">
@@ -212,17 +213,28 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){retu
 /* settings */
 ["apiKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v!==null) $(k).value = v; });
 $("country").value = store.get("mp_country","US");
-function selC(){ var v = $("country").value; return (v === "PK" || v === "GB" || v === "IE") ? v : "US"; }
-var TOWNS = { PK:"Jampur\nRajanpur\nDera Ghazi Khan", US:"Abilene, TX\nSan Angelo, TX", GB:"Leicester\nCoventry", IE:"Cork\nLimerick" };
+function selC(){ var v = $("country").value; return ["PK","GB","IE","AU","AE"].indexOf(v) >= 0 ? v : "US"; }
+function isWA(c){ return c === "PK" || c === "AE"; }   // countries worked over WhatsApp instead of email
+var TOWNS = { PK:"Jampur\nRajanpur\nDera Ghazi Khan", US:"Abilene, TX\nSan Angelo, TX", GB:"Leicester\nCoventry", IE:"Cork\nLimerick", AU:"Geelong\nToowoomba", AE:"Sharjah\nDubai" };
+var TRADES = { PK:"solar company", AE:"Pakistani restaurant" };
+var LAW = {
+  US:"امریکہ: کاروبار کو ای میل جائز ہے۔ ہر ای میل میں آپ کا پتہ اور بند کرنے کا طریقہ ضروری ہے (جی میل کے دستخط میں موجود ہے)۔ بہترین دن منگل سے جمعرات، پاکستان کے وقت شام سات بجے کے بعد۔",
+  GB:"برطانیہ: صرف کمپنیوں کو ای میل کریں (نام میں Ltd یا Limited ہو تو بہتر)، اکیلے کام کرنے والے شخص کو نہیں۔ ہر ای میل میں بند کرنے کا طریقہ ضروری۔ وہاں صبح نو بجے پاکستان میں دوپہر ایک یا دو بجے ہوتے ہیں۔",
+  IE:"آئرلینڈ: صرف کمپنیوں کو، کم تعداد میں، اور بند کرنے کے طریقے کے ساتھ۔",
+  AU:"آسٹریلیا: صرف وہ ای میل استعمال کریں جو ان کی اپنی ویب سائٹ یا گوگل پروفائل پر کھلے عام لکھی ہو، اور وہاں 'مارکیٹنگ ای میل نہ بھیجیں' نہ لکھا ہو۔ بات صرف ان کی گوگل پروفائل کی ہو۔ آپ کا نام اور بند کرنے کا طریقہ ضروری۔ وہاں صبح نو بجے پاکستان میں رات تین چار بجے ہوتے ہیں، اس لیے جی میل کا Schedule send استعمال کریں۔",
+  AE:"امارات: ایک ایک کر کے، ہاتھ سے، دن میں زیادہ سے زیادہ دس پیغام۔ کوئی لنک نہ بھیجیں۔ کوئی 'نہیں' کہے تو دوبارہ نہ لکھیں۔ وہاں چھٹی ہفتہ اور اتوار کو ہوتی ہے۔ بہترین وقت پاکستان کے وقت صبح گیارہ سے دوپہر تین بجے۔",
+  PK:"پاکستان: پیغام میں کوئی لنک نہ بھیجیں، اور ایک ہی کاروبار کو دو سے زیادہ پیغام نہیں۔"
+};
 function applyCountry(first){
   var pk = $("country").value === "PK";
-  $("euHint").style.display = (selC() === "GB" || selC() === "IE") ? "" : "none";
+  $("lawHint").textContent = LAW[selC()] || "";
   store.set("mp_country", $("country").value);
   if(!first){
-    $("needWeb").checked = !pk;
-    $("urgentOnly").checked = !pk; store.set("mp_urgentOnly", pk ? "0" : "1");
-    $("trade").value = pk ? "solar company" : "plumber";
-    $("minReviews").value = pk ? 0 : 5; store.set("mp_n_minReviews", $("minReviews").value);
+    var wa = isWA(selC());
+    $("needWeb").checked = !wa;
+    $("urgentOnly").checked = !wa; store.set("mp_urgentOnly", wa ? "0" : "1");
+    $("trade").value = TRADES[selC()] || "plumber";
+    $("minReviews").value = pk ? 0 : (wa ? 3 : 5); store.set("mp_n_minReviews", $("minReviews").value);
     $("towns").value = TOWNS[selC()];
   }
 }
@@ -569,8 +581,14 @@ function speedBadge(L){
   return '<span class="pill" style="color:'+c+'">موبائل رفتار: <b class="en">'+L.speed+'</b></span>' +
     (L.https === false ? '<span class="pill" style="color:var(--bad)">حفاظتی تالا نہیں</span>' : "");
 }
+function lawBadge(L){
+  if(L.country === "AE") return L.urd ? '<span class="pill" style="color:var(--good)">شاید اردو</span>' : '<span class="pill">انگریزی پیغام</span>';
+  if(L.country === "GB") return /\b(ltd|limited|plc|llp)\b/i.test(L.name) ? '<span class="pill" style="color:var(--good)">کمپنی</span>' : '<span class="pill" style="color:var(--warn)">اکیلا شخص ہو سکتا ہے، دیکھ لیں</span>';
+  if(L.country === "AU") return '<span class="pill" style="color:var(--warn)">صرف ویب سائٹ پر لکھی ای میل</span>';
+  return "";
+}
 function mailBadge(L){
-  if(L.country === "PK" || L.parked) return "";
+  if(isWA(L.country) || L.parked) return "";
   if(L.mail === "ok") return '<span class="pill" style="color:var(--good)">ای میل کی مہر: ٹھیک</span>';
   if(L.mail === "missing") return '<span class="pill" style="color:var(--bad)">ای میل کی مہر: نہیں</span>';
   if(L.mail === "na") return '<span class="pill">اپنی ای میل نہیں</span>';
@@ -640,7 +658,7 @@ function render(keepOrder){
       '<div style="flex:1;min-width:0"><div class="name">'+esc(L.name)+'</div>'+
       '<div class="meta en" style="text-align:left">'+esc(L.address)+'</div>'+
       '<div class="stat" style="margin-top:4px"><span class="pill">ریٹنگ <b class="en">'+(L.rating==null?"-":L.rating)+'</b></span>'+
-      '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+mailBadge(L)+speedBadge(L)+riskBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
+      '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+mailBadge(L)+speedBadge(L)+riskBadge(L)+lawBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
       '<div class="body"><b>غلطیاں:</b><ul>'+urIssues+'</ul>'+
       '<div class="en" style="text-align:left;font-size:15px">'+(L.phone?esc(L.phone)+" &middot; ":"")+(L.website?'<a target="_blank" rel="noopener" href="'+esc(L.website)+'">Website</a>':'No website')+'</div>'+
       compLine(L)+
@@ -662,12 +680,12 @@ function render(keepOrder){
       '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(gUrl(L))+'">گوگل پر تلاش</a>'+
       '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(fbUrl(L))+'">فیس بک پر تلاش</a>'+
       '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(adsUrl(L))+'">فیس بک اشتہار دیکھیں</a>'+
-      (L.country === "PK"
+      (isWA(L.country)
         ? (waNum(L.phone) ? '<a class="btn btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
-          '<button class="btn2 btn-sm" data-a="urdu">بنیادی پیغام کاپی کریں</button>'
+          '<button class="btn2 btn-sm" data-a="urdu">'+(L.country === "AE" ? (L.urd ? "اردو پیغام کاپی کریں" : "انگریزی پیغام کاپی کریں") : "بنیادی پیغام کاپی کریں")+'</button>'
         : '<button class="btn2 btn-sm" data-a="email">ای میل کاپی کریں</button>'+
           '<button class="btn2 btn-sm" data-a="report">رپورٹ کاپی کریں</button>')+
-      '<button class="btn2 btn-sm" data-a="sent">'+(L.country === "PK" ? "پیغام بھیج دیا" : "ای میل بھیج دی")+'</button>'+
+      '<button class="btn2 btn-sm" data-a="sent">'+(isWA(L.country) ? "پیغام بھیج دیا" : "ای میل بھیج دی")+'</button>'+
       '<button class="btn2 btn-sm" data-a="skip">چھوڑ دیں</button></div></div>';
     d.querySelectorAll(".yn").forEach(function(g){
       var k = g.getAttribute("data-k");
@@ -678,10 +696,10 @@ function render(keepOrder){
     });
     var eb = d.querySelector('[data-a="email"]'); if(eb) eb.onclick = function(){ copy(emailFor(L)); };
     var rb = d.querySelector('[data-a="report"]'); if(rb) rb.onclick = function(){ copy(reportFor(L)); };
-    var ub = d.querySelector('[data-a="urdu"]'); if(ub) ub.onclick = function(){ copy(urduMsg(L)); };
+    var ub = d.querySelector('[data-a="urdu"]'); if(ub) ub.onclick = function(){ copy(L.country === "AE" ? aeMsg(L) : urduMsg(L)); };
     d.querySelector('[data-a="sent"]').onclick = function(){ if(!L.sent){ addSent(); addFollow(L); } addSeen(L.id); L.sent = true; render(true); toast("نشان لگ گیا، یہ دوبارہ تلاش میں نہیں آئے گا"); };
     d.querySelector('[data-a="skip"]').onclick = function(){ if(confirm("اس کاروبار کو فہرست سے ہٹا دیں؟")){ addSeen(L.id); removeLead(L.id); toast("ہٹا دیا"); } };
-    if(L.sent){ var sb = d.querySelector('[data-a="sent"]'); sb.textContent = L.country === "PK" ? "پیغام جا چکا" : "ای میل بھیجی جا چکی"; sb.style.background = "var(--good)"; sb.style.color = "#fff"; }
+    if(L.sent){ var sb = d.querySelector('[data-a="sent"]'); sb.textContent = isWA(L.country) ? "پیغام جا چکا" : "ای میل بھیجی جا چکی"; sb.style.background = "var(--good)"; sb.style.color = "#fff"; }
     box.appendChild(d);
   });
   var pending = leads.filter(function(L){ return L.website && (L.speed == null || L.risk == null || !L.exp); }).length;
@@ -725,6 +743,8 @@ function countryOf(addr, fallback){
   if(/Pakistan\s*$/i.test(a)) return "PK";
   if(/(UK|United Kingdom)\s*$/i.test(a)) return "GB";
   if(/Ireland\s*$/i.test(a)) return "IE";
+  if(/Australia\s*$/i.test(a)) return "AU";
+  if(/(United Arab Emirates|UAE)\s*$/i.test(a)) return "AE";
   return fallback || "US";
 }
 function toLead(p, town, country){
@@ -734,7 +754,8 @@ function toLead(p, town, country){
     website:p.websiteUri||"", maps:p.googleMapsUri||"", issues:evaluate(p), manual:{replies:null,posts:null},
     cat:(p.primaryTypeDisplayName&&p.primaryTypeDisplayName.text)||"", ptype:p.primaryType||"",
     country: country || "US" };
-  if(L.country === "PK") L.mail = "na";
+  if(isWA(L.country)) L.mail = "na";
+  if(L.country === "AE") L.urd = PAKRE.test(L.name + " " + L.cat);
   return L;
 }
 /* ---------- Pakistan: WhatsApp + Urdu message (no links inside the message) ---------- */
@@ -742,6 +763,8 @@ function waNum(phone){
   var d = String(phone||"").replace(/[^0-9]/g,"");
   if(/^03\d{9}$/.test(d)) return "92" + d.slice(1);
   if(/^923\d{9}$/.test(d)) return d;
+  if(/^05\d{8}$/.test(d)) return "971" + d.slice(1);   // UAE mobile
+  if(/^9715\d{8}$/.test(d)) return d;
   return "";
 }
 var UR_ISSUE = {
@@ -763,6 +786,28 @@ function urduMsg(L){
     (L.comp ? "• آپ کے علاقے میں " + L.comp.n + " کے " + L.comp.r + " ریویو ہیں، اس لیے گاہک پہلے انہیں دیکھتا ہے\n" : "") + "\n" +
     "میں یہ ٹھیک کرتا ہوں۔ پہلے کام کروں گا، پسند آئے تو پیسے دیجیے گا۔ نہ کوئی پاس ورڈ چاہیے، نہ کوئی کوڈ۔\n\n" +
     "اگر دلچسپی ہو تو جواب دے دیجیے۔ شکریہ۔";
+}
+var PAKRE = /pakistan|lahor|karach|punjab|peshawar|multan|quetta|islamabad|rawalpindi|faisalabad|sialkot|gujranwala|sindh|desi|karahi|nihari|haleem|sajji|pathan|kashmir/i;
+var EN_ISSUE = {
+  unclaimed:"the listing is not claimed by you, so anyone can suggest changes to it",
+  siteBroken:"the website on your listing is not working", siteParked:"the website address on your listing is for sale",
+  phoneMismatch:"the phone number on Google is different from the one on your website",
+  hoursMismatch:"your opening hours on Google don't match your website", recentBadReview:"a recent bad review has no reply",
+  noRating:"you have no Google reviews yet", ratingLow:"your rating is below 4 stars", ratingMid:"your rating is below 4.5 stars",
+  noWebsite:"there is no website link on your listing", noHours:"your opening hours are missing", noPhone:"there is no phone number on your listing",
+  fewPhotos:"your listing has very few photos", noReplies:"reviews have no replies from you", noPosts:"there are no recent posts",
+  stale:"no new reviews in the last 3 months", fbAsSite:"your listing links to Facebook instead of a website"
+};
+function aeMsg(L){
+  if(L.urd) return urduMsg(L).replace("پہلے کام کروں گا، پسند آئے تو پیسے دیجیے گا۔", "ایک کمی میں مفت ٹھیک کر کے دکھا دیتا ہوں، پسند آئے تو آگے بات کر لیں گے۔");
+  var top = allIssues(L).filter(function(k){ return EN_ISSUE[k]; }).slice(0,3).map(function(k){ return "- " + EN_ISSUE[k]; }).join("\n");
+  var nm = ($("myName").value||"").trim() || "Asif";
+  return "Hello,\n\nThis is " + nm + " from MapPeak Local. I looked at " + L.name + " on Google Maps and noticed a few things that may be costing you customers:\n" +
+    (top || "- the listing needs some important details filled in") + "\n" +
+    (L.comp ? "- " + L.comp.n + " nearby has " + L.comp.r + " reviews, so customers see them first\n" : "") +
+    "\nI can fix one of these for free so you can see the result. Interested?\n\n" +
+    "اگر آپ اردو میں بات کرنا چاہیں تو بتائیں، میں پاکستان سے ہوں۔\n\n" +
+    "If you'd rather not hear from me, just say so and I won't message again.";
 }
 function waUrl(L){ return "https://wa.me/" + waNum(L.phone); }   // opens an empty chat: each business gets its own written message
 function passes(p, f){
@@ -791,6 +836,8 @@ function townSuffix(c, t){
   if(c === "PK" && !/pakistan/i.test(t)) return ", Pakistan";
   if(c === "GB" && !/(uk|united kingdom|england|scotland|wales)\s*$/i.test(t)) return ", UK";
   if(c === "IE" && !/ireland\s*$/i.test(t)) return ", Ireland";
+  if(c === "AU" && !/australia\s*$/i.test(t)) return ", Australia";
+  if(c === "AE" && !/(uae|emirates)\s*$/i.test(t)) return ", United Arab Emirates";
   return "";
 }
 async function search(text, key, token){
@@ -1030,12 +1077,15 @@ function addFollow(L){
   var top = mailIssues(L)[0];
   follows.push({ id:L.id, n:L.name, c:L.country, phone:L.phone, w:L.website, maps:L.maps, town:cityOf(L),
     first: top ? lineFor(top, L, {}) : "", ur: top && UR_ISSUE[top] ? UR_ISSUE[top] : "",
-    subj: L.country === "PK" ? "" : (mailIssues(L).length >= 3 ? L.name + ": 3 issues on your Google listing" : "A quick note about " + L.name + "'s Google listing"),
+    urd: !!L.urd, subj: isWA(L.country) ? "" : (mailIssues(L).length >= 3 ? L.name + ": 3 issues on your Google listing" : "A quick note about " + L.name + "'s Google listing"),
     at: Date.now(), state: "waiting" });
   saveFollow(); renderFollow();
 }
 function followText(f){
-  if(f.c === "PK"){
+  if(f.c === "AE" && !f.urd){
+    return "Hello again,\n\nJust following up on my message about " + f.n + "'s Google Maps listing. I'm happy to fix one issue for free so you can see the result.\n\nIf now isn't a good time, no problem at all. Thank you.";
+  }
+  if(isWA(f.c)){
     return "السلام علیکم،\n" +
       "چند دن پہلے میں نے گوگل پر آپ کے کاروبار " + f.n + " کے بارے میں پیغام بھیجا تھا" + (f.ur ? "، کہ " + f.ur : "") + "۔\n\n" +
       "اگر آپ چاہیں تو میں ایک کمی مفت میں ٹھیک کر کے دکھا دیتا ہوں، پسند آئے تو آگے بات کر لیں گے۔\n\n" +
@@ -1061,7 +1111,7 @@ function renderFollow(){
       (isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج یاد دہانی بھیجیں</span>'
              : '<span class="pill">پہلا پیغام بھیجے ہوئے <b class="en">' + days + '</b> دن، یاد دہانی <b class="en">' + (4 - days) + '</b> دن بعد</span>') +
       '<div class="btns">' +
-      (f.c === "PK" && waNum(f.phone) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone) + '">واٹس ایپ کھولیں</a>' : '') +
+      (isWA(f.c) && waNum(f.phone) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone) + '">واٹس ایپ کھولیں</a>' : '') +
       (f.c !== "PK" && f.w ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.w) + '">Website</a>' : '') +
       '<button class="btn2 btn-sm" data-a="copy">یاد دہانی کاپی کریں</button>' +
       '<button class="btn2 btn-sm" data-a="done">یاد دہانی بھیج دی</button>' +
