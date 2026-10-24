@@ -1133,7 +1133,7 @@ $("cgApply").onclick = function(){
   raw = raw.replace(/\[([^\]]+)\]\([^)]*\)/g,"$1").replace(/https?:\/\/\S+/g,"").replace(/\|/g,"\n");   // markdown links, bare links, table cells
   if(raw.split(/\n+/).filter(function(x){ return x.trim(); }).length < 2) raw = raw.replace(/[,;،]\s*/g,"\n");   // all names on one line
   var names = raw.split(/\n+/).map(function(l){ return l.replace(/^[\s\-\*\d\.\)•#]+/,"").replace(/\*\*/g,"").replace(/\s+[–—-]\s+.*$/,"").replace(/\s*[\(\[:].*$/,"").trim(); })
-    .filter(function(l){ return l && l.length < 80 && !/^(here|sure|i |based|note|these|top )/i.test(l); }).slice(0,10);
+    .filter(function(l){ return l && l.length < 80 && !/^(here|sure|i |based|note|these|top )/i.test(l) && l.toLowerCase() !== town.replace(/,.*$/,"").trim().toLowerCase(); }).slice(0,10);
   if(!names.length){ log("جواب میں کوئی نام نہیں ملا۔ ChatGPT کا پورا جواب چپکائیں۔"); return; }
   var c = selC(), n = 0, miss = 0, q = cgQuestion();
   leads.forEach(function(L){
