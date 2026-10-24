@@ -994,8 +994,23 @@ function aiMatch(lead, names){
     return hit >= Math.min(2, ta.length) && hit > 0;
   });
 }
+var gemModel = "";
+async function pickGemini(key){   // ask Google which models this key can use and take the newest normal "flash" model
+  if(gemModel) return [gemModel];
+  try{
+    var r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=" + encodeURIComponent(key));
+    var d = await r.json(), names = [];
+    ((d && d.models) || []).forEach(function(m){
+      var n = String(m.name||"").replace(/^models\//,"");
+      if(/^gemini-[\d.]+-flash$/.test(n) && (m.supportedGenerationMethods||[]).indexOf("generateContent") >= 0) names.push(n);
+    });
+    names.sort(function(x,y){ return parseFloat(y.split("-")[1]) - parseFloat(x.split("-")[1]); });
+    if(names.length) return names.concat(["gemini-flash-latest"]);
+  }catch(e){}
+  return ["gemini-flash-latest", "gemini-2.5-flash"];
+}
 async function askGemini(key, q){
-  var models = ["gemini-2.5-flash", "gemini-2.0-flash"], lastErr = "";
+  var models = await pickGemini(key), lastErr = "";
   for(var i=0;i<models.length;i++){
     var res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + models[i] + ":generateContent?key=" + encodeURIComponent(key), {
       method:"POST", headers:{ "Content-Type":"application/json" },
@@ -1005,13 +1020,16 @@ async function askGemini(key, q){
         tools:[{ google_search:{} }] }) });
     var data = null; try{ data = await res.json(); }catch(e){}
     if(res.ok){
+      gemModel = models[i];
       var txt = ((((data||{}).candidates||[])[0]||{}).content||{}).parts || [];
       txt = txt.map(function(p){ return p.text || ""; }).join("\n");
       return txt.split(/\n+/).map(function(l){ return l.replace(/^[\s\-\*\d\.\)•]+/,"").replace(/\*\*/g,"").replace(/\s*\(.*$/,"").trim(); })
         .filter(function(l){ return l && l.length < 80 && !/^(here|sure|i |based|note)/i.test(l); }).slice(0,10);
     }
     lastErr = (data && data.error && data.error.message) || String(res.status);
-    if(res.status !== 404) break;
+    var sug = /models\/(gemini-[\w.\-]+)/.exec(lastErr.replace(/models\/[\w.\-]+ is no longer/,""));   // Google names the replacement model in its message
+    if(sug && models.indexOf(sug[1]) < 0) models.splice(i + 1, 0, sug[1]);
+    if(res.status !== 404 && res.status !== 400 && !/no longer|not found|not supported/i.test(lastErr)) break;
   }
   throw new Error(lastErr);
 }
