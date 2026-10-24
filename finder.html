@@ -81,6 +81,9 @@ a{color:var(--brand)}
     <label>گوگل کی خفیہ چابی</label>
     <input id="apiKey" type="password" class="en" placeholder="AIza..." autocomplete="off">
     <p class="hint">چابی صرف آپ کے اسی موبائل یا کمپیوٹر میں محفوظ رہے گی۔ کسی کو یہ چابی نہ دیں۔</p>
+    <label>جیمنائی AI کی چابی (AI جانچ کے لیے)</label>
+    <input id="gemKey" type="password" class="en" placeholder="AIza..." autocomplete="off">
+    <p class="hint">یہ چابی گوگل کی ویب سائٹ aistudio.google.com سے مفت ملتی ہے۔ اس سے ٹول خود AI سے پوچھتا ہے کہ کس دکان کا نام لیتا ہے۔</p>
     <label>آپ کا نام (انگریزی میں)</label>
     <input id="myName" class="en" placeholder="Muhammad Asif Raza">
     <label>آپ کی ای میل</label>
@@ -157,6 +160,7 @@ San Angelo, TX</textarea>
     </div>
     <div class="btns">
       <button class="btn2 btn-sm" id="demo">نمونہ دیکھیں (مفت، کریڈٹ نہیں لگتا)</button>
+      <button class="btn2 btn-sm" id="aiCheck">AI میں جانچیں (جیمنائی)</button>
       <button class="btn2 btn-sm" id="csv">فہرست ڈاؤن لوڈ کریں</button>
       <button class="btn2 btn-sm" id="adsAll">اس کام کے فیس بک اشتہار دیکھیں</button>
     </div>
@@ -211,7 +215,7 @@ function log(t){ $("log").textContent = t; }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
 
 /* settings */
-["apiKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v!==null) $(k).value = v; });
+["apiKey","gemKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v!==null) $(k).value = v; });
 $("country").value = store.get("mp_country","US");
 function selC(){ var v = $("country").value; return ["PK","GB","IE","AU","AE"].indexOf(v) >= 0 ? v : "US"; }
 function isWA(c){ return c === "PK" || c === "AE"; }   // countries worked over WhatsApp instead of email
@@ -251,7 +255,7 @@ $("hideBtn").onclick = function(){
 };
 showHidden();
 $("useSig").checked = store.get("mp_useSig","0") === "1";
-$("saveSet").onclick = function(){ ["apiKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ store.set("mp_"+k, $(k).value.trim()); }); store.set("mp_useSig", $("useSig").checked ? "1" : "0");
+$("saveSet").onclick = function(){ ["apiKey","gemKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ store.set("mp_"+k, $(k).value.trim()); }); store.set("mp_useSig", $("useSig").checked ? "1" : "0");
   var su = ($("syncUrl").value||"").trim(); var hadSync = store.get("mp_syncUrl","");
   try{ localStorage.setItem("mp_syncUrl", su); }catch(e){}
   toast("محفوظ ہو گیا"); if(su && su !== hadSync) syncPull(true); };
@@ -268,6 +272,7 @@ $("sentToday").textContent = sentCount();
 
 /* checks: weight, urdu, english problem, english fix */
 var CHECKS = {
+  notInAI:    [21,"AI (جیمنائی) نے اس کام کے لیے دوسری دکانوں کے نام لیے، اس کا نہیں","Not recommended by Google's AI for this search","Build review volume and detail, clear website content and consistent listings so AI assistants recommend the business"],
   noRating:   [15,"ابھی تک کوئی ریٹنگ نہیں","The profile has no star rating yet","Start asking happy customers for honest reviews"],
   ratingLow:  [15,"ریٹنگ چار سے کم ہے","Star rating is below 4.0","Reply to every review and ask satisfied customers to share their experience"],
   ratingMid:  [8,"ریٹنگ ساڑھے چار سے کم ہے","Star rating is below 4.5","A steady flow of new genuine reviews can lift the average"],
@@ -349,6 +354,7 @@ function allIssues(L){
   }
   if(L.expiring && !onPlatform) a.push("domainExpiring");
   if(L.risk === "flagged") a.push("unsafeSite");
+  if(L.ai && L.ai.in === false && L.ai.names && L.ai.names.length) a.push("notInAI");
   if(m.replies === "no") a.push("noReplies");
   if(m.posts === "no") a.push("noPosts");
   if(m.unclaimed === "yes") a.push("unclaimed");
@@ -381,6 +387,9 @@ function lineFor(k, L, used){
     case "reviews10": case "reviews20": case "reviews50":
       if(n === 0) return "You have no reviews on Google yet" + (c ? ", while " + compRev + "." : ".");
       return c ? "You have " + n + " review" + (n === 1 ? "" : "s") + ", while " + compRev + "." : "You have only " + n + " reviews on Google.";
+    case "notInAI":
+      var an = (L.ai.names||[]).slice(0,3);
+      return "When I asked Google's AI (Gemini) \"" + L.ai.q + "\", it recommended " + (an.length > 1 ? an.slice(0,-1).join(", ") + " and " + an[an.length-1] : an[0]) + ", but not you. More customers now ask AI instead of searching.";
     case "noWebsite": return "No website is linked on your Google listing.";
     case "noPhone": return "No phone number is shown on your Google listing.";
     case "noHours": return "Your business hours are missing on Google, so customers can't tell when to call.";
@@ -601,6 +610,14 @@ function riskBadge(L){
   if(L.risk === "safe") return '<span class="pill" style="color:var(--good)">ویب سائٹ محفوظ</span>';
   return "";
 }
+function aiLine(L){
+  if(!L.ai) return "";
+  if(L.ai.err) return '<div class="hint" style="margin-top:4px">AI جانچ نہیں ہو سکی</div>';
+  var names = (L.ai.names||[]).slice(0,5).map(esc).join(" · ");
+  return '<div style="margin-top:6px;padding:6px 8px;border-radius:8px;background:' + (L.ai.in ? '#e9f7ef' : '#fdecec') + '">' +
+    (L.ai.in ? '✅ AI نے اس کا نام لیا' : '❌ AI نے اس کا نام نہیں لیا') +
+    (names ? '<div class="en" style="text-align:left;font-size:13px;color:#556;margin-top:2px">AI: ' + names + '</div>' : '') + '</div>';
+}
 function compLine(L){
   var catLine = L.cat ? '<div class="en" style="text-align:left;font-size:14px;margin-top:4px;color:#667">API type: ' + esc(L.cat) +
     (L.topCat ? ' (top businesses: ' + esc(L.topCat) + ')' : '') + '</div>' : '';
@@ -661,7 +678,7 @@ function render(keepOrder){
       '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+mailBadge(L)+speedBadge(L)+riskBadge(L)+lawBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
       '<div class="body"><b>غلطیاں:</b><ul>'+urIssues+'</ul>'+
       '<div class="en" style="text-align:left;font-size:15px">'+(L.phone?esc(L.phone)+" &middot; ":"")+(L.website?'<a target="_blank" rel="noopener" href="'+esc(L.website)+'">Website</a>':'No website')+'</div>'+
-      compLine(L)+
+      compLine(L)+aiLine(L)+
       (shots[L.id] ? '<div style="margin-top:8px"><div class="hint" style="margin:0 0 4px">ان کی ویب سائٹ موبائل پر ایسی دکھتی ہے:</div><img alt="" src="'+shots[L.id]+'" style="max-width:150px;border:1px solid #ccd;border-radius:8px"></div>' : '')+
       '<div class="manual"><b>گوگل میپس کھول کر یہ چیزیں دیکھیں:</b>'+
       q("کیا لسٹنگ پر کلیم کرنے کا بٹن نظر آتا ہے؟", "unclaimed")+
@@ -773,7 +790,8 @@ var UR_ISSUE = {
   noPhone:"فون نمبر نہیں لکھا", noHours:"کھلنے اور بند ہونے کا وقت نہیں لکھا", fewPhotos:"تصویریں بہت کم ہیں",
   stale:"کافی عرصے سے کوئی نیا ریویو نہیں", noReplies:"ریویو کے جواب نہیں دیے گئے", noPosts:"کوئی نئی پوسٹ نہیں",
   unclaimed:"لسٹنگ ابھی آپ کے نام پر نہیں، کوئی بھی اس میں تبدیلی کی تجویز دے سکتا ہے", fbStale:"فیس بک پیج پر کافی عرصے سے کوئی پوسٹ نہیں",
-  phoneMismatch:"گوگل اور دوسری جگہوں پر فون نمبر الگ الگ ہے"
+  phoneMismatch:"گوگل اور دوسری جگہوں پر فون نمبر الگ الگ ہے",
+  notInAI:"گوگل کے AI سے آپ کے کام کی بہترین دکانیں پوچھیں تو وہ دوسروں کے نام لیتا ہے، آپ کا نہیں"
 };
 function urduMsg(L){
   var top = allIssues(L).filter(function(k){ return UR_ISSUE[k]; }).slice(0,3).map(function(k){ return "• " + UR_ISSUE[k]; }).join("\n");
@@ -796,7 +814,8 @@ var EN_ISSUE = {
   noRating:"you have no Google reviews yet", ratingLow:"your rating is below 4 stars", ratingMid:"your rating is below 4.5 stars",
   noWebsite:"there is no website link on your listing", noHours:"your opening hours are missing", noPhone:"there is no phone number on your listing",
   fewPhotos:"your listing has very few photos", noReplies:"reviews have no replies from you", noPosts:"there are no recent posts",
-  stale:"no new reviews in the last 3 months", fbAsSite:"your listing links to Facebook instead of a website"
+  stale:"no new reviews in the last 3 months", fbAsSite:"your listing links to Facebook instead of a website",
+  notInAI:"when I asked Google's AI for the best places, it named others but not you"
 };
 function aeMsg(L){
   if(L.urd) return urduMsg(L).replace("پہلے کام کروں گا، پسند آئے تو پیسے دیجیے گا۔", "ایک کمی میں مفت ٹھیک کر کے دکھا دیتا ہوں، پسند آئے تو آگے بات کر لیں گے۔");
@@ -918,7 +937,7 @@ $("goName").onclick = async function(){
     var found = (data.places||[]).slice(0, 3), added = 0;
     found.forEach(function(p){
       if(leads.some(function(L){ return L.id === p.id; })) return;
-      var L = toLead(p, q, ctry); leads.unshift(L); added++;
+      var L = toLead(p, q, ctry); L.byName = true; leads.unshift(L); added++;
     });
     render(true);
     log(found.length ? ("نام سے " + found.length + " نتیجے ملے، سب سے اوپر دکھا دیے۔ ایک کریڈٹ لگا۔") : "اس نام سے کچھ نہیں ملا۔ نام انگریزی میں اور ساتھ شہر لکھ کر دوبارہ کوشش کریں۔");
@@ -927,6 +946,67 @@ $("goName").onclick = async function(){
     log((e && e.message && /[؀-ۿ]/.test(e.message)) ? e.message : "انٹرنیٹ یا گوگل سے رابطہ نہیں ہو سکا۔");
   }
   running = false; $("goName").textContent = "نام سے تلاش کریں";
+};
+
+
+/* ---------- AI check: ask Gemini (with Google Search) which businesses it recommends, mark leads it leaves out ---------- */
+var GENERIC = /^(the|and|of|inc|llc|ltd|limited|co|company|corp|services?|plumbing|plumbers?|heating|cooling|air|hvac|ac|repair|solutions|group|pty|llp|plc|contractors?|electric(al)?|roofing|solar|energy|systems?)$/;
+function sigTokens(s){ return String(s||"").toLowerCase().replace(/&/g," and ").split(/[^a-z0-9]+/).filter(function(t){ return t.length > 1 && !GENERIC.test(t); }); }
+function aiMatch(lead, names){
+  var a = normName(lead), ta = sigTokens(lead);
+  return names.some(function(n){
+    var b = normName(n);
+    if(a && b && (a.indexOf(b) >= 0 || b.indexOf(a) >= 0)) return true;
+    var tb = sigTokens(n), hit = ta.filter(function(t){ return tb.indexOf(t) >= 0; }).length;
+    return hit >= Math.min(2, ta.length) && hit > 0;
+  });
+}
+async function askGemini(key, q){
+  var models = ["gemini-2.5-flash", "gemini-2.0-flash"], lastErr = "";
+  for(var i=0;i<models.length;i++){
+    var res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + models[i] + ":generateContent?key=" + encodeURIComponent(key), {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ contents:[{ role:"user", parts:[{ text:
+        "A customer asks: \"" + q + "\". Using Google Search, which local businesses would you recommend? " +
+        "Reply with only the business names, one per line, at most 10, no numbering and no other text." }] }],
+        tools:[{ google_search:{} }] }) });
+    var data = null; try{ data = await res.json(); }catch(e){}
+    if(res.ok){
+      var txt = ((((data||{}).candidates||[])[0]||{}).content||{}).parts || [];
+      txt = txt.map(function(p){ return p.text || ""; }).join("\n");
+      return txt.split(/\n+/).map(function(l){ return l.replace(/^[\s\-\*\d\.\)•]+/,"").replace(/\*\*/g,"").replace(/\s*\(.*$/,"").trim(); })
+        .filter(function(l){ return l && l.length < 80 && !/^(here|sure|i |based|note)/i.test(l); }).slice(0,10);
+    }
+    lastErr = (data && data.error && data.error.message) || String(res.status);
+    if(res.status !== 404) break;
+  }
+  throw new Error(lastErr);
+}
+$("aiCheck").onclick = async function(){
+  var key = ($("gemKey").value||"").trim() || store.get("mp_gemKey","");
+  if(!key){ $("setBox").open = true; log("پہلے ترتیبات میں جیمنائی کی چابی لکھ کر محفوظ کریں۔"); return; }
+  var c = selC(), trade = (lastTrade || $("trade").value || "").trim();
+  var mine = leads.filter(function(L){ return (L.country||"US") === c; });
+  if(!mine.length || !trade){ log("پہلے کاروبار تلاش کریں، پھر AI جانچ کریں۔"); return; }
+  var towns = []; function townOf(L){ return L.byName ? cityOf(L) : (L.town || cityOf(L)); }
+  mine.forEach(function(L){ var t = townOf(L); if(t && towns.indexOf(t) < 0) towns.push(t); });
+  towns = towns.slice(0, 5);
+  var btn = $("aiCheck"); btn.disabled = true; var done = 0;
+  for(var i=0;i<towns.length;i++){
+    var q = "best " + trade + " in " + towns[i];
+    log("AI سے پوچھ رہا ہے: " + q);
+    try{
+      var names = await askGemini(key, q);
+      mine.forEach(function(L){ if(townOf(L) === towns[i]) L.ai = { q:q, names:names, in: aiMatch(L.name, names), at:Date.now() }; });
+      done++;
+    }catch(e){
+      mine.forEach(function(L){ if(townOf(L) === towns[i]) L.ai = { q:q, err:true }; });
+      log("AI سے جواب نہیں آیا: " + (e && e.message ? e.message.slice(0,120) : ""));
+    }
+  }
+  btn.disabled = false; render(true);
+  var miss = mine.filter(function(L){ return L.ai && L.ai.in === false && L.ai.names && L.ai.names.length; }).length;
+  if(done) log("AI جانچ مکمل۔ " + mine.length + " میں سے " + miss + " کاروباروں کا نام AI نے نہیں لیا۔");
 };
 
 /* restore last results so a page reload never costs a new search */
