@@ -164,6 +164,17 @@ San Angelo, TX</textarea>
     <div class="btns">
       <button class="btn2 btn-sm" id="demo">نمونہ دیکھیں (مفت، کریڈٹ نہیں لگتا)</button>
       <button class="btn2 btn-sm" id="aiCheck">AI میں جانچیں (جیمنائی / ChatGPT)</button>
+      <details id="cgBox" style="width:100%;margin-top:6px">
+        <summary style="cursor:pointer">ChatGPT کا جواب ہاتھ سے لگائیں</summary>
+        <label>شہر</label>
+        <select id="cgTown"></select>
+        <label>ChatGPT کو یہ سوال بھیجیں (کاپی کریں)</label>
+        <textarea id="cgPrompt" class="en" rows="3" readonly></textarea>
+        <div class="btns"><button class="btn2 btn-sm" id="cgCopy">سوال کاپی کریں</button></div>
+        <label>ChatGPT کا جواب یہاں چپکائیں</label>
+        <textarea id="cgText" class="en" rows="6" placeholder="1. Business name&#10;2. Business name"></textarea>
+        <div class="btns"><button class="btn btn-sm" id="cgApply" style="width:auto">جواب لگائیں</button></div>
+      </details>
       <button class="btn2 btn-sm" id="csv">فہرست ڈاؤن لوڈ کریں</button>
       <button class="btn2 btn-sm" id="adsAll">اس کام کے فیس بک اشتہار دیکھیں</button>
     </div>
@@ -1061,6 +1072,41 @@ $("aiCheck").onclick = async function(){
   btn.disabled = false; render(true);
   var miss = mine.filter(function(L){ return aiMissed(L).length; }).length;
   if(done) log("AI جانچ مکمل۔ " + mine.length + " میں سے " + miss + " کاروباروں کا نام AI نے نہیں لیا۔");
+};
+
+
+/* ---------- ChatGPT checked by hand: paste its answer and the tool marks every lead in that town ---------- */
+function townOfLead(L){ return L.byName ? cityOf(L) : (L.town || cityOf(L)); }
+function cgTowns(){
+  var c = selC(), t = [];
+  leads.forEach(function(L){ if((L.country||"US") === c){ var x = townOfLead(L); if(x && t.indexOf(x) < 0) t.push(x); } });
+  return t;
+}
+function cgQuestion(){ var trade = (lastTrade || $("trade").value || "").trim(); return "best " + trade + " in " + ($("cgTown").value || ""); }
+function cgFill(){
+  var cur = $("cgTown").value, t = cgTowns();
+  $("cgTown").innerHTML = t.map(function(x){ return '<option>' + esc(x) + '</option>'; }).join("");
+  if(t.indexOf(cur) >= 0) $("cgTown").value = cur;
+  $("cgPrompt").value = 'Search the web: what are the top 10 "' + cgQuestion() + '"? Reply with only the business names, best first, one per line, no other text.';
+}
+$("cgBox").addEventListener("toggle", function(){ if($("cgBox").open) cgFill(); });
+$("cgTown").onchange = cgFill;
+$("cgCopy").onclick = function(){ copy($("cgPrompt").value); };
+$("cgApply").onclick = function(){
+  var town = $("cgTown").value, raw = $("cgText").value || "";
+  if(!town){ log("پہلے کاروبار تلاش کریں۔"); return; }
+  var names = raw.split(/\n+/).map(function(l){ return l.replace(/^[\s\-\*\d\.\)•#]+/,"").replace(/\*\*/g,"").replace(/\s+[–—-]\s+.*$/,"").replace(/\s*[\(\[:].*$/,"").trim(); })
+    .filter(function(l){ return l && l.length < 80 && !/^(here|sure|i |based|note|these|top )/i.test(l); }).slice(0,10);
+  if(!names.length){ log("جواب میں کوئی نام نہیں ملا۔ ChatGPT کا پورا جواب چپکائیں۔"); return; }
+  var c = selC(), n = 0, miss = 0, q = cgQuestion();
+  leads.forEach(function(L){
+    if((L.country||"US") !== c || townOfLead(L) !== town) return;
+    var p = aiPos(L.name, names);
+    L.aiC = { q:q, names:names, tests:1, hits: p ? 1 : 0, best:p, in: p > 0, at: Date.now(), eng:"ChatGPT", manual:true };
+    n++; if(!p) miss++;
+  });
+  $("cgText").value = ""; render(true);
+  log("ChatGPT کا جواب لگ گیا: " + town + " کی " + n + " دکانوں میں سے " + miss + " کا نام نہیں آیا۔");
 };
 
 /* restore last results so a page reload never costs a new search */
