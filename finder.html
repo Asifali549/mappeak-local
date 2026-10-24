@@ -912,8 +912,10 @@ $("go").onclick = async function(){
   if(!lastTrade || !lastTowns.length){ log("کام کی قسم اور کم از کم ایک شہر لکھیں۔"); return; }
   var ctry = selC();
   running = true; $("go").textContent = "تلاش جاری ہے...";
-  leads = leads.filter(function(L){ return L.country !== ctry; }); pool = {}; render();   // keep the other country's list
-  var seen = seenIds(), ids = {}, runCount = 0, stopWhy = "";
+  var tset = lastTowns.map(function(x){ return x.toLowerCase(); });   // replace only the towns searched now; other towns and countries stay
+  leads = leads.filter(function(L){ return L.country !== ctry || L.byName || tset.indexOf(String(L.town||"").toLowerCase()) < 0; }); pool = {}; render();
+  var kept = leads.length, seen = seenIds(), ids = {}, runCount = 0, stopWhy = "";
+  leads.forEach(function(L){ ids[L.id] = 1; });
   try{
     outer:
     for(var t=0; t<lastTowns.length; t++){
@@ -935,13 +937,13 @@ $("go").onclick = async function(){
           if(passes(p, f)){ var nl = toLead(p, town, ctry); nl.mapsRank = (pages - 1) * 20 + pi + 1; nl.mapsQ = lastTrade + " in " + town; leads.push(nl); }
         });
         render();
-        if(leads.length >= f.target){ stopWhy = "مطلوبہ تعداد پوری ہو گئی، تلاش روک دی۔"; break outer; }
+        if(leads.length - kept >= f.target){ stopWhy = "مطلوبہ تعداد پوری ہو گئی، تلاش روک دی۔"; break outer; }
         token = data.nextPageToken || null;
       } while(token && pages < 3);
     }
     if(!stopWhy) stopWhy = "سب شہر دیکھ لیے۔";
     assignComps();
-    log(stopWhy + " اس بار " + runCount + " تلاش ہوئیں، " + leads.length + " کاروبار ملے۔");
+    log(stopWhy + " اس بار " + runCount + " تلاش ہوئیں، " + (leads.length - kept) + " نئے کاروبار ملے۔" + (kept ? " پہلے والے شہروں کے کاروبار بھی فہرست میں موجود ہیں۔" : ""));
     saveWatch(); showWatch();
     checkMailAll();
   }catch(e){
