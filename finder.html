@@ -406,7 +406,7 @@ function lineFor(k, L, used){
       var engs = ms.map(function(r){ return r.eng === "ChatGPT" ? "ChatGPT" : "Google's AI (Gemini)"; });
       var engTxt = engs.length > 1 ? engs.join(" and ") : engs[0];
       var dt = new Date(r0.at||Date.now()).toLocaleDateString("en-US",{month:"short",day:"numeric"});
-      return "On " + dt + ", I asked " + engTxt + " questions like \"" + r0.q + "\"" + (r0.tests > 1 ? " (" + r0.tests + " different questions" + (ms.length > 1 ? " each" : "") + ")" : "") +
+      return "On " + dt + ", I asked " + engTxt + (r0.tests > 1 ? " questions like \"" : " \"") + r0.q + "\"" + (r0.tests > 1 ? " (" + r0.tests + " different questions" + (ms.length > 1 ? " each" : "") + ")" : "") +
         ". Your business didn't appear in the top 10 answers. " + (an.length ? "It recommended " + (an.length > 1 ? an.slice(0,-1).join(", ") + " and " + an[an.length-1] : an[0]) + " instead." : "") +
         (L.mapsRank ? " On Google Maps you show at #" + L.mapsRank + " for \"" + (L.mapsQ||"") + "\"." : "") + " More customers now ask AI instead of searching.";
     case "noWebsite": return "No website is linked on your Google listing.";
