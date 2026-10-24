@@ -389,7 +389,8 @@ function lineFor(k, L, used){
       return c ? "You have " + n + " review" + (n === 1 ? "" : "s") + ", while " + compRev + "." : "You have only " + n + " reviews on Google.";
     case "notInAI":
       var an = (L.ai.names||[]).slice(0,3);
-      return "When I asked Google's AI (Gemini) \"" + L.ai.q + "\", it recommended " + (an.length > 1 ? an.slice(0,-1).join(", ") + " and " + an[an.length-1] : an[0]) + ", but not you. More customers now ask AI instead of searching.";
+      var tl = L.ai.tests && L.ai.tests > 1 ? "In " + L.ai.tests + " tests on " + new Date(L.ai.at||Date.now()).toLocaleDateString("en-US",{month:"short",day:"numeric"}) + ", I asked Google's AI (Gemini) questions like \"" + L.ai.q + "\". " : "When I asked Google's AI (Gemini) \"" + L.ai.q + "\", ";
+      return tl + (L.ai.tests > 1 ? "Your business didn't appear in its top 10 in any of them. It recommended " : "it recommended ") + (an.length > 1 ? an.slice(0,-1).join(", ") + " and " + an[an.length-1] : an[0]) + " instead." + (L.mapsRank ? " On Google Maps you show at #" + L.mapsRank + " for \"" + (L.mapsQ||"") + "\"." : "") + " More customers now ask AI instead of searching.";
     case "noWebsite": return "No website is linked on your Google listing.";
     case "noPhone": return "No phone number is shown on your Google listing.";
     case "noHours": return "Your business hours are missing on Google, so customers can't tell when to call.";
@@ -615,7 +616,9 @@ function aiLine(L){
   if(L.ai.err) return '<div class="hint" style="margin-top:4px">AI جانچ نہیں ہو سکی</div>';
   var names = (L.ai.names||[]).slice(0,5).map(esc).join(" · ");
   return '<div style="margin-top:6px;padding:6px 8px;border-radius:8px;background:' + (L.ai.in ? '#e9f7ef' : '#fdecec') + '">' +
-    (L.ai.in ? '✅ AI نے اس کا نام لیا' : '❌ AI نے اس کا نام نہیں لیا') +
+    (L.ai.in ? '✅ AI نے نام لیا: <b class="en">' + (L.ai.hits||1) + '/' + (L.ai.tests||1) + '</b> بار، بہترین نمبر <b class="en">' + (L.ai.best||'?') + '</b>'
+             : '❌ AI نے <b class="en">' + (L.ai.tests||1) + '</b> سوالوں میں ایک بار بھی نام نہیں لیا') +
+    (L.mapsRank ? '<div style="font-size:13px">گوگل میپس پر نمبر: <b class="en">' + L.mapsRank + '</b></div>' : '') +
     (names ? '<div class="en" style="text-align:left;font-size:13px;color:#556;margin-top:2px">AI: ' + names + '</div>' : '') + '</div>';
 }
 function compLine(L){
@@ -895,7 +898,7 @@ $("go").onclick = async function(){
         log("تلاش ہو رہی ہے: " + town);
         var data = await search(lastTrade + " in " + town + townSuffix(ctry, town), key, token);
         runCount++; addCount(); pages++;
-        (data.places||[]).forEach(function(p){
+        (data.places||[]).forEach(function(p, pi){
           addWatch(p, town);
           if(!p.businessStatus || p.businessStatus === "OPERATIONAL"){
             (pool[town] = pool[town] || []).push({ id:p.id, n:(p.displayName&&p.displayName.text)||"", r:p.userRatingCount||0, rt:p.rating||null,
@@ -903,7 +906,7 @@ $("go").onclick = async function(){
           }
           if(ids[p.id] || seen.indexOf(p.id) >= 0) return;
           ids[p.id] = 1;
-          if(passes(p, f)) leads.push(toLead(p, town, ctry));
+          if(passes(p, f)){ var nl = toLead(p, town, ctry); nl.mapsRank = (pages - 1) * 20 + pi + 1; nl.mapsQ = lastTrade + " in " + town; leads.push(nl); }
         });
         render();
         if(leads.length >= f.target){ stopWhy = "مطلوبہ تعداد پوری ہو گئی، تلاش روک دی۔"; break outer; }
@@ -952,6 +955,10 @@ $("goName").onclick = async function(){
 /* ---------- AI check: ask Gemini (with Google Search) which businesses it recommends, mark leads it leaves out ---------- */
 var GENERIC = /^(the|and|of|inc|llc|ltd|limited|co|company|corp|services?|plumbing|plumbers?|heating|cooling|air|hvac|ac|repair|solutions|group|pty|llp|plc|contractors?|electric(al)?|roofing|solar|energy|systems?)$/;
 function sigTokens(s){ return String(s||"").toLowerCase().replace(/&/g," and ").split(/[^a-z0-9]+/).filter(function(t){ return t.length > 1 && !GENERIC.test(t); }); }
+function aiPos(lead, names){   // 1-based position of the lead in an AI list, 0 if absent
+  for(var i=0;i<names.length;i++){ if(aiMatch(lead, [names[i]])) return i + 1; }
+  return 0;
+}
 function aiMatch(lead, names){
   var a = normName(lead), ta = sigTokens(lead);
   return names.some(function(n){
@@ -968,7 +975,7 @@ async function askGemini(key, q){
       method:"POST", headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({ contents:[{ role:"user", parts:[{ text:
         "A customer asks: \"" + q + "\". Using Google Search, which local businesses would you recommend? " +
-        "Reply with only the business names, one per line, at most 10, no numbering and no other text." }] }],
+        "List them best first. Reply with only the business names, one per line, at most 10, no numbering and no other text." }] }],
         tools:[{ google_search:{} }] }) });
     var data = null; try{ data = await res.json(); }catch(e){}
     if(res.ok){
@@ -993,16 +1000,22 @@ $("aiCheck").onclick = async function(){
   towns = towns.slice(0, 5);
   var btn = $("aiCheck"); btn.disabled = true; var done = 0;
   for(var i=0;i<towns.length;i++){
-    var q = "best " + trade + " in " + towns[i];
-    log("AI سے پوچھ رہا ہے: " + q);
-    try{
-      var names = await askGemini(key, q);
-      mine.forEach(function(L){ if(townOf(L) === towns[i]) L.ai = { q:q, names:names, in: aiMatch(L.name, names), at:Date.now() }; });
-      done++;
-    }catch(e){
-      mine.forEach(function(L){ if(townOf(L) === towns[i]) L.ai = { q:q, err:true }; });
-      log("AI سے جواب نہیں آیا: " + (e && e.message ? e.message.slice(0,120) : ""));
+    var qs = ["best " + trade + " in " + towns[i], "top rated " + trade + " in " + towns[i], "which " + trade + " do you recommend in " + towns[i]];
+    var lists = [];
+    for(var j=0;j<qs.length;j++){
+      log("AI سے پوچھ رہا ہے (" + (j+1) + "/3): " + qs[j]);
+      try{ lists.push({ q:qs[j], names: await askGemini(key, qs[j]) }); }
+      catch(e){ log("AI سے جواب نہیں آیا: " + (e && e.message ? e.message.slice(0,120) : "")); }
     }
+    mine.forEach(function(L){
+      if(townOf(L) !== towns[i]) return;
+      if(!lists.length){ L.ai = { q:qs[0], err:true }; return; }
+      var pos = lists.map(function(x){ return aiPos(L.name, x.names); });
+      var hits = pos.filter(function(p){ return p > 0; });
+      L.ai = { q: lists[0].q, names: lists[0].names, tests: lists.length, hits: hits.length,
+        best: hits.length ? Math.min.apply(null, hits) : 0, in: hits.length > 0, at: Date.now() };
+    });
+    if(lists.length) done++;
   }
   btn.disabled = false; render(true);
   var miss = mine.filter(function(L){ return L.ai && L.ai.in === false && L.ai.names && L.ai.names.length; }).length;
