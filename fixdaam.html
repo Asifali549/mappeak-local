@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>فکس دام: قیمتیں</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#1d2321;--muted:#6b726e;--brand:#0f6b4f;--brand2:#e8f3ee;--line:#e4e0d6;--price:#b4321f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#141816;--card:#1e2421;--ink:#eef2ef;--muted:#9aa5a0;--brand:#3fbf8f;--brand2:#1f3a30;--line:#2c3430;--price:#ff8a70}}
+:root[data-theme="dark"]{--bg:#141816;--card:#1e2421;--ink:#eef2ef;--muted:#9aa5a0;--brand:#3fbf8f;--brand2:#1f3a30;--line:#2c3430;--price:#ff8a70}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Naskh Arabic",system-ui,sans-serif;line-height:1.7}
+header{background:var(--brand);color:#fff;padding:18px 16px 14px;text-align:center}
+header h1{margin:0;font-size:30px}
+header p{margin:2px 0 0;opacity:.92;font-size:15px}
+.wrap{max-width:720px;margin:0 auto;padding:12px 16px 40px}
+.demo{background:#fff4d6;color:#5a4300;border:1px solid #f0d78c;border-radius:10px;padding:8px 12px;font-size:14px;margin-bottom:10px}
+.search{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0}
+.search input{width:100%;font:inherit;font-size:18px;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.search input:focus{outline:none;border-color:var(--brand)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:8px 0 4px}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:4px 14px;font:inherit;font-size:15px;cursor:pointer}
+.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+@media (min-width:560px){.grid{grid-template-columns:1fr 1fr 1fr}}
+.item{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.pic{aspect-ratio:1/1;background:var(--brand2);display:flex;align-items:center;justify-content:center;font-size:52px}
+.pic img{width:100%;height:100%;object-fit:cover}
+.info{padding:8px 10px 10px}
+.name{font-weight:700;font-size:16px}
+.meta{color:var(--muted);font-size:13px}
+.code{direction:ltr;display:inline-block;font-family:system-ui,sans-serif;font-size:12px;background:var(--brand2);color:var(--brand);border-radius:6px;padding:0 6px}
+.price{color:var(--price);font-weight:700;font-size:22px;margin-top:2px}
+.empty{text-align:center;color:var(--muted);padding:30px 0}
+footer{text-align:center;color:var(--muted);font-size:14px;margin-top:20px}
+</style>
+</head>
+<body>
+<header>
+  <h1>فکس دام</h1>
+  <p>ایک قیمت، بغیر بھاؤ تاؤ</p>
+</header>
+<div class="wrap">
+  <div class="demo">یہ نمونہ ہے: نیچے کی چیزیں اور قیمتیں صرف دکھانے کے لیے ہیں۔ اصل مال آپ کی فہرست سے لگے گا۔</div>
+  <div class="search"><input id="q" type="search" placeholder="نام یا آرٹیکل نمبر لکھیں، جیسے: پشاوری یا 1205" autocomplete="off"></div>
+  <div class="chips" id="chips"></div>
+  <div class="grid" id="grid"></div>
+  <footer>چاہ فریدہ، بستی چھینہ، جام پور</footer>
+</div>
+<script>
+(function(){
+"use strict";
+var ITEMS = [
+  {n:"پشاوری چپل، مردانہ", c:"جوتے", code:"1205", s:"سائز 7 سے 11", p:2200, e:"👞"},
+  {n:"پشاوری چپل، بچوں کی", c:"جوتے", code:"1206", s:"سائز 1 سے 6", p:1400, e:"👞"},
+  {n:"جوگرز، مردانہ", c:"جوتے", code:"2301", s:"سائز 7 سے 11", p:1850, e:"👟"},
+  {n:"جوگرز، بچوں کے", c:"جوتے", code:"2310", s:"سائز 10 سے 3", p:1200, e:"👟"},
+  {n:"زنانہ سینڈل", c:"جوتے", code:"3104", s:"سائز 36 سے 41", p:1350, e:"👡"},
+  {n:"رنگ گورا کرنے والی کریم", c:"کاسمیٹکس", code:"C-11", s:"50 گرام", p:320, e:"🧴"},
+  {n:"وینسلین کریم", c:"کاسمیٹکس", code:"C-04", s:"100 ملی", p:180, e:"🧴"},
+  {n:"سرسوں کا تیل، ہیئر آئل", c:"کاسمیٹکس", code:"C-20", s:"200 ملی", p:260, e:"🫙"},
+  {n:"رجسٹر، 200 صفحے", c:"اسٹیشنری", code:"S-200", s:"بڑا سائز", p:240, e:"📒"},
+  {n:"بال پوائنٹ، نیلا", c:"اسٹیشنری", code:"S-01", s:"ایک عدد", p:25, e:"🖊️"},
+  {n:"دھاگے کی ریل", c:"سلائی کا سامان", code:"T-10", s:"500 میٹر", p:60, e:"🧵"},
+  {n:"قینچی، درزی والی", c:"سلائی کا سامان", code:"T-33", s:"10 انچ", p:650, e:"✂️"},
+  {n:"ریموٹ کنٹرول گاڑی", c:"کھلونے", code:"K-07", s:"بیٹری والی", p:1500, e:"🚗"},
+  {n:"گڑیا", c:"کھلونے", code:"K-12", s:"درمیانی", p:550, e:"🧸"}
+];
+var $ = function(id){ return document.getElementById(id); };
+var cat = "سب";
+function fmt(n){ return "Rs " + n.toLocaleString("en-US"); }
+function norm(s){ return String(s||"").toLowerCase().replace(/[\s\-]/g,""); }
+function chips(){
+  var cats = ["سب"].concat(ITEMS.map(function(i){ return i.c; }).filter(function(c,i,a){ return a.indexOf(c) === i; }));
+  $("chips").innerHTML = "";
+  cats.forEach(function(c){
+    var b = document.createElement("button"); b.className = "chip" + (c === cat ? " on" : ""); b.textContent = c;
+    b.onclick = function(){ cat = c; chips(); show(); };
+    $("chips").appendChild(b);
+  });
+}
+function show(){
+  var q = norm($("q").value), g = $("grid"); g.innerHTML = "";
+  var list = ITEMS.filter(function(i){
+    return (cat === "سب" || i.c === cat) && (!q || norm(i.n).indexOf(q) >= 0 || norm(i.code).indexOf(q) >= 0 || norm(i.c).indexOf(q) >= 0);
+  });
+  if(!list.length){ g.innerHTML = '<div class="empty" style="grid-column:1/-1">کوئی چیز نہیں ملی</div>'; return; }
+  list.forEach(function(i){
+    var d = document.createElement("div"); d.className = "item";
+    d.innerHTML = '<div class="pic">' + (i.img ? '<img alt="" src="' + i.img + '">' : i.e) + '</div>' +
+      '<div class="info"><div class="name"></div><div class="meta"></div><div><span class="code"></span></div><div class="price"></div></div>';
+    d.querySelector(".name").textContent = i.n;
+    d.querySelector(".meta").textContent = i.s;
+    d.querySelector(".code").textContent = i.code;
+    d.querySelector(".price").textContent = fmt(i.p);
+    g.appendChild(d);
+  });
+}
+$("q").addEventListener("input", show);
+chips(); show();
+})();
+</script>
+</body>
+</html>
