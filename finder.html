@@ -1355,7 +1355,7 @@ $("csv").onclick = function(){
   var rows = [["Name","Score","Rating","Reviews","Phone","Website","Address","Google Maps","Maps rank","Gemini","ChatGPT","AI named instead","Issues"]];
   function aiTxt(r){ return !r ? "" : r.err ? ("error" + (r.msg ? ": " + r.msg : "")) : r.in ? ("named " + r.hits + "/" + r.tests + ", best #" + r.best) : ("not named in " + r.tests); }
   leads.filter(function(L){ return (L.country||"US") === selC(); }).forEach(function(L){ rows.push([L.name, scoreOf(L), L.rating==null?"":L.rating, L.reviews, L.phone, L.website, L.address, L.maps,
-    L.mapsRank||"", aiTxt(L.ai), aiTxt(L.aiC), ((L.ai||L.aiC||{}).names||[]).slice(0,5).join(" | "),
+    L.mapsRank||"", aiTxt(L.ai), aiTxt(L.aiC), ((L.ai&&L.ai.names)||(L.aiC&&L.aiC.names)||[]).slice(0,5).join(" | "),
     allIssues(L).map(function(k){return CHECKS[k][2];}).join("; ")]); });
   var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(","); }).join("\r\n");
   var a = document.createElement("a");
