@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MapPeak Lead Finder</title>
+<link rel="manifest" href="finder.webmanifest">
+<meta name="theme-color" content="#1a56db">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MapPeak">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -76,6 +83,11 @@ a{color:var(--brand)}
     </div>
   </header>
 
+  <div class="card" id="installBox" style="display:none">
+    <div class="btns"><button class="btn" id="installBtn">ایپ کی طرح انسٹال کریں</button></div>
+    <p class="hint">اس سے ٹول موبائل میں ایپ کی طرح لگ جائے گا، اپنے نیلے نشان کے ساتھ، اور سب ایپس کی فہرست میں بھی نظر آئے گا۔</p>
+  </div>
+
   <details class="card" id="setBox">
     <summary>ترتیبات (پہلی بار ضرور بھریں)</summary>
     <label>گوگل کی خفیہ چابی</label>
@@ -106,7 +118,7 @@ a{color:var(--brand)}
     <p class="hint" id="syncState">یہ لنک فون اور کمپیوٹر دونوں پر ایک ہی لکھیں، تو دونوں کا کام دونوں پر نظر آئے گا۔ یہ لنک کسی کو نہ دیں۔ اب چابیاں بھی اسی سے دوسرے آلے پر خود پہنچ جاتی ہیں۔</p>
     <div class="btns"><button class="btn2 btn-sm" id="syncNow">ابھی ملائیں</button></div>
     <label>میرا ذاتی لنک (چابیاں خود لگانے والا)</label>
-    <p class="hint">پہلے چابیاں اور ملانے کا لنک لکھ کر محفوظ کریں، پھر یہ بٹن دبائیں۔ بننے والا لنک کروم میں کھولیں اور مینو سے ہوم اسکرین پر لگا لیں۔ پھر ٹول ہمیشہ اسی نشان سے کھولیں، چابیاں مٹ بھی جائیں تو خود واپس لگ جائیں گی۔ یہ لنک کسی کو نہ دیں اور اس کی تصویر نہ بھیجیں۔</p>
+    <p class="hint">پہلے چابیاں اور ملانے کا لنک لکھ کر محفوظ کریں، پھر یہ بٹن دبائیں۔ یہ لنک واٹس ایپ میں اپنے آپ کو بھیج کر رکھ لیں۔ اگر کبھی چابیاں مٹ جائیں تو یہ لنک ایک بار کروم میں کھول دیں، چابیاں خود واپس لگ جائیں گی اور ایپ میں بھی آ جائیں گی۔ یہ لنک کسی کو نہ دیں اور اس کی تصویر نہ بھیجیں۔</p>
     <div class="btns"><button class="btn2 btn-sm" id="myLink">ذاتی لنک بنائیں</button></div>
     <textarea id="myLinkOut" class="en" readonly style="display:none"></textarea>
     <div class="btns"><button class="btn2 btn-sm" id="saveSet">محفوظ کریں</button><button class="btn2 btn-sm" id="clearSeen">پرانے کاروبار کی یادداشت صاف کریں</button></div>
@@ -1490,6 +1502,18 @@ $("myLink").onclick = function(){
 };
 document.addEventListener("visibilitychange", function(){ if(document.visibilityState === "visible") syncPull(false); });
 syncPull(false);
+
+/* app: offline copy, keep saved data safe from automatic clean-up, install button */
+if("serviceWorker" in navigator){ try{ navigator.serviceWorker.register("sw.js").catch(function(){}); }catch(e){} }
+try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function(){}); }catch(e){}
+var installEvt = null;
+window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); installEvt = e; $("installBox").style.display = "block"; });
+window.addEventListener("appinstalled", function(){ $("installBox").style.display = "none"; toast("ایپ انسٹال ہو گئی"); });
+$("installBtn").onclick = function(){
+  if(!installEvt) return;
+  installEvt.prompt();
+  installEvt.userChoice.then(function(){ installEvt = null; $("installBox").style.display = "none"; }).catch(function(){});
+};
 })();
 </script>
 </body>
