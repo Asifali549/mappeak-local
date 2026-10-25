@@ -80,7 +80,7 @@ a{color:var(--brand)}
     <summary>ترتیبات (پہلی بار ضرور بھریں)</summary>
     <label>گوگل کی خفیہ چابی</label>
     <input id="apiKey" type="password" class="en" placeholder="AIza..." autocomplete="off">
-    <p class="hint">چابی صرف آپ کے اسی موبائل یا کمپیوٹر میں محفوظ رہے گی۔ کسی کو یہ چابی نہ دیں۔</p>
+    <p class="hint">چابی آپ کے آلے میں اور آپ کے اپنے گوگل اسکرپٹ میں محفوظ رہے گی۔ کسی کو یہ چابی نہ دیں۔</p>
     <label>جیمنائی AI کی چابی (AI جانچ کے لیے)</label>
     <input id="gemKey" type="password" class="en" placeholder="AIza..." autocomplete="off">
     <p class="hint">یہ چابی گوگل کی ویب سائٹ aistudio.google.com سے مفت ملتی ہے۔ اس سے ٹول خود AI سے پوچھتا ہے کہ کس دکان کا نام لیتا ہے۔</p>
@@ -103,8 +103,12 @@ a{color:var(--brand)}
     <label class="check"><input type="checkbox" id="useSig"> جی میل میں دستخط لگا ہوا ہے (ای میل کے آخر میں نام اور پتہ ٹول نہیں لکھے گا)</label>
     <label>فون اور کمپیوٹر ملانے کا لنک (گوگل اسکرپٹ والا)</label>
     <input id="syncUrl" class="en" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
-    <p class="hint" id="syncState">یہ لنک فون اور کمپیوٹر دونوں پر ایک ہی لکھیں، تو دونوں کا کام دونوں پر نظر آئے گا۔ یہ لنک کسی کو نہ دیں۔ گوگل کی چابی اس سے نہیں جاتی، وہ ہر آلے پر الگ لکھنی ہے۔</p>
+    <p class="hint" id="syncState">یہ لنک فون اور کمپیوٹر دونوں پر ایک ہی لکھیں، تو دونوں کا کام دونوں پر نظر آئے گا۔ یہ لنک کسی کو نہ دیں۔ اب چابیاں بھی اسی سے دوسرے آلے پر خود پہنچ جاتی ہیں۔</p>
     <div class="btns"><button class="btn2 btn-sm" id="syncNow">ابھی ملائیں</button></div>
+    <label>میرا ذاتی لنک (چابیاں خود لگانے والا)</label>
+    <p class="hint">پہلے چابیاں اور ملانے کا لنک لکھ کر محفوظ کریں، پھر یہ بٹن دبائیں۔ بننے والا لنک کروم میں کھولیں اور مینو سے ہوم اسکرین پر لگا لیں۔ پھر ٹول ہمیشہ اسی نشان سے کھولیں، چابیاں مٹ بھی جائیں تو خود واپس لگ جائیں گی۔ یہ لنک کسی کو نہ دیں اور اس کی تصویر نہ بھیجیں۔</p>
+    <div class="btns"><button class="btn2 btn-sm" id="myLink">ذاتی لنک بنائیں</button></div>
+    <textarea id="myLinkOut" class="en" readonly style="display:none"></textarea>
     <div class="btns"><button class="btn2 btn-sm" id="saveSet">محفوظ کریں</button><button class="btn2 btn-sm" id="clearSeen">پرانے کاروبار کی یادداشت صاف کریں</button></div>
   </details>
 
@@ -227,6 +231,18 @@ function addSeen(id){ var s = seenIds(); if(s.indexOf(id)<0){ s.push(id); store.
 function toast(t){ var el=$("toast"); el.textContent=t; el.classList.add("show"); setTimeout(function(){el.classList.remove("show");},1800); }
 function log(t){ $("log").textContent = t; }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
+
+/* personal link: finder.html#s=... carries the sync link and keys, fills any that are missing on this device */
+(function(){
+  var m = /[#&]s=([A-Za-z0-9_\-]+)/.exec(location.hash || ""); if(!m) return;
+  try{
+    var b = m[1].replace(/-/g,"+").replace(/_/g,"/"); while(b.length % 4) b += "=";
+    var o = JSON.parse(decodeURIComponent(escape(atob(b))));
+    ["syncUrl","apiKey","gemKey","oaiKey"].forEach(function(k){
+      if(o[k] && !store.get("mp_"+k, "")){ try{ localStorage.setItem("mp_"+k, o[k]); }catch(e){} }
+    });
+  }catch(e){}
+})();
 
 /* settings */
 ["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v!==null) $(k).value = v; });
@@ -1366,7 +1382,8 @@ $("csv").onclick = function(){
 };
 
 /* ---------- phone + computer sync through the user's own Google Apps Script ---------- */
-var SYNC_KEYS = ["mp_leads","mp_seen","mp_follow","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myIntroUr","mp_useSig"];
+var SECRET_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey"];
+var SYNC_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey","mp_leads","mp_seen","mp_follow","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myIntroUr","mp_useSig"];
 var syncApplying = false, syncTimer = null, syncBusy = false;
 function syncTouched(k){
   if(!SYNC_KEYS || syncApplying || SYNC_KEYS.indexOf(k) < 0) return;
@@ -1380,6 +1397,9 @@ function syncLocal(){
 function arr(s){ try{ var a = JSON.parse(s); return Array.isArray(a) ? a : []; }catch(e){ return []; } }
 function mergeKey(k, a, b){   // a = local, b = remote; returns the merged entry
   if(!a) return b; if(!b) return a;
+  if(SECRET_KEYS.indexOf(k) >= 0){   // a filled key always beats an empty one, so an empty box never erases the other device's key
+    if(!a.v && b.v) return b; if(a.v && !b.v) return a;
+  }
   if(k === "mp_seen" || k === "mp_hideNames"){
     var u = arr(a.v); arr(b.v).forEach(function(x){ if(u.indexOf(x) < 0) u.push(x); });
     return { v: JSON.stringify(k === "mp_seen" ? u.slice(-3000) : u), t: Math.max(a.t, b.t) };
@@ -1408,7 +1428,7 @@ function syncApply(remote){
   if(changed){
     try{ var sv = JSON.parse(store.get("mp_leads","null")); if(sv && sv.leads){ leads = sv.leads; lastTrade = sv.trade || lastTrade; } }catch(e){}
     follows = arr(store.get("mp_follow","[]"));
-    ["myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v !== null) $(k).value = v; });
+    ["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v !== null) $(k).value = v; });
     $("useSig").checked = store.get("mp_useSig","0") === "1";
     showHidden(); render(true); renderFollow();
   }
@@ -1433,6 +1453,16 @@ async function syncPull(loud){
 }
 $("syncUrl").value = store.get("mp_syncUrl","");
 $("syncNow").onclick = function(){ syncPull(true); };
+$("myLink").onclick = function(){
+  var o = {}, any = false;
+  ["syncUrl","apiKey","gemKey","oaiKey"].forEach(function(k){ var v = ($(k).value||"").trim() || store.get("mp_"+k,""); if(v){ o[k] = v; any = true; } });
+  if(!o.apiKey){ toast("پہلے گوگل کی چابی لکھیں"); return; }
+  var b = btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  var link = location.origin + location.pathname + "#s=" + b;
+  var out = $("myLinkOut"); out.value = link; out.style.display = "block";
+  try{ navigator.clipboard.writeText(link).then(function(){ toast("لنک کاپی ہو گیا"); }, function(){ out.select(); toast("لنک نیچے ہے، کاپی کر لیں"); }); }
+  catch(e){ out.select(); toast("لنک نیچے ہے، کاپی کر لیں"); }
+};
 document.addEventListener("visibilitychange", function(){ if(document.visibilityState === "visible") syncPull(false); });
 syncPull(false);
 })();
