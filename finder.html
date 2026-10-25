@@ -1226,7 +1226,10 @@ function renderGone(){
     var sb = d.querySelector('[data-a="sent"]');
     if(g.sent){ sb.style.background = "var(--good)"; sb.style.color = "#fff"; }
     sb.onclick = function(){ g.sent = true; saveGone(); renderGone(); toast("نشان لگ گیا"); };
-    d.querySelector('[data-a="del"]').onclick = function(){ if(confirm("اسے فہرست سے ہٹا دیں؟")){ gone = gone.filter(function(x){ return x.id !== g.id; }); saveGone(); showWatch(); } };
+    d.querySelector('[data-a="del"]').onclick = function(){ if(confirm("اسے فہرست سے ہٹا دیں؟")){ gone = gone.filter(function(x){ return x.id !== g.id; });
+      var dl = []; try{ dl = JSON.parse(store.get("mp_goneDel","[]")) || []; }catch(e){}
+      if(dl.indexOf(g.id) < 0){ dl.push(g.id); store.set("mp_goneDel", JSON.stringify(dl.slice(-3000))); }
+      saveGone(); showWatch(); } };
     box.appendChild(d);
   });
 }
@@ -1383,7 +1386,7 @@ $("csv").onclick = function(){
 
 /* ---------- phone + computer sync through the user's own Google Apps Script ---------- */
 var SECRET_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey"];
-var SYNC_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey","mp_leads","mp_seen","mp_follow","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myIntroUr","mp_useSig"];
+var SYNC_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey","mp_watch","mp_gone","mp_goneDel","mp_leads","mp_seen","mp_follow","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myIntroUr","mp_useSig"];
 var syncApplying = false, syncTimer = null, syncBusy = false;
 function syncTouched(k){
   if(!SYNC_KEYS || syncApplying || SYNC_KEYS.indexOf(k) < 0) return;
@@ -1403,6 +1406,23 @@ function mergeKey(k, a, b){   // a = local, b = remote; returns the merged entry
   if(k === "mp_seen" || k === "mp_hideNames"){
     var u = arr(a.v); arr(b.v).forEach(function(x){ if(u.indexOf(x) < 0) u.push(x); });
     return { v: JSON.stringify(k === "mp_seen" ? u.slice(-3000) : u), t: Math.max(a.t, b.t) };
+  }
+  if(k === "mp_goneDel"){
+    var d = arr(a.v); arr(b.v).forEach(function(x){ if(d.indexOf(x) < 0) d.push(x); });
+    return { v: JSON.stringify(d.slice(-3000)), t: Math.max(a.t, b.t) };
+  }
+  if(k === "mp_gone"){   // union by business; a "sent" mark on either device is kept
+    var gid = {}, gord = [];
+    arr(a.v).concat(arr(b.v)).forEach(function(g){
+      if(!g || !g.id) return;
+      if(!gid[g.id]){ gid[g.id] = g; gord.push(g.id); } else if(g.sent) gid[g.id].sent = true;
+    });
+    return { v: JSON.stringify(gord.map(function(id){ return gid[id]; })), t: Math.max(a.t, b.t) };
+  }
+  if(k === "mp_watch"){   // union of watched businesses; keep the most recent check time
+    var wa = {}, wb = {}; try{ wa = JSON.parse(a.v) || {}; }catch(e){} try{ wb = JSON.parse(b.v) || {}; }catch(e){}
+    Object.keys(wb).forEach(function(id){ if(!wa[id] || (wb[id].c||0) > (wa[id].c||0)) wa[id] = wb[id]; });
+    return { v: JSON.stringify(wa), t: Math.max(a.t, b.t) };
   }
   if(k === "mp_follow"){
     var rank = { waiting:0, followed:1, replied:2 }, byId = {}, order = [];
@@ -1428,6 +1448,11 @@ function syncApply(remote){
   if(changed){
     try{ var sv = JSON.parse(store.get("mp_leads","null")); if(sv && sv.leads){ leads = sv.leads; lastTrade = sv.trade || lastTrade; } }catch(e){}
     follows = arr(store.get("mp_follow","[]"));
+    try{ watch = JSON.parse(store.get("mp_watch","{}")) || {}; }catch(e){}
+    var del = arr(store.get("mp_goneDel","[]"));
+    gone = arr(store.get("mp_gone","[]")).filter(function(g){ return del.indexOf(g.id) < 0; });
+    gone.forEach(function(g){ delete watch[g.id]; }); del.forEach(function(id){ delete watch[id]; });
+    showWatch();
     ["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v !== null) $(k).value = v; });
     $("useSig").checked = store.get("mp_useSig","0") === "1";
     showHidden(); render(true); renderFollow();
