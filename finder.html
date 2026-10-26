@@ -1581,6 +1581,44 @@ function renderToday(){
 }
 
 /* ---------- picture report: one polished image of the business's own problems, English or Arabic ---------- */
+
+var URR = {
+  notInAI:["جب AI (جیمنائی یا ChatGPT) سے اس کام کے بہترین کاروبار پوچھے گئے تو اس نے دوسروں کے نام لیے، آپ کا نہیں","زیادہ اور تفصیلی ریویو، ویب سائٹ پر صاف معلومات، اور ہر جگہ ایک جیسی تفصیل"],
+  noRating:["گوگل پر ابھی تک کوئی ریٹنگ نہیں","مطمئن گاہکوں سے سچا ریویو لکھنے کی درخواست کریں"],
+  ratingLow:["ریٹنگ چار ستاروں سے کم ہے","ہر ریویو کا جواب دیں، اور مطمئن گاہکوں سے ریویو کی درخواست کریں"],
+  ratingMid:["ریٹنگ ساڑھے چار ستاروں سے کم ہے","مسلسل نئے اور سچے ریویو اوسط کو اوپر لے جاتے ہیں"],
+  reviews10:["دس سے کم ریویو","جن کے ریویو زیادہ ہوں، گاہک پہلے انہیں فون کرتا ہے"],
+  reviews20:["بیس سے کم ریویو","تازہ ریویو نئے گاہکوں کا بھروسہ بڑھاتے ہیں"],
+  reviews50:["پچاس سے کم ریویو","ہر مہینے سچے ریویو جمع کرتے رہیں"],
+  noWebsite:["گوگل پروفائل پر ویب سائٹ کا لنک نہیں","ویب سائٹ کا لنک لگائیں تاکہ گاہک آپ کا کام دیکھ سکیں"],
+  noPhone:["گوگل پروفائل پر فون نمبر نہیں","فون نمبر لگائیں تاکہ گاہک سیدھا فون کر سکیں"],
+  noHours:["کھلنے اور بند ہونے کے اوقات درج نہیں","اوقات لکھیں تاکہ گاہک کو پتہ ہو کب رابطہ کرے"],
+  fewPhotos:["پروفائل پر پانچ سے کم تصویریں","ٹیم، دکان اور مکمل کیے گئے کام کی اصل تصویریں لگائیں"],
+  stale:["تین مہینے سے کوئی نیا ریویو نہیں","تازہ ریویو بتاتے ہیں کہ کاروبار چل رہا ہے"],
+  noReplies:["ریویو کے جواب نہیں دیے گئے","ہر ریویو کا جواب دو دن کے اندر دیں"],
+  noPosts:["گوگل پر کوئی تازہ پوسٹ نہیں","ہفتے میں ایک بار چھوٹی سی خبر یا پیشکش لگائیں"],
+  slowSite:["گوگل کی جانچ میں ویب سائٹ موبائل پر سست ہے","تصویریں ہلکی کریں یا تیز ویب سائٹ پر منتقل ہوں"],
+  noHttps:["ویب سائٹ پر حفاظتی تالا نہیں، براؤزر غیر محفوظ لکھتا ہے","مفت حفاظتی سرٹیفکیٹ لگوائیں"],
+  noDmarc:["ای میل کی حفاظتی مہر نہیں، آپ کی ای میلیں فضول خانے میں جا سکتی ہیں","ای میل کی حفاظتی سیٹنگز لگوائیں"],
+  noSpf:["ای میل کی دوسری حفاظتی مہر بھی نہیں","یہ سیٹنگ لگوائیں تاکہ آپ کی ای میل جعلی نہ سمجھی جائے"],
+  unsafeSite:["گوگل آپ کی ویب سائٹ کو خطرناک دکھا رہا ہے","ویب سائٹ صاف کروا کر گوگل سے دوبارہ جانچ کروائیں"],
+  siteBroken:["گوگل پروفائل والی ویب سائٹ کھلتی ہی نہیں","ویب سائٹ ٹھیک کروائیں یا لنک بدلیں"],
+  siteParked:["ویب سائٹ کھولنے پر ڈومین برائے فروخت کا صفحہ آتا ہے","ڈومین کی تجدید کروائیں یا لنک بدلیں"],
+  catMismatch:["بنیادی کیٹیگری اوپر والے کاروباروں سے مختلف ہے","وہ کیٹیگری چنیں جو آپ کے اصل کام سے ملتی ہو"],
+  unclaimed:["پروفائل آپ کے نام پر نہیں، کوئی بھی اس میں تبدیلی کی تجویز دے سکتا ہے","پروفائل اپنے نام کروائیں اور تصدیق کریں"],
+  notIndexable:["ویب سائٹ گوگل تلاش سے چھپی ہوئی ہے","ویب سائٹ کی وہ سیٹنگ ہٹائیں جو گوگل سے چھپاتی ہے"],
+  recentBadReview:["پچھلے دو مہینے میں ایک یا دو ستارے والا ریویو آیا ہے","اس کا تحمل اور سلیقے سے جواب دیں"],
+  phoneMismatch:["گوگل اور ویب سائٹ پر فون نمبر الگ الگ ہے","ہر جگہ ایک ہی نمبر لکھیں"],
+  hoursMismatch:["اوقات ویب سائٹ پر ہیں مگر گوگل پر نہیں","ویب سائٹ والے اوقات گوگل پر بھی لکھیں"],
+  domainExpiring:["ویب سائٹ کا ڈومین جلد ختم ہونے والا ہے","ڈومین کی تجدید کروائیں اور خودکار تجدید چالو کریں"],
+  notMobile:["ویب سائٹ موبائل کی اسکرین پر پوری نہیں آتی","موبائل کے مطابق ڈیزائن بنوائیں"],
+  fbAsSite:["ویب سائٹ کی جگہ فیس بک کا لنک لگا ہے","اصل ویب سائٹ لگائیں اور فیس بک اضافی لنک رکھیں"],
+  freeDomain:["ویب سائٹ اپنے ڈومین کی بجائے مفت پتے پر ہے","اپنا ڈومین لیں، جس سے پیشہ ورانہ ای میل بھی بنتی ہے"],
+  noMetaDesc:["ویب سائٹ پر گوگل کے لیے تعارف نہیں","کام اور شہر کے ساتھ مختصر تعارف لکھیں"],
+  noTitle:["ویب سائٹ کے صفحے کا عنوان نہیں","نام، کام اور شہر کے ساتھ عنوان لکھیں"],
+  fbStale:["فیس بک پر تین مہینے سے کوئی پوسٹ نہیں","ہر ہفتے کام کی ایک تصویر یا خبر لگائیں"],
+  noAttributes:["ادائیگی اور سہولت کی معلومات درج نہیں","ادائیگی کے طریقے اور سہولتیں لکھیں"]
+};
 var RT = {
   en: { title:"Google Business Profile Check", by:"Prepared by MapPeak Local", issues:"Issues found", urgent:"Fix first", rating:"Rating",
         reviews:"reviews", noRating:"No rating yet", strength:"Profile strength", lv:["Needs attention","Fair","Strong"],
@@ -1591,7 +1629,12 @@ var RT = {
         reviews:"تقييماً", noRating:"لا يوجد تقييم", strength:"قوة الملف", lv:["يحتاج إلى اهتمام","مقبول","قوي"],
         vs:"مقارنة مع أقوى منافس قريب", you:"نشاطكم", g:["أصلحوها أولاً","مهمة","تحسينات سريعة"], none:"لم يتم رصد مشكلات كبيرة.",
         next:"الخطوة التالية", cta:"يمكننا إصلاح هذه النقاط لكم خطوة بخطوة ووفق إرشادات Google. ردّوا على هذه الرسالة وسنرسل لكم خطة عمل مجانية.",
-        foot:"لا ننشر تقييمات مزيفة ولا نقدّم أي مقابل للتقييمات." }
+        foot:"لا ننشر تقييمات مزيفة ولا نقدّم أي مقابل للتقييمات." },
+  ur: { title:"گوگل بزنس پروفائل کی جانچ", by:"تیار کردہ: میپ پیک لوکل (MapPeak Local)", issues:"خامیاں ملیں", urgent:"فوری", rating:"ریٹنگ",
+        reviews:"ریویو", noRating:"ابھی ریٹنگ نہیں", strength:"پروفائل کی مضبوطی", lv:["توجہ کی ضرورت","درمیانی","مضبوط"],
+        vs:"آپ اور قریب کا سب سے مضبوط مقابلے والا", you:"آپ", g:["پہلے ٹھیک کریں","اہم","جلدی والی بہتریاں"], none:"کوئی بڑی خامی نہیں ملی۔",
+        next:"اگلا قدم", cta:"ہم یہ سب خامیاں گوگل کے اصولوں کے مطابق، قدم بہ قدم آپ کے لیے ٹھیک کر سکتے ہیں۔ اس پیغام کا جواب دیں، ہم مفت لائحہ عمل بھیج دیں گے۔",
+        foot:"ہم جعلی ریویو نہیں لگاتے اور نہ ریویو کے بدلے کوئی انعام دیتے ہیں۔" }
 };
 var logoImg = null;
 function loadLogo(){
@@ -1606,11 +1649,11 @@ function wrapLines(ctx, text, maxW){
 function fitText(ctx, t, maxW){ t = String(t||""); if(ctx.measureText(t).width <= maxW) return t; while(t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1); return t + "…"; }
 function rrect(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function drawReport(ctx, L, W, lang){
-  var ar = lang === "ar", t = RT[lang], P = 60, y = 0;
+  var ar = lang !== "en", t = RT[lang], P = 60, y = 0, DICT = lang === "ur" ? URR : AR;   // "ar" below means right-to-left (Arabic or Urdu)
   var F = ar ? '"Noto Naskh Arabic", "Inter", sans-serif' : '"Inter", system-ui, sans-serif';
   var blue = "#1a56db", ink = "#14213d", muted = "#5b6475", line = "#e2e6ee";
   var RED = "#d92d20", AMB = "#d97706", GRN = "#0e9f6e", SKY = "#2563eb";
-  var lhK = ar ? 1.55 : 1.32;   // Arabic script needs taller lines
+  var lhK = lang === "ur" ? 1.7 : (ar ? 1.55 : 1.32);   // Arabic script needs taller lines
   ctx.direction = ar ? "rtl" : "ltr";
   function X(x, w){ return ar ? W - x - (w || 0) : x; }   // mirror every left-anchored position for Arabic
   function font(size, weight){ ctx.font = weight + " " + size + "px " + F; }
@@ -1631,7 +1674,7 @@ function drawReport(ctx, L, W, lang){
   R(P, 44, 120, 120, "#ffffff", 28);
   if(logoImg) ctx.drawImage(logoImg, X(P + 10, 100), 54, 100, 100);
   y = 46; T(t.title, ar ? 40 : 42, 700, "#ffffff", P + 150, W - 2*P - 150);
-  T(t.by + "  ·  " + new Date().toLocaleDateString(ar ? "ar-SA-u-nu-latn-ca-gregory" : "en-US", { year:"numeric", month:"long", day:"numeric" }), 24, 400, "#dbe6ff", P + 150, W - 2*P - 150);
+  T(t.by + "  ·  " + new Date().toLocaleDateString(lang === "ar" ? "ar-SA-u-nu-latn-ca-gregory" : (lang === "ur" ? "ur-PK-u-nu-latn" : "en-US"), { year:"numeric", month:"long", day:"numeric" }), 24, 400, "#dbe6ff", P + 150, W - 2*P - 150);
 
   /* business */
   y = 236;
@@ -1699,12 +1742,12 @@ function drawReport(ctx, L, W, lang){
       var top = y;
       Cc(P + 24, top + 30, 22, gcol[gi]);
       centered(String(num), 22, 700, "#ffffff", P + 24, top + 38);
-      if(ar){ T(AR[k] ? AR[k][0] : CHECKS[k][2], 27, 700, ink, P + 64, W - 2*P - 64); T(AR[k] ? "← " + AR[k][1] : "", 24, 400, muted, P + 64, W - 2*P - 64); }
+      if(ar){ T(DICT[k] ? DICT[k][0] : CHECKS[k][2], 27, 700, ink, P + 64, W - 2*P - 64); T(DICT[k] ? "← " + DICT[k][1] : "", 24, 400, muted, P + 64, W - 2*P - 64); }
       else { T(lineFor(k, L, used), 27, 700, ink, P + 64, W - 2*P - 64); T("→ " + CHECKS[k][3], 24, 400, muted, P + 64, W - 2*P - 64); }
     });
   });
   var more = issues.length - shown;
-  if(more > 0){ y += 8; T(ar ? ("و" + more + " نقاط أخرى في التقرير الكامل") : ("+ " + more + " more in the full report"), 24, 400, muted, P + 64, W - 2*P - 64); }
+  if(more > 0){ y += 8; T(lang === "ar" ? ("و" + more + " نقاط أخرى في التقرير الكامل") : (lang === "ur" ? ("مزید " + more + " خامیاں مکمل رپورٹ میں") : ("+ " + more + " more in the full report")), 24, 400, muted, P + 64, W - 2*P - 64); }
 
   /* call to action with contact details */
   y += 36;
@@ -1731,7 +1774,7 @@ function drawReport(ctx, L, W, lang){
 async function makeReportImage(L, lang){
   try{ if(document.fonts && document.fonts.load){
     await document.fonts.load('700 30px "Inter"'); await document.fonts.load('400 30px "Inter"');
-    if(lang === "ar"){ await document.fonts.load('700 30px "Noto Naskh Arabic"', "عربي"); await document.fonts.load('400 30px "Noto Naskh Arabic"', "عربي"); }
+    if(lang !== "en"){ await document.fonts.load('700 30px "Noto Naskh Arabic"', "عربی اردو"); await document.fonts.load('400 30px "Noto Naskh Arabic"', "عربی اردو"); }
   } }catch(e){}
   await loadLogo();
   var W = 1080, tmp = document.createElement("canvas"); tmp.width = W; tmp.height = 5000;
@@ -1741,21 +1784,21 @@ async function makeReportImage(L, lang){
   return c;
 }
 async function showReportImage(L, lang){
-  lang = lang || (isGulf(L.country) ? "ar" : "en");
+  lang = lang || (isGulf(L.country) ? "ar" : (L.country === "PK" ? "ur" : "en"));
   var c = await makeReportImage(L, lang);
   var blob = await new Promise(function(r){ c.toBlob(r, "image/png"); });
-  var fname = "MapPeak_" + String(L.name||"report").replace(/[^A-Za-z0-9]+/g, "_").slice(0, 40) + (lang === "ar" ? "_AR" : "") + ".png";
+  var fname = "MapPeak_" + String(L.name||"report").replace(/[^A-Za-z0-9]+/g, "_").slice(0, 40) + (lang === "en" ? "" : "_" + lang.toUpperCase()) + ".png";
   var url = URL.createObjectURL(blob);
   var old = document.querySelector(".ov"); if(old) old.remove();
   var ov = document.createElement("div"); ov.className = "ov";
   ov.innerHTML = '<img alt="" src="' + url + '"><div class="btns"><button class="btn btn-sm" style="width:auto" data-a="share">شیئر کریں</button>' +
     '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" download="' + fname + '" href="' + url + '">ڈاؤن لوڈ کریں</a>' +
-    '<button class="btn2 btn-sm" data-a="lang">' + (lang === "ar" ? "انگریزی رپورٹ" : "عربی رپورٹ") + '</button>' +
+    [["en","انگریزی"],["ar","عربی"],["ur","اردو"]].filter(function(x){ return x[0] !== lang; }).map(function(x){ return '<button class="btn2 btn-sm" data-l="' + x[0] + '">' + x[1] + ' رپورٹ</button>'; }).join("") +
     '<button class="btn2 btn-sm" data-a="close">بند کریں</button></div>' +
     '<p class="hint" style="color:#dde;text-align:center;max-width:520px">یہ تصویر ای میل کے ساتھ لگائیں، یا واٹس ایپ پر پیغام کے ساتھ بھیجیں۔ رپورٹ پر آپ کا رابطہ ترتیبات سے آتا ہے، واٹس ایپ نمبر وہاں لکھ دیں۔</p>';
   document.body.appendChild(ov);
   ov.querySelector('[data-a="close"]').onclick = function(){ ov.remove(); URL.revokeObjectURL(url); };
-  ov.querySelector('[data-a="lang"]').onclick = function(){ URL.revokeObjectURL(url); showReportImage(L, lang === "ar" ? "en" : "ar"); };
+  ov.querySelectorAll('[data-l]').forEach(function(b){ b.onclick = function(){ URL.revokeObjectURL(url); showReportImage(L, b.getAttribute("data-l")); }; });
   var sb = ov.querySelector('[data-a="share"]');
   var file = null; try{ file = new File([blob], fname, { type: "image/png" }); }catch(e){}
   if(!(file && navigator.canShare && navigator.canShare({ files: [file] }))) sb.style.display = "none";
