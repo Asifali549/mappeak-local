@@ -103,16 +103,16 @@ a{color:var(--brand)}
   </div>
 
   <details class="card" id="setBox">
-    <summary>ترتیبات (پہلی بار ضرور بھریں)</summary>
-    <label>گوگل کی خفیہ چابی</label>
+    <summary>Settings (پہلی بار ضرور بھریں)</summary>
+    <label>Google API Key</label>
     <input id="apiKey" type="password" class="en" placeholder="AIza..." autocomplete="off">
-    <p class="hint">چابی آپ کے آلے میں اور آپ کے اپنے گوگل اسکرپٹ میں محفوظ رہے گی۔ کسی کو یہ چابی نہ دیں۔</p>
-    <label>جیمنائی AI کی چابی (AI جانچ کے لیے)</label>
+    <p class="hint">Key آپ کے آلے میں اور آپ کے اپنے گوگل اسکرپٹ میں محفوظ رہے گی۔ کسی کو یہ Key نہ دیں۔</p>
+    <label>Gemini API Key، اے آئی جانچ کے لیے</label>
     <input id="gemKey" type="password" class="en" placeholder="AIza..." autocomplete="off">
-    <p class="hint">یہ چابی گوگل کی ویب سائٹ aistudio.google.com سے مفت ملتی ہے۔ اس سے ٹول خود AI سے پوچھتا ہے کہ کس دکان کا نام لیتا ہے۔</p>
-    <label>ChatGPT کی چابی (اختیاری، پیسوں والی)</label>
+    <p class="hint">یہ Key گوگل کی ویب سائٹ aistudio.google.com سے مفت ملتی ہے۔ اس سے ٹول خود AI سے پوچھتا ہے کہ کس دکان کا نام لیتا ہے۔</p>
+    <label>ChatGPT API Key، اختیاری اور پیسوں والی</label>
     <input id="oaiKey" type="password" class="en" placeholder="sk-..." autocomplete="off">
-    <p class="hint">یہ چابی platform.openai.com سے ملتی ہے اور اس کے لیے پہلے کچھ ڈالر جمع کرانے پڑتے ہیں۔ خالی چھوڑیں تو صرف جیمنائی سے جانچ ہوگی۔</p>
+    <p class="hint">یہ Key platform.openai.com سے ملتی ہے اور اس کے لیے پہلے کچھ ڈالر جمع کرانے پڑتے ہیں۔ خالی چھوڑیں تو صرف جیمنائی سے جانچ ہوگی۔</p>
     <label>آپ کا نام (انگریزی میں)</label>
     <input id="myName" class="en" placeholder="Muhammad Asif Raza">
     <label>آپ کی ای میل</label>
@@ -129,26 +129,26 @@ a{color:var(--brand)}
     <div class="btns"><button class="btn2 btn-sm" id="hideBtn">اس نام کو ہٹا دیں</button></div>
     <p class="hint" id="hiddenList"></p>
     <label class="check"><input type="checkbox" id="useSig"> جی میل میں دستخط لگا ہوا ہے (ای میل کے آخر میں نام اور پتہ ٹول نہیں لکھے گا)</label>
-    <label>فون اور کمپیوٹر ملانے کا لنک (گوگل اسکرپٹ والا)</label>
+    <label>Sync لنک (گوگل اسکرپٹ والا)</label>
     <input id="syncUrl" class="en" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
-    <p class="hint" id="syncState">یہ لنک فون اور کمپیوٹر دونوں پر ایک ہی لکھیں، تو دونوں کا کام دونوں پر نظر آئے گا۔ یہ لنک کسی کو نہ دیں۔ اب چابیاں بھی اسی سے دوسرے آلے پر خود پہنچ جاتی ہیں۔</p>
-    <div class="btns"><button class="btn2 btn-sm" id="syncNow">ابھی ملائیں</button></div>
-    <label>میرا ذاتی لنک (چابیاں خود لگانے والا)</label>
-    <p class="hint">پہلے چابیاں اور ملانے کا لنک لکھ کر محفوظ کریں، پھر یہ بٹن دبائیں۔ یہ لنک واٹس ایپ میں اپنے آپ کو بھیج کر رکھ لیں۔ اگر کبھی چابیاں مٹ جائیں تو یہ لنک ایک بار کروم میں کھول دیں، چابیاں خود واپس لگ جائیں گی اور ایپ میں بھی آ جائیں گی۔ یہ لنک کسی کو نہ دیں اور اس کی تصویر نہ بھیجیں۔</p>
-    <div class="btns"><button class="btn2 btn-sm" id="myLink">ذاتی لنک بنائیں</button></div>
+    <p class="hint" id="syncState">یہ لنک فون اور کمپیوٹر دونوں پر ایک ہی لکھیں، تو دونوں کا کام دونوں پر نظر آئے گا۔ یہ لنک کسی کو نہ دیں۔ اب Keys بھی اسی سے دوسرے آلے پر خود پہنچ جاتی ہیں۔</p>
+    <div class="btns"><button class="btn2 btn-sm" id="syncNow">ابھی Sync کریں</button></div>
+    <label>میرا Personal Link (Keys خود لگانے والا)</label>
+    <p class="hint">پہلے Keys اور Sync لنک لکھ کر Save کریں، پھر یہ بٹن دبائیں۔ یہ لنک واٹس ایپ میں اپنے آپ کو بھیج کر رکھ لیں۔ اگر کبھی Keys مٹ جائیں تو یہ لنک ایک بار کروم میں کھول دیں، Keys خود واپس لگ جائیں گی اور ایپ میں بھی آ جائیں گی۔ یہ لنک کسی کو نہ دیں اور اس کی تصویر نہ بھیجیں۔</p>
+    <div class="btns"><button class="btn2 btn-sm" id="myLink">Personal Link بنائیں</button></div>
     <textarea id="myLinkOut" class="en" readonly style="display:none"></textarea>
-    <div class="btns"><button class="btn2 btn-sm" id="saveSet">محفوظ کریں</button><button class="btn2 btn-sm" id="clearSeen">پرانے کاروبار کی یادداشت صاف کریں</button></div>
+    <div class="btns"><button class="btn2 btn-sm" id="saveSet">Save کریں</button><button class="btn2 btn-sm" id="clearSeen">پرانے کاروبار کی یادداشت صاف کریں</button></div>
   </details>
 
   <details class="card" id="fuBox">
-    <summary>یاد دہانی والے پیغام (<span class="en" id="fuDue">0</span> آج بھیجنے ہیں)</summary>
-    <p class="hint">جس کاروبار کو پیغام بھیجا اور چار دن تک جواب نہیں آیا، اسے ایک چھوٹی سی یاد دہانی بھیجیں۔ صرف ایک بار، اس سے زیادہ نہیں۔ جواب آ جائے تو "جواب آ گیا" دبا دیں۔</p>
+    <summary>Reminder والے پیغام (<span class="en" id="fuDue">0</span> آج بھیجنے ہیں)</summary>
+    <p class="hint">جس کاروبار کو پیغام بھیجا اور چار دن تک جواب نہیں آیا، اسے ایک چھوٹی سی Reminder بھیجیں۔ صرف ایک بار، اس سے زیادہ نہیں۔ جواب آ جائے تو "جواب آ گیا" دبا دیں۔</p>
     <div id="fuList"></div>
   </details>
 
   <details class="card" id="pipeBox">
-    <summary>گاہکوں کا سفر (<span class="en" id="pipeDue">0</span> سے آج رابطہ کرنا ہے)</summary>
-    <p class="hint">جس کا جواب آ جائے وہ یہاں آتا ہے۔ ہر قدم کا بٹن دبائیں: جواب آیا، قیمت بتا دی، پیسے مل گئے۔ ٹول خود بتائے گا کہ اگلا رابطہ کب کرنا ہے۔</p>
+    <summary>Client Follow-up (<span class="en" id="pipeDue">0</span> سے آج رابطہ کرنا ہے)</summary>
+    <p class="hint">جس کا جواب آ جائے وہ یہاں آتا ہے۔ ہر قدم کا بٹن دبائیں: جواب آیا، Price بتا دی، Payment مل گئی۔ ٹول خود بتائے گا کہ اگلا رابطہ کب کرنا ہے۔</p>
     <div id="pipeList"></div>
     <details style="margin-top:10px">
       <summary style="font-size:16px">نیا گاہک ہاتھ سے شامل کریں (کمیونٹی، ریڈٹ، واٹس ایپ)</summary>
@@ -163,7 +163,7 @@ a{color:var(--brand)}
       <label>رابطہ (فون، ای میل یا ریڈٹ کا نام)</label>
       <input id="mContact" class="en" placeholder="+966... / name@email.com / u/username">
       <label>ابھی کہاں ہیں</label>
-      <select id="mState"><option value="waiting">پیغام بھیجا، جواب کا انتظار</option><option value="replied">جواب آ گیا</option><option value="quoted">قیمت بتا دی</option></select>
+      <select id="mState"><option value="waiting">پیغام بھیجا، جواب کا انتظار</option><option value="replied">جواب آ گیا</option><option value="quoted">Price بتا دی</option></select>
       <label>نوٹ (اختیاری)</label>
       <input id="mNote" placeholder="مثلاً: ریویو غائب ہونے کا مسئلہ">
       <div class="btns"><button class="btn btn-sm" id="mAdd" style="width:auto">شامل کریں</button></div>
@@ -223,7 +223,7 @@ San Angelo, TX</textarea>
     <div class="btns">
       <button class="btn2 btn-sm" id="demo">نمونہ دیکھیں (مفت، کریڈٹ نہیں لگتا)</button>
       <details id="cgBox" style="width:100%;margin-top:6px">
-        <summary style="cursor:pointer">AI جانچ، بغیر چابی کے (مفت، کوئی حد نہیں)</summary>
+        <summary style="cursor:pointer">AI جانچ، بغیر Key کے (مفت، کوئی حد نہیں)</summary>
         <p class="hint">ٹول سوال بنا دیتا ہے۔ آپ اسے جیمنائی یا ChatGPT کی ایپ میں پوچھیں اور جواب یہاں چپکا دیں۔ اس شہر کی سب دکانوں پر خود نشان لگ جائے گا کہ AI نے کس کا نام لیا اور کس کا نہیں۔</p>
         <div class="row">
           <div><label>شہر</label><select id="cgTown"></select></div>
@@ -238,7 +238,7 @@ San Angelo, TX</textarea>
         <textarea id="cgText" class="en" rows="6" placeholder="1. Business name&#10;2. Business name"></textarea>
         <div class="btns"><button class="btn btn-sm" id="cgApply" style="width:auto">جواب لگائیں</button></div>
       </details>
-      <button class="btn2 btn-sm" id="aiCheck">AI جانچ چابی سے (مفت حد جلد ختم ہو جاتی ہے)</button>
+      <button class="btn2 btn-sm" id="aiCheck">AI جانچ Key سے (مفت حد جلد ختم ہو جاتی ہے)</button>
       <button class="btn2 btn-sm" id="csv">فہرست ڈاؤن لوڈ کریں</button>
       <button class="btn2 btn-sm" id="adsAll">اس کام کے فیس بک اشتہار دیکھیں</button>
     </div>
@@ -250,10 +250,10 @@ San Angelo, TX</textarea>
   <div id="results"></div>
 
   <details class="card" id="watchBox">
-    <summary>بند لسٹنگ کی نگرانی</summary>
+    <summary>Suspended Listing Monitor</summary>
     <p class="hint">ہر تلاش میں جتنے بھی کاروبار آتے ہیں، ٹول ان سب کو یہاں یاد رکھتا ہے۔ ہفتے میں ایک بار نیچے والا بٹن دبائیں۔ ٹول دیکھے گا کہ ان میں سے کون سا کاروبار گوگل نقشے سے غائب ہو گیا ہے۔ غائب کاروبار کی لسٹنگ شاید بند ہوئی ہے۔</p>
     <div class="stat" style="margin-top:8px">
-      <span class="pill">نگرانی میں: <b class="en" id="watchCount">0</b></span>
+      <span class="pill">Monitor میں: <b class="en" id="watchCount">0</b></span>
       <span class="pill">غائب ملے: <b class="en" id="goneCount">0</b></span>
     </div>
     <p class="hint" id="watchLast"></p>
@@ -350,7 +350,7 @@ $("useSig").checked = store.get("mp_useSig","0") === "1";
 $("saveSet").onclick = function(){ ["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myWA","myIntroUr"].forEach(function(k){ store.set("mp_"+k, $(k).value.trim()); }); store.set("mp_useSig", $("useSig").checked ? "1" : "0");
   var su = ($("syncUrl").value||"").trim(); var hadSync = store.get("mp_syncUrl","");
   try{ localStorage.setItem("mp_syncUrl", su); }catch(e){}
-  toast("محفوظ ہو گیا"); if(su && su !== hadSync) syncPull(true); };
+  toast("Save ہو گیا"); if(su && su !== hadSync) syncPull(true); };
 $("clearSeen").onclick = function(){ if(confirm("پہلے دیکھے گئے سب کاروبار دوبارہ نظر آنے لگیں گے۔ صاف کریں؟")){ store.set("mp_seen","[]"); toast("صاف ہو گیا"); } };
 $("todayCount").textContent = getCount();
 ["target","runLimit","dayLimit","minReviews","maxReviews","maxRating"].forEach(function(k){
@@ -959,7 +959,7 @@ function passes(p, f){
 
 function apiError(status, body){
   var msg = (body && body.error && body.error.message) || "";
-  if(status === 403 || status === 400 && /API key/i.test(msg)) return "چابی میں مسئلہ ہے۔ ترتیبات میں چابی دوبارہ چیک کریں۔";
+  if(status === 403 || status === 400 && /API key/i.test(msg)) return "Key میں مسئلہ ہے۔ Settings میں Key دوبارہ چیک کریں۔";
   if(status === 429) return "گوگل کی حد پوری ہو گئی ہے۔ کل دوبارہ کوشش کریں۔";
   return "گوگل سے غلطی آئی: " + status;
 }
@@ -1035,7 +1035,7 @@ var running = false;
 $("go").onclick = async function(){
   if(running) return;
   var key = ($("apiKey").value||"").trim();
-  if(!key){ $("setBox").open = true; log("پہلے ترتیبات میں گوگل کی چابی لکھ کر محفوظ کریں۔"); return; }
+  if(!key){ $("setBox").open = true; log("پہلے Settings میں Google Key لکھ کر Save کریں۔"); return; }
   var f = { maxRating: parseFloat($("maxRating").value)||5, maxReviews: parseInt($("maxReviews").value,10)||0,
     target: parseInt($("target").value,10)||10, minReviews: parseInt($("minReviews").value,10)||0, runLimit: parseInt($("runLimit").value,10)||1,
     dayLimit: parseInt($("dayLimit").value,10)||1, needWeb: $("needWeb").checked };
@@ -1088,7 +1088,7 @@ $("go").onclick = async function(){
 $("goName").onclick = async function(){
   if(running) return;
   var key = ($("apiKey").value||"").trim();
-  if(!key){ $("setBox").open = true; log("پہلے ترتیبات میں گوگل کی چابی لکھ کر محفوظ کریں۔"); return; }
+  if(!key){ $("setBox").open = true; log("پہلے Settings میں Google Key لکھ کر Save کریں۔"); return; }
   var q = ($("byName").value||"").trim();
   if(!q){ log("کاروبار کا نام لکھیں، ساتھ شہر بھی۔"); return; }
   var ctry = selC();
@@ -1212,7 +1212,7 @@ function aiResult(L, lists, q0){
 $("aiCheck").onclick = async function(){
   var gk = ($("gemKey").value||"").trim() || store.get("mp_gemKey","");
   var ok = ($("oaiKey").value||"").trim() || store.get("mp_oaiKey","");
-  if(!gk && !ok){ $("setBox").open = true; log("پہلے ترتیبات میں جیمنائی یا ChatGPT کی چابی لکھ کر محفوظ کریں۔"); return; }
+  if(!gk && !ok){ $("setBox").open = true; log("پہلے Settings میں Gemini یا ChatGPT کی Key لکھ کر Save کریں۔"); return; }
   var c = selC(), trade = (lastTrade || $("trade").value || "").trim();
   var mine = leads.filter(function(L){ return (L.country||"US") === c; });
   if(!mine.length || !trade){ log("پہلے کاروبار تلاش کریں، پھر AI جانچ کریں۔"); return; }
@@ -1355,9 +1355,9 @@ var watching = false;
 $("watchGo").onclick = async function(){
   if(watching) return;
   var key = ($("apiKey").value||"").trim();
-  if(!key){ $("setBox").open = true; $("watchLog").textContent = "پہلے ترتیبات میں گوگل کی چابی لکھ کر محفوظ کریں۔"; return; }
+  if(!key){ $("setBox").open = true; $("watchLog").textContent = "پہلے Settings میں Google Key لکھ کر Save کریں۔"; return; }
   var ids = Object.keys(watch).filter(function(id){ return !gone.some(function(g){ return g.id === id; }); });
-  if(!ids.length){ $("watchLog").textContent = "ابھی نگرانی میں کوئی کاروبار نہیں۔ پہلے عام تلاش کریں، ٹول خود کاروبار یاد رکھے گا۔"; return; }
+  if(!ids.length){ $("watchLog").textContent = "ابھی Monitor میں کوئی کاروبار نہیں۔ پہلے عام تلاش کریں، ٹول خود کاروبار یاد رکھے گا۔"; return; }
   ids.sort(function(a,b){ return (watch[a].c||0)-(watch[b].c||0); });
   ids = ids.slice(0, 300);
   watching = true; $("watchGo").textContent = "جانچ جاری ہے...";
@@ -1464,20 +1464,20 @@ function renderFollow(){
     var d = document.createElement("div"); d.className = "lead";
     d.innerHTML = '<div class="body"><div class="name">' + esc(f.n) + '</div>' +
       '<div class="meta en" style="text-align:left">' + esc(f.town||"") + '</div>' +
-      (isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج یاد دہانی بھیجیں</span>'
-             : '<span class="pill">پہلا پیغام بھیجے ہوئے <b class="en">' + days + '</b> دن، یاد دہانی <b class="en">' + (4 - days) + '</b> دن بعد</span>') +
+      (isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج Reminder بھیجیں</span>'
+             : '<span class="pill">پہلا پیغام بھیجے ہوئے <b class="en">' + days + '</b> دن، Reminder <b class="en">' + (4 - days) + '</b> دن بعد</span>') +
       '<div class="btns">' +
       (isWA(f.c) && waNum(f.phone) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone) + '">واٹس ایپ کھولیں</a>' : '') +
       (f.c !== "PK" && f.w ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.w) + '">Website</a>' : '') +
-      '<button class="btn2 btn-sm" data-a="copy">یاد دہانی کاپی کریں</button>' +
-      '<button class="btn2 btn-sm" data-a="done">یاد دہانی بھیج دی</button>' +
+      '<button class="btn2 btn-sm" data-a="copy">Reminder کاپی کریں</button>' +
+      '<button class="btn2 btn-sm" data-a="done">Reminder بھیج دی</button>' +
       '<button class="btn2 btn-sm" data-a="reply">جواب آ گیا</button></div></div>';
     d.querySelector('[data-a="copy"]').onclick = function(){ copy(followText(f)); };
     d.querySelector('[data-a="done"]').onclick = function(){ f.state = "followed"; f.fat = Date.now(); saveFollow(); renderFollow(); toast("نشان لگ گیا، اب اسے دوبارہ پیغام نہیں بھیجنا"); };
     d.querySelector('[data-a="reply"]').onclick = function(){ setStage(f, "replied"); toast("بہت اچھا! اب یہ گاہکوں کے سفر میں ہے"); };
     box.appendChild(d);
   });
-  if(!list.length) box.innerHTML = '<p class="hint">ابھی کوئی یاد دہانی نہیں۔ جب آپ کسی کاروبار پر "ای میل بھیج دی" یا "پیغام بھیج دیا" دبائیں گے، وہ یہاں آ جائے گا۔</p>';
+  if(!list.length) box.innerHTML = '<p class="hint">ابھی کوئی Reminder نہیں۔ جب آپ کسی کاروبار پر "ای میل بھیج دی" یا "پیغام بھیج دیا" دبائیں گے، وہ یہاں آ جائے گا۔</p>';
   var replied = follows.filter(function(f){ return f.state === "replied"; }).length;
   if(follows.length) box.insertAdjacentHTML("beforeend", '<p class="hint">کل پیغام: <b class="en">' + follows.length + '</b> · جواب آئے: <b class="en">' + replied + '</b></p>');
   $("fuDue").textContent = due;
@@ -1487,9 +1487,9 @@ function renderFollow(){
 
 /* ---------- client journey: replied -> price sent -> paid, with the next contact date ---------- */
 var STAGES = {
-  waiting: ["جواب کا انتظار", "#8a94a6"], followed: ["یاد دہانی جا چکی", "#8a94a6"],
-  replied: ["جواب آیا", "#1a56db"], quoted: ["قیمت بتا دی", "#d97706"],
-  won: ["پیسے مل گئے", "#0e9f6e"], lost: ["بات ختم", "#9aa4b8"]
+  waiting: ["جواب کا انتظار", "#8a94a6"], followed: ["Reminder جا چکی", "#8a94a6"],
+  replied: ["جواب آیا", "#1a56db"], quoted: ["Price بتا دی", "#d97706"],
+  won: ["Payment مل گئی", "#0e9f6e"], lost: ["بات ختم", "#9aa4b8"]
 };
 var NEXT_DAYS = { replied: 2, quoted: 3 };
 function setStage(f, st, extra){
@@ -1525,14 +1525,14 @@ function renderPipe(){
       (f.link && /^https?:\/\//.test(f.link) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.link) + '">پوسٹ کھولیں</a>' : '') +
       (f.phone && waNum(f.phone) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone) + '">واٹس ایپ کھولیں</a>' : '') +
       (f.state === "followed" ? '<button class="btn2 btn-sm" data-a="rep">جواب آ گیا</button>' : '') +
-      (f.state === "replied" ? '<button class="btn2 btn-sm" data-a="quote">قیمت بتا دی</button>' : '') +
-      (f.state === "replied" || f.state === "quoted" ? '<button class="btn2 btn-sm" data-a="touch">آج رابطہ کر لیا</button><button class="btn2 btn-sm" data-a="won">پیسے مل گئے</button>' : '') +
+      (f.state === "replied" ? '<button class="btn2 btn-sm" data-a="quote">Price بتا دی</button>' : '') +
+      (f.state === "replied" || f.state === "quoted" ? '<button class="btn2 btn-sm" data-a="touch">آج رابطہ کر لیا</button><button class="btn2 btn-sm" data-a="won">Payment مل گئی</button>' : '') +
       '<button class="btn2 btn-sm" data-a="note">نوٹ</button>' +
       (f.state !== "won" ? '<button class="btn2 btn-sm" data-a="lost">بات ختم</button>' : '') + '</div></div>';
     var on = function(a, fn){ var b = d.querySelector('[data-a="' + a + '"]'); if(b) b.onclick = fn; };
     on("rep", function(){ setStage(f, "replied"); });
     on("quote", function(){ setStage(f, "quoted"); toast("تین دن بعد ٹول یاد دلائے گا"); });
-    on("touch", function(){ f.la = Date.now(); f.next = Date.now() + (NEXT_DAYS[f.state]||2)*864e5; saveFollow(); renderFollow(); toast("اگلی یاد دہانی لگ گئی"); });
+    on("touch", function(){ f.la = Date.now(); f.next = Date.now() + (NEXT_DAYS[f.state]||2)*864e5; saveFollow(); renderFollow(); toast("اگلی Reminder لگ گئی"); });
     on("won", function(){
       var a = prompt("کتنے پیسے ملے؟ رقم اور کرنسی لکھیں، مثلاً 50 USD", f.amt || "");
       if(a === null) return;
@@ -1554,7 +1554,7 @@ function renderPipe(){
     });
     box.appendChild(det);
   }
-  if(!box.querySelector(".lead")) box.insertAdjacentHTML("afterbegin", '<p class="hint">ابھی کوئی جواب دینے والا گاہک نہیں۔ جس کا جواب آئے، یاد دہانی والے خانے میں "جواب آ گیا" دبائیں، یا نیچے سے ہاتھ سے شامل کریں۔</p>');
+  if(!box.querySelector(".lead")) box.insertAdjacentHTML("afterbegin", '<p class="hint">ابھی کوئی جواب دینے والا گاہک نہیں۔ جس کا جواب آئے، Reminder والے خانے میں "جواب آ گیا" دبائیں، یا نیچے سے ہاتھ سے شامل کریں۔</p>');
   $("pipeDue").textContent = due;
   if(due) $("pipeBox").open = true;
 }
@@ -1593,18 +1593,18 @@ function renderToday(){
   var earn = Object.keys(sums).map(function(c){ return sums[c] + " " + c; }).join(" + ");
   var rows = [];
   function row(done, text, btn, act){ rows.push({ done: done, text: text, btn: btn, act: act }); }
-  row(cliDue === 0, cliDue ? 'گاہکوں سے رابطہ: <b class="en">' + cliDue + '</b> کو آج جواب یا یاد دہانی' : "گاہکوں کا کوئی رابطہ باقی نہیں", cliDue ? "کھولیں" : "", function(){ $("pipeBox").open = true; $("pipeBox").scrollIntoView({behavior:"smooth"}); });
-  row(fuDue === 0, fuDue ? 'یاد دہانی: <b class="en">' + fuDue + '</b> کاروباروں کو آج بھیجنی ہے' : "کوئی یاد دہانی باقی نہیں", fuDue ? "کھولیں" : "", function(){ $("fuBox").open = true; $("fuBox").scrollIntoView({behavior:"smooth"}); });
+  row(cliDue === 0, cliDue ? 'گاہکوں سے رابطہ: <b class="en">' + cliDue + '</b> کو آج جواب یا Reminder' : "گاہکوں کا کوئی رابطہ باقی نہیں", cliDue ? "کھولیں" : "", function(){ $("pipeBox").open = true; $("pipeBox").scrollIntoView({behavior:"smooth"}); });
+  row(fuDue === 0, fuDue ? 'Reminder: <b class="en">' + fuDue + '</b> کاروباروں کو آج بھیجنی ہے' : "کوئی Reminder باقی نہیں", fuDue ? "کھولیں" : "", function(){ $("fuBox").open = true; $("fuBox").scrollIntoView({behavior:"smooth"}); });
   row(sent >= 5, 'آج کے نئے پیغام: <b class="en">' + sent + '</b> بھیجے، ہدف <b class="en">5</b>' + (sent >= 5 ? "، مکمل" : '، <b class="en">' + (5 - sent) + '</b> باقی'), sent >= 5 ? "" : "تلاش پر جائیں", function(){ $("searchCard").scrollIntoView({behavior:"smooth"}); });
   var fr = parseInt(store.get("mp_forum_" + today(), "0"), 10) || 0;
   row(fr >= 3, 'فورم پر جواب اور پیغام: <b class="en">' + fr + '</b> بھیجے، ہدف <b class="en">3</b>', "ایک بھیجا", function(){ store.set("mp_forum_" + today(), String(fr + 1)); renderToday(); toast("شاباش"); });
   var sf = store.get("mp_syncFail", "");
-  if(store.get("mp_syncUrl","") && sf) row(false, '<span style="color:var(--bad)">فون اور کمپیوٹر کا ملانا ناکام ہوا ہے، آپ کا کام دوسرے آلے پر محفوظ نہیں ہو رہا۔</span>', "دوبارہ ملائیں", function(){ syncPull(true); });
+  if(store.get("mp_syncUrl","") && sf) row(false, '<span style="color:var(--bad)">Sync ناکام ہو گئی ہے، آپ کا کام دوسرے آلے پر محفوظ نہیں ہو رہا۔</span>', "دوبارہ Sync کریں", function(){ syncPull(true); });
   box.innerHTML = rows.map(function(r, i){
     return '<div class="task"><span class="' + (r.done ? "ok" : "") + '" style="font-size:20px">' + (r.done ? "✓" : "•") + '</span><div class="tx">' + r.text + '</div>' +
       (r.btn ? '<button class="btn2 btn-sm" data-i="' + i + '">' + r.btn + '</button>' : '') + '</div>';
   }).join("") +
-  [["comm","صبح دس بجے کی خودکار گاہک رپورٹ دیکھی"],["feed","شام چھ بجے کی خودکار گاہک رپورٹ دیکھی"]].map(function(c){
+  [["comm","صبح دس بجے کی Auto Leads رپورٹ دیکھی"],["feed","شام چھ بجے کی Auto Leads رپورٹ دیکھی"]].map(function(c){
     var on = store.get(chkKey(c[0]), "") === "1";
     return '<label class="task" style="margin:0;font-weight:400"><input type="checkbox" data-c="' + c[0] + '"' + (on ? " checked" : "") + '><div class="tx">' + c[1] + '</div></label>';
   }).join("") +
@@ -1829,7 +1829,7 @@ async function showReportImage(L, lang){
     '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" download="' + fname + '" href="' + url + '">ڈاؤن لوڈ کریں</a>' +
     [["en","انگریزی"],["ar","عربی"],["ur","اردو"]].filter(function(x){ return x[0] !== lang; }).map(function(x){ return '<button class="btn2 btn-sm" data-l="' + x[0] + '">' + x[1] + ' رپورٹ</button>'; }).join("") +
     '<button class="btn2 btn-sm" data-a="close">بند کریں</button></div>' +
-    '<p class="hint" style="color:#dde;text-align:center;max-width:520px">یہ تصویر ای میل کے ساتھ لگائیں، یا واٹس ایپ پر پیغام کے ساتھ بھیجیں۔ رپورٹ پر آپ کا رابطہ ترتیبات سے آتا ہے، واٹس ایپ نمبر وہاں لکھ دیں۔</p>';
+    '<p class="hint" style="color:#dde;text-align:center;max-width:520px">یہ تصویر ای میل کے ساتھ لگائیں، یا واٹس ایپ پر پیغام کے ساتھ بھیجیں۔ رپورٹ پر آپ کا رابطہ Settings سے آتا ہے، واٹس ایپ نمبر وہاں لکھ دیں۔</p>';
   document.body.appendChild(ov);
   ov.querySelector('[data-a="close"]').onclick = function(){ ov.remove(); URL.revokeObjectURL(url); };
   ov.querySelectorAll('[data-l]').forEach(function(b){ b.onclick = function(){ URL.revokeObjectURL(url); showReportImage(L, b.getAttribute("data-l")); }; });
@@ -1947,13 +1947,13 @@ async function syncPull(loud){
       if(missing.length) throw new Error("partial:" + missing.join(","));
     }
     try{ localStorage.removeItem("mp_syncFail"); }catch(e){}
-    syncSay("فون اور کمپیوٹر مل گئے۔ آخری بار: " + new Date().toLocaleTimeString());
-    if(loud) toast("دونوں آلے مل گئے");
+    syncSay("Sync ہو گیا۔ آخری بار: " + new Date().toLocaleTimeString());
+    if(loud) toast("Sync ہو گیا");
   }catch(e){
     var partial = e && /^partial:/.test(e.message || "");
     try{ localStorage.setItem("mp_syncFail", String(Date.now())); }catch(x){}
-    syncSay(partial ? "ملانا ادھورا رہا: گوگل اسکرپٹ نے سارا ڈیٹا محفوظ نہیں کیا (شاید ڈیٹا بہت بڑا ہے)۔ مجھے بتائیں۔" : "ملانے میں مسئلہ آیا۔ لنک اور انٹرنیٹ چیک کریں۔");
-    if(loud) toast(partial ? "ملانا ادھورا رہا" : "ملانے میں مسئلہ آیا");
+    syncSay(partial ? "Sync ادھوری رہی: گوگل اسکرپٹ نے سارا ڈیٹا محفوظ نہیں کیا (شاید ڈیٹا بہت بڑا ہے)۔ مجھے بتائیں۔" : "Sync میں مسئلہ آیا۔ لنک اور انٹرنیٹ چیک کریں۔");
+    if(loud) toast(partial ? "Sync ادھوری رہی" : "Sync میں مسئلہ آیا");
   }
   syncBusy = false;
   try{ renderToday(); }catch(e){}
@@ -1963,7 +1963,7 @@ $("syncNow").onclick = function(){ syncPull(true); };
 $("myLink").onclick = function(){
   var o = {}, any = false;
   ["syncUrl","apiKey","gemKey","oaiKey"].forEach(function(k){ var v = ($(k).value||"").trim() || store.get("mp_"+k,""); if(v){ o[k] = v; any = true; } });
-  if(!o.apiKey){ toast("پہلے گوگل کی چابی لکھیں"); return; }
+  if(!o.apiKey){ toast("پہلے Google Key لکھیں"); return; }
   var b = btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
   var link = location.origin + location.pathname + "#s=" + b;
   var out = $("myLinkOut"); out.value = link; out.style.display = "block";
