@@ -71,6 +71,15 @@ details summary{cursor:pointer;font-weight:700;font-size:18px}
 .toast.show{opacity:1}
 .warnbox{border-inline-start:4px solid var(--warn);padding:8px 12px;background:var(--chip);border-radius:8px;font-size:15px}
 a{color:var(--brand)}
+.task{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.task:last-child{border-bottom:0}
+.task .tx{flex:1;min-width:0}
+.task .ok{color:var(--good);font-weight:700}
+.task input[type=checkbox]{width:22px;height:22px;flex:none}
+.stage{display:inline-block;border-radius:999px;padding:2px 10px;font-size:14px;font-weight:700;color:#fff}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:10px}
+.ov img{max-width:100%;max-height:68vh;border-radius:10px;background:#fff}
+.ov .btns{justify-content:center}
 </style>
 </head>
 <body>
@@ -86,6 +95,11 @@ a{color:var(--brand)}
   <div class="card" id="installBox" style="display:none">
     <div class="btns"><button class="btn" id="installBtn">ایپ کی طرح انسٹال کریں</button></div>
     <p class="hint">اس سے ٹول موبائل میں ایپ کی طرح لگ جائے گا، اپنے نیلے نشان کے ساتھ، اور سب ایپس کی فہرست میں بھی نظر آئے گا۔</p>
+  </div>
+
+  <div class="card" id="todayBox">
+    <h2>آج کا کام</h2>
+    <div id="todayList"></div>
   </div>
 
   <details class="card" id="setBox">
@@ -130,7 +144,29 @@ a{color:var(--brand)}
     <div id="fuList"></div>
   </details>
 
-  <div class="card">
+  <details class="card" id="pipeBox">
+    <summary>گاہکوں کا سفر (<span class="en" id="pipeDue">0</span> سے آج رابطہ کرنا ہے)</summary>
+    <p class="hint">جس کا جواب آ جائے وہ یہاں آتا ہے۔ ہر قدم کا بٹن دبائیں: جواب آیا، قیمت بتا دی، پیسے مل گئے۔ ٹول خود بتائے گا کہ اگلا رابطہ کب کرنا ہے۔</p>
+    <div id="pipeList"></div>
+    <details style="margin-top:10px">
+      <summary style="font-size:16px">نیا گاہک ہاتھ سے شامل کریں (کمیونٹی، ریڈٹ، واٹس ایپ)</summary>
+      <label>کاروبار یا بندے کا نام</label>
+      <input id="mName" class="en" placeholder="Bravura Build">
+      <div class="row">
+        <div><label>ملک</label><select id="mCountry"><option value="US">امریکہ</option><option value="GB">برطانیہ</option><option value="AU">آسٹریلیا</option><option value="IE">آئرلینڈ</option><option value="AE">امارات</option><option value="SA">سعودی عرب</option><option value="PK">پاکستان</option><option value="XX">کوئی اور</option></select></div>
+        <div><label>کہاں سے ملا</label><select id="mSource"><option>Google Community</option><option>Reddit</option><option>WhatsApp</option><option>Lead Finder</option><option>Referral</option><option>Other</option></select></div>
+      </div>
+      <label>رابطہ (فون، ای میل یا ریڈٹ کا نام)</label>
+      <input id="mContact" class="en" placeholder="+966... / name@email.com / u/username">
+      <label>ابھی کہاں ہیں</label>
+      <select id="mState"><option value="waiting">پیغام بھیجا، جواب کا انتظار</option><option value="replied">جواب آ گیا</option><option value="quoted">قیمت بتا دی</option></select>
+      <label>نوٹ (اختیاری)</label>
+      <input id="mNote" placeholder="مثلاً: ریویو غائب ہونے کا مسئلہ">
+      <div class="btns"><button class="btn btn-sm" id="mAdd" style="width:auto">شامل کریں</button></div>
+    </details>
+  </details>
+
+  <div class="card" id="searchCard">
     <h2>تلاش</h2>
     <label>ملک</label>
     <select id="country">
@@ -179,18 +215,23 @@ San Angelo, TX</textarea>
     </div>
     <div class="btns">
       <button class="btn2 btn-sm" id="demo">نمونہ دیکھیں (مفت، کریڈٹ نہیں لگتا)</button>
-      <button class="btn2 btn-sm" id="aiCheck">AI میں جانچیں (جیمنائی / ChatGPT)</button>
       <details id="cgBox" style="width:100%;margin-top:6px">
-        <summary style="cursor:pointer">ChatGPT کا جواب ہاتھ سے لگائیں</summary>
-        <label>شہر</label>
-        <select id="cgTown"></select>
-        <label>ChatGPT کو یہ سوال بھیجیں (کاپی کریں)</label>
+        <summary style="cursor:pointer">AI جانچ، بغیر چابی کے (مفت، کوئی حد نہیں)</summary>
+        <p class="hint">ٹول سوال بنا دیتا ہے۔ آپ اسے جیمنائی یا ChatGPT کی ایپ میں پوچھیں اور جواب یہاں چپکا دیں۔ اس شہر کی سب دکانوں پر خود نشان لگ جائے گا کہ AI نے کس کا نام لیا اور کس کا نہیں۔</p>
+        <div class="row">
+          <div><label>شہر</label><select id="cgTown"></select></div>
+          <div><label>کس سے پوچھا</label><select id="cgEng" class="en"><option>Gemini</option><option>ChatGPT</option></select></div>
+        </div>
+        <label>یہ سوال کاپی کریں</label>
         <textarea id="cgPrompt" class="en" rows="3" readonly></textarea>
-        <div class="btns"><button class="btn2 btn-sm" id="cgCopy">سوال کاپی کریں</button></div>
-        <label>ChatGPT کا جواب یہاں چپکائیں</label>
+        <div class="btns"><button class="btn2 btn-sm" id="cgCopy">سوال کاپی کریں</button>
+          <a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://gemini.google.com/app">جیمنائی کھولیں</a>
+          <a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://chatgpt.com/">ChatGPT کھولیں</a></div>
+        <label>AI کا جواب یہاں چپکائیں</label>
         <textarea id="cgText" class="en" rows="6" placeholder="1. Business name&#10;2. Business name"></textarea>
         <div class="btns"><button class="btn btn-sm" id="cgApply" style="width:auto">جواب لگائیں</button></div>
       </details>
+      <button class="btn2 btn-sm" id="aiCheck">AI جانچ چابی سے (مفت حد جلد ختم ہو جاتی ہے)</button>
       <button class="btn2 btn-sm" id="csv">فہرست ڈاؤن لوڈ کریں</button>
       <button class="btn2 btn-sm" id="adsAll">اس کام کے فیس بک اشتہار دیکھیں</button>
     </div>
@@ -308,7 +349,7 @@ $("todayCount").textContent = getCount();
   $(k).onchange = function(){ store.set("mp_n_"+k, $(k).value); };
 });
 function sentCount(){ return parseInt(store.get("mp_sent_"+today(), "0"), 10) || 0; }
-function addSent(){ var c = sentCount()+1; store.set("mp_sent_"+today(), String(c)); $("sentToday").textContent = c;
+function addSent(){ var c = sentCount()+1; store.set("mp_sent_"+today(), String(c)); $("sentToday").textContent = c; setTimeout(function(){ try{ renderToday(); }catch(e){} }, 0);
   if(c === 5) setTimeout(function(){ toast("آج کے پانچ پیغام پورے ہو گئے، شاباش"); }, 1900); }
 $("sentToday").textContent = sentCount();
 
@@ -759,6 +800,7 @@ function render(keepOrder){
           '<button class="btn2 btn-sm" data-a="urdu">'+(L.country === "AE" ? (L.urd ? "اردو پیغام کاپی کریں" : "انگریزی پیغام کاپی کریں") : "بنیادی پیغام کاپی کریں")+'</button>'
         : '<button class="btn2 btn-sm" data-a="email">ای میل کاپی کریں</button>'+
           '<button class="btn2 btn-sm" data-a="report">رپورٹ کاپی کریں</button>')+
+      '<button class="btn2 btn-sm" data-a="img">تصویری رپورٹ</button>'+
       '<button class="btn2 btn-sm" data-a="sent">'+(isWA(L.country) ? "پیغام بھیج دیا" : "ای میل بھیج دی")+'</button>'+
       '<button class="btn2 btn-sm" data-a="skip">چھوڑ دیں</button></div></div>';
     d.querySelectorAll(".yn").forEach(function(g){
@@ -771,6 +813,7 @@ function render(keepOrder){
     var eb = d.querySelector('[data-a="email"]'); if(eb) eb.onclick = function(){ copy(emailFor(L)); };
     var rb = d.querySelector('[data-a="report"]'); if(rb) rb.onclick = function(){ copy(reportFor(L)); };
     var ub = d.querySelector('[data-a="urdu"]'); if(ub) ub.onclick = function(){ copy(L.country === "AE" ? aeMsg(L) : urduMsg(L)); };
+    d.querySelector('[data-a="img"]').onclick = function(){ showReportImage(L); };
     d.querySelector('[data-a="sent"]').onclick = function(){ if(!L.sent){ addSent(); addFollow(L); } addSeen(L.id); L.sent = true; render(true); toast("نشان لگ گیا، یہ دوبارہ تلاش میں نہیں آئے گا"); };
     d.querySelector('[data-a="skip"]').onclick = function(){ if(confirm("اس کاروبار کو فہرست سے ہٹا دیں؟")){ addSeen(L.id); removeLead(L.id); toast("ہٹا دیا"); } };
     if(L.sent){ var sb = d.querySelector('[data-a="sent"]'); sb.textContent = isWA(L.country) ? "پیغام جا چکا" : "ای میل بھیجی جا چکی"; sb.style.background = "var(--good)"; sb.style.color = "#fff"; }
@@ -1156,6 +1199,8 @@ function cgFill(){
 }
 $("cgBox").addEventListener("toggle", function(){ if($("cgBox").open) cgFill(); });
 $("cgTown").onchange = cgFill;
+try{ var cge = store.get("mp_cgEng",""); if(cge) $("cgEng").value = cge; }catch(e){}
+$("cgEng").onchange = function(){ store.set("mp_cgEng", $("cgEng").value); };
 $("cgCopy").onclick = function(){ copy($("cgPrompt").value); };
 $("cgApply").onclick = function(){
   var town = $("cgTown").value, raw = $("cgText").value || "";
@@ -1164,16 +1209,16 @@ $("cgApply").onclick = function(){
   if(raw.split(/\n+/).filter(function(x){ return x.trim(); }).length < 2) raw = raw.replace(/[,;،]\s*/g,"\n");   // all names on one line
   var names = raw.split(/\n+/).map(function(l){ return l.replace(/^[\s\-\*\d\.\)•#]+/,"").replace(/\*\*/g,"").replace(/\s+[–—-]\s+.*$/,"").replace(/\s*[\(\[:].*$/,"").trim(); })
     .filter(function(l){ return l && l.length < 80 && !/^(here|sure|i |based|note|these|top )/i.test(l) && l.toLowerCase() !== town.replace(/,.*$/,"").trim().toLowerCase(); }).slice(0,10);
-  if(!names.length){ log("جواب میں کوئی نام نہیں ملا۔ ChatGPT کا پورا جواب چپکائیں۔"); return; }
-  var c = selC(), n = 0, miss = 0, q = cgQuestion();
+  if(!names.length){ log("جواب میں کوئی نام نہیں ملا۔ AI کا پورا جواب چپکائیں۔"); return; }
+  var c = selC(), n = 0, miss = 0, q = cgQuestion(), eng = $("cgEng").value, fld = eng === "Gemini" ? "ai" : "aiC";
   leads.forEach(function(L){
     if((L.country||"US") !== c || townOfLead(L) !== town) return;
     var p = aiPos(L.name, names);
-    L.aiC = { q:q, names:names, tests:1, hits: p ? 1 : 0, best:p, in: p > 0, at: Date.now(), eng:"ChatGPT", manual:true };
+    L[fld] = { q:q, names:names, tests:1, hits: p ? 1 : 0, best:p, in: p > 0, at: Date.now(), eng:eng, manual:true };
     n++; if(!p) miss++;
   });
   $("cgText").value = ""; render(true);
-  log("ChatGPT کا جواب لگ گیا: " + town + " کی " + n + " دکانوں میں سے " + miss + " کا نام نہیں آیا۔");
+  log(eng + " کا جواب لگ گیا: " + town + " کی " + n + " دکانوں میں سے " + miss + " کا نام نہیں آیا۔");
 };
 
 /* restore last results so a page reload never costs a new search */
@@ -1342,7 +1387,7 @@ function followText(f){
       "اگر ابھی فرصت نہیں تو کوئی بات نہیں۔ شکریہ۔";
   }
   var first = f.first ? f.first.replace(/\.$/, "") : "";
-  return "Subject: Re: " + f.subj + "\n\n" +
+  return "Subject: Re: " + (f.subj || "my earlier message") + "\n\n" +
     "Hi " + f.n + " team,\n\n" +
     "Just following up on my note from a few days ago about your Google listing." + (first ? " One quick example that's still showing today: " + first.charAt(0).toLowerCase() + first.slice(1) + "." : "") + "\n\n" +
     "I'm happy to send the free list of fixes if it's useful. If now isn't a good time, no problem at all." + signature();
@@ -1368,7 +1413,7 @@ function renderFollow(){
       '<button class="btn2 btn-sm" data-a="reply">جواب آ گیا</button></div></div>';
     d.querySelector('[data-a="copy"]').onclick = function(){ copy(followText(f)); };
     d.querySelector('[data-a="done"]').onclick = function(){ f.state = "followed"; f.fat = Date.now(); saveFollow(); renderFollow(); toast("نشان لگ گیا، اب اسے دوبارہ پیغام نہیں بھیجنا"); };
-    d.querySelector('[data-a="reply"]').onclick = function(){ f.state = "replied"; saveFollow(); renderFollow(); toast("بہت اچھا! جواب کی تفصیل مجھے بتائیں"); };
+    d.querySelector('[data-a="reply"]').onclick = function(){ setStage(f, "replied"); toast("بہت اچھا! اب یہ گاہکوں کے سفر میں ہے"); };
     box.appendChild(d);
   });
   if(!list.length) box.innerHTML = '<p class="hint">ابھی کوئی یاد دہانی نہیں۔ جب آپ کسی کاروبار پر "ای میل بھیج دی" یا "پیغام بھیج دیا" دبائیں گے، وہ یہاں آ جائے گا۔</p>';
@@ -1376,6 +1421,196 @@ function renderFollow(){
   if(follows.length) box.insertAdjacentHTML("beforeend", '<p class="hint">کل پیغام: <b class="en">' + follows.length + '</b> · جواب آئے: <b class="en">' + replied + '</b></p>');
   $("fuDue").textContent = due;
   if(due) $("fuBox").open = true;
+  renderPipe(); renderToday();
+}
+
+/* ---------- client journey: replied -> price sent -> paid, with the next contact date ---------- */
+var STAGES = {
+  waiting: ["جواب کا انتظار", "#8a94a6"], followed: ["یاد دہانی جا چکی", "#8a94a6"],
+  replied: ["جواب آیا", "#1a56db"], quoted: ["قیمت بتا دی", "#d97706"],
+  won: ["پیسے مل گئے", "#0e9f6e"], lost: ["بات ختم", "#9aa4b8"]
+};
+var NEXT_DAYS = { replied: 2, quoted: 3 };
+function setStage(f, st, extra){
+  f.state = st; f.la = Date.now();
+  if(st === "replied") f.next = Date.now();   // they answered: reply today
+  else if(NEXT_DAYS[st]) f.next = Date.now() + NEXT_DAYS[st]*864e5;
+  else delete f.next;
+  if(extra) for(var k in extra) f[k] = extra[k];
+  saveFollow(); renderFollow();
+}
+function isDueF(f){ return !!(f.next && NEXT_DAYS[f.state] && Date.now() >= f.next); }
+function dayTxt(t){ var d = Math.ceil((t - Date.now())/864e5); return d <= 0 ? "آج" : (d === 1 ? "کل" : '<b class="en">' + d + '</b> دن بعد'); }
+function monthKey(t){ var d = new Date(t); return d.getFullYear() + "-" + (d.getMonth()+1); }
+function renderPipe(){
+  var box = $("pipeList"); if(!box) return; box.innerHTML = "";
+  var show = follows.filter(function(f){ return ["replied","quoted","won","followed"].indexOf(f.state) >= 0; });
+  var order = { replied:0, quoted:1, followed:2, won:3 };
+  show.sort(function(a,b){ return (isDueF(b)?1:0) - (isDueF(a)?1:0) || order[a.state] - order[b.state] || (b.la||b.at) - (a.la||a.at); });
+  var due = 0;
+  show.forEach(function(f){
+    if(f.state === "won" && Date.now() - (f.la||0) > 60*864e5) return;   // keep the list short: paid clients stay for two months
+    var st = STAGES[f.state] || STAGES.waiting, dueNow = isDueF(f);
+    if(dueNow) due++;
+    var d = document.createElement("div"); d.className = "lead";
+    var nextLine = "";
+    if(NEXT_DAYS[f.state] && f.next) nextLine = dueNow ? '<span class="pill" style="background:var(--bad);color:#fff">آج رابطہ کریں</span>' : '<span class="pill">اگلا رابطہ ' + dayTxt(f.next) + '</span>';
+    d.innerHTML = '<div class="body"><div class="name">' + esc(f.n) + '</div>' +
+      '<div class="meta en" style="text-align:left">' + esc([f.town, f.src, f.contact].filter(Boolean).join(" · ")) + '</div>' +
+      '<div class="stat" style="margin-top:4px"><span class="stage" style="background:' + st[1] + '">' + st[0] + '</span>' + nextLine +
+      (f.amt ? '<span class="pill">رقم: <b class="en">' + esc(f.amt) + '</b></span>' : '') + '</div>' +
+      (f.note ? '<div class="hint" style="margin-top:4px">نوٹ: ' + esc(f.note) + '</div>' : '') +
+      '<div class="btns">' +
+      (f.state === "followed" ? '<button class="btn2 btn-sm" data-a="rep">جواب آ گیا</button>' : '') +
+      (f.state === "replied" ? '<button class="btn2 btn-sm" data-a="quote">قیمت بتا دی</button>' : '') +
+      (f.state === "replied" || f.state === "quoted" ? '<button class="btn2 btn-sm" data-a="touch">آج رابطہ کر لیا</button><button class="btn2 btn-sm" data-a="won">پیسے مل گئے</button>' : '') +
+      '<button class="btn2 btn-sm" data-a="note">نوٹ</button>' +
+      (f.state !== "won" ? '<button class="btn2 btn-sm" data-a="lost">بات ختم</button>' : '') + '</div></div>';
+    var on = function(a, fn){ var b = d.querySelector('[data-a="' + a + '"]'); if(b) b.onclick = fn; };
+    on("rep", function(){ setStage(f, "replied"); });
+    on("quote", function(){ setStage(f, "quoted"); toast("تین دن بعد ٹول یاد دلائے گا"); });
+    on("touch", function(){ f.la = Date.now(); f.next = Date.now() + (NEXT_DAYS[f.state]||2)*864e5; saveFollow(); renderFollow(); toast("اگلی یاد دہانی لگ گئی"); });
+    on("won", function(){
+      var a = prompt("کتنے پیسے ملے؟ رقم اور کرنسی لکھیں، مثلاً 50 USD", f.amt || "");
+      if(a === null) return;
+      setStage(f, "won", { amt: a.trim(), wat: Date.now() }); toast("مبارک ہو! 🎉");
+    });
+    on("note", function(){ var t = prompt("نوٹ لکھیں", f.note || ""); if(t !== null){ f.note = t.trim(); f.la = Date.now(); saveFollow(); renderFollow(); } });
+    on("lost", function(){ if(confirm("اس گاہک سے بات ختم سمجھیں؟")) setStage(f, "lost"); });
+    box.appendChild(d);
+  });
+  if(!box.children.length) box.innerHTML = '<p class="hint">ابھی کوئی جواب دینے والا گاہک نہیں۔ جس کا جواب آئے، یاد دہانی والے خانے میں "جواب آ گیا" دبائیں، یا نیچے سے ہاتھ سے شامل کریں۔</p>';
+  $("pipeDue").textContent = due;
+  if(due) $("pipeBox").open = true;
+}
+$("mAdd").onclick = function(){
+  var n = ($("mName").value||"").trim(); if(!n){ toast("پہلے نام لکھیں"); return; }
+  var st = $("mState").value, now = Date.now();
+  var f = { id: "m_" + now, n: n, c: $("mCountry").value, src: $("mSource").value, contact: ($("mContact").value||"").trim(),
+    note: ($("mNote").value||"").trim(), town: "", at: now, la: now, state: st, manual: true };
+  if(/^\+?[\d\s\-]{7,}$/.test(f.contact)) f.phone = f.contact;
+  if(st === "replied") f.next = now; else if(NEXT_DAYS[st]) f.next = now + NEXT_DAYS[st]*864e5;
+  follows.push(f); saveFollow(); renderFollow();
+  ["mName","mContact","mNote"].forEach(function(k){ $(k).value = ""; });
+  toast("شامل ہو گیا");
+};
+
+/* ---------- today: one screen with everything due today ---------- */
+function chkKey(k){ return "mp_chk_" + k + "_" + today(); }
+function renderToday(){
+  var box = $("todayList"); if(!box) return;
+  var sent = sentCount(), now = Date.now();
+  var fuDue = follows.filter(function(f){ return f.state === "waiting" && now - f.at >= 4*864e5; }).length;
+  var cliDue = follows.filter(isDueF).length;
+  var mk = monthKey(now), won = follows.filter(function(f){ return f.state === "won" && monthKey(f.wat || f.la || 0) === mk; });
+  var sums = {}; won.forEach(function(f){ var m = /([\d.,]+)\s*([A-Za-z]{3})?/.exec(f.amt || ""); if(m){ var cur = (m[2]||"").toUpperCase() || "?"; sums[cur] = (sums[cur]||0) + parseFloat(m[1].replace(/,/g,"")); } });
+  var earn = Object.keys(sums).map(function(c){ return sums[c] + " " + c; }).join(" + ");
+  var rows = [];
+  function row(done, text, btn, act){ rows.push({ done: done, text: text, btn: btn, act: act }); }
+  row(cliDue === 0, cliDue ? 'گاہکوں سے رابطہ: <b class="en">' + cliDue + '</b> کو آج جواب یا یاد دہانی' : "گاہکوں کا کوئی رابطہ باقی نہیں", cliDue ? "کھولیں" : "", function(){ $("pipeBox").open = true; $("pipeBox").scrollIntoView({behavior:"smooth"}); });
+  row(fuDue === 0, fuDue ? 'یاد دہانی: <b class="en">' + fuDue + '</b> کاروباروں کو آج بھیجنی ہے' : "کوئی یاد دہانی باقی نہیں", fuDue ? "کھولیں" : "", function(){ $("fuBox").open = true; $("fuBox").scrollIntoView({behavior:"smooth"}); });
+  row(sent >= 5, 'آج کے نئے پیغام: <b class="en">' + sent + '</b> بھیجے، ہدف <b class="en">5</b>' + (sent >= 5 ? "، مکمل" : '، <b class="en">' + (5 - sent) + '</b> باقی'), sent >= 5 ? "" : "تلاش پر جائیں", function(){ $("searchCard").scrollIntoView({behavior:"smooth"}); });
+  box.innerHTML = rows.map(function(r, i){
+    return '<div class="task"><span class="' + (r.done ? "ok" : "") + '" style="font-size:20px">' + (r.done ? "✓" : "•") + '</span><div class="tx">' + r.text + '</div>' +
+      (r.btn ? '<button class="btn2 btn-sm" data-i="' + i + '">' + r.btn + '</button>' : '') + '</div>';
+  }).join("") +
+  [["comm","گوگل کمیونٹی کی تازہ فہرست دیکھی"],["feed","فیڈر میں ریڈٹ کی نئی پوسٹیں دیکھیں"]].map(function(c){
+    var on = store.get(chkKey(c[0]), "") === "1";
+    return '<label class="task" style="margin:0;font-weight:400"><input type="checkbox" data-c="' + c[0] + '"' + (on ? " checked" : "") + '><div class="tx">' + c[1] + '</div></label>';
+  }).join("") +
+  '<div class="stat" style="margin-top:10px"><span class="pill">اس مہینے پیسے دینے والے گاہک: <b class="en">' + won.length + '</b>، ہدف <b class="en">1</b></span>' +
+  (earn ? '<span class="pill" style="color:var(--good)">کمائی: <b class="en">' + esc(earn) + '</b></span>' : '') + '</div>';
+  box.querySelectorAll("button[data-i]").forEach(function(b){ b.onclick = rows[+b.getAttribute("data-i")].act; });
+  box.querySelectorAll("input[data-c]").forEach(function(c){ c.onchange = function(){ store.set(chkKey(c.getAttribute("data-c")), c.checked ? "1" : "0"); }; });
+}
+
+/* ---------- picture report: one clean image of the business's own problems, to attach to an email or WhatsApp ---------- */
+function wrapLines(ctx, text, maxW){
+  var words = String(text||"").split(/\s+/), lines = [], cur = "";
+  words.forEach(function(w){ var t = cur ? cur + " " + w : w; if(ctx.measureText(t).width > maxW && cur){ lines.push(cur); cur = w; } else cur = t; });
+  if(cur) lines.push(cur); return lines;
+}
+function drawReport(ctx, L, W){
+  var P = 64, y = 0, F = '"Inter", system-ui, sans-serif', blue = "#1a56db", ink = "#14213d", muted = "#5b6475";
+  function text(t, size, weight, color, x, maxW, lh){
+    ctx.font = weight + " " + size + "px " + F; ctx.fillStyle = color;
+    var ls = wrapLines(ctx, t, maxW); ls.forEach(function(l){ y += lh; ctx.fillText(l, x, y); }); return ls.length;
+  }
+  ctx.fillStyle = blue; ctx.fillRect(0, 0, W, 170);
+  y = 30; text("Google Business Profile Check", 44, 700, "#ffffff", P, W - 2*P, 56);
+  text("Prepared by MapPeak Local", 26, 400, "#dbe6ff", P, W - 2*P, 40);
+  y = 190;
+  text(L.name, 46, 700, ink, P, W - 2*P, 58);
+  text(L.address || "", 26, 400, muted, P, W - 2*P, 36);
+  y += 30;
+  var sc = scoreOf(L), cx = P + 80, cy = y + 80;
+  ctx.fillStyle = sc < 45 ? "#e02424" : (sc < 70 ? "#d97706" : "#0e9f6e");
+  ctx.beginPath(); ctx.arc(cx, cy, 80, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "700 60px " + F; ctx.fillText(String(sc), cx, cy + 12);
+  ctx.font = "400 22px " + F; ctx.fillText("out of 100", cx, cy + 44); ctx.textAlign = "left";
+  var sy = y; y = sy + 10;
+  var tx = P + 200, tw = W - tx - P;
+  text("Profile score", 30, 700, ink, tx, tw, 40);
+  text("Rating: " + (L.rating == null ? "none yet" : L.rating + " stars") + "   |   Reviews: " + L.reviews, 28, 400, ink, tx, tw, 40);
+  if(L.comp) text("Top competitor nearby: " + L.comp.n + " (" + L.comp.r + " reviews)", 24, 400, muted, tx, tw, 34);
+  y = Math.max(y, sy + 170) + 30;
+  ctx.fillStyle = "#e2e6ee"; ctx.fillRect(P, y, W - 2*P, 2); y += 20;
+  text("What we found", 34, 700, ink, P, W - 2*P, 48);
+  var used = {}, list = mailIssues(L).slice(0, 6);
+  if(!list.length) text("No major issues found.", 28, 400, muted, P, W - 2*P, 40);
+  list.forEach(function(k, i){
+    y += 14;
+    var top = y;
+    ctx.fillStyle = URGENT.indexOf(k) >= 0 ? "#e02424" : "#d97706";
+    ctx.beginPath(); ctx.arc(P + 22, top + 30, 22, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "700 24px " + F; ctx.fillText(String(i+1), P + 22, top + 39); ctx.textAlign = "left";
+    text(lineFor(k, L, used), 28, 700, ink, P + 64, W - 2*P - 64, 38);
+    text("\u2192 " + CHECKS[k][3], 25, 400, muted, P + 64, W - 2*P - 64, 34);
+  });
+  var miss = list.indexOf("notInAI") >= 0 ? null : aiMissed(L)[0];   // already listed as an issue above
+  if(miss){
+    y += 30;
+    var boxTop = y, names = (miss.names||[]).slice(0,3).join(", ");
+    y += 14;
+    text("AI search check", 28, 700, "#9b1c1c", P + 24, W - 2*P - 48, 40);
+    text((miss.eng || "AI assistants") + " was asked \"" + miss.q + "\" and did not name this business." + (names ? " It named: " + names + "." : ""), 25, 400, ink, P + 24, W - 2*P - 48, 34);
+    y += 20;
+    ctx.save(); ctx.globalCompositeOperation = "destination-over"; ctx.fillStyle = "#fdecec"; ctx.fillRect(P, boxTop, W - 2*P, y - boxTop); ctx.restore();
+  }
+  y += 40;
+  var fy = y; y += 14;
+  text("MapPeak Local  |  asifali549.github.io/mappeak-local", 26, 700, blue, P, W - 2*P, 40);
+  text("All fixes follow Google's guidelines. We never post fake reviews or offer incentives for reviews.", 22, 400, muted, P, W - 2*P, 32);
+  text(new Date().toDateString(), 22, 400, muted, P, W - 2*P, 32);
+  y += 34;
+  ctx.save(); ctx.globalCompositeOperation = "destination-over"; ctx.fillStyle = "#eef2ff"; ctx.fillRect(0, fy, W, y - fy);
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, y); ctx.restore();   // white page goes behind everything drawn above
+  return y;
+}
+async function makeReportImage(L){
+  try{ if(document.fonts && document.fonts.load){ await document.fonts.load('700 30px "Inter"'); await document.fonts.load('400 30px "Inter"'); } }catch(e){}
+  var W = 1080, tmp = document.createElement("canvas"); tmp.width = W; tmp.height = 4000;
+  var h = drawReport(tmp.getContext("2d"), L, W);
+  var c = document.createElement("canvas"); c.width = W; c.height = Math.ceil(h);
+  drawReport(c.getContext("2d"), L, W);
+  return c;
+}
+async function showReportImage(L){
+  var c = await makeReportImage(L);
+  var blob = await new Promise(function(r){ c.toBlob(r, "image/png"); });
+  var fname = "MapPeak_" + String(L.name||"report").replace(/[^A-Za-z0-9]+/g, "_").slice(0, 40) + ".png";
+  var url = URL.createObjectURL(blob);
+  var ov = document.createElement("div"); ov.className = "ov";
+  ov.innerHTML = '<img alt="" src="' + url + '"><div class="btns"><button class="btn btn-sm" style="width:auto" data-a="share">شیئر کریں</button>' +
+    '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" download="' + fname + '" href="' + url + '">ڈاؤن لوڈ کریں</a>' +
+    '<button class="btn2 btn-sm" data-a="close">بند کریں</button></div>' +
+    '<p class="hint" style="color:#dde;text-align:center;max-width:520px">یہ تصویر ای میل کے ساتھ لگائیں، یا واٹس ایپ پر پیغام کے ساتھ بھیجیں۔ گاہک اپنی پروفائل کی خامیاں خود دیکھے تو جواب کا امکان بڑھ جاتا ہے۔</p>';
+  document.body.appendChild(ov);
+  ov.querySelector('[data-a="close"]').onclick = function(){ ov.remove(); URL.revokeObjectURL(url); };
+  var sb = ov.querySelector('[data-a="share"]');
+  var file = null; try{ file = new File([blob], fname, { type: "image/png" }); }catch(e){}
+  if(!(file && navigator.canShare && navigator.canShare({ files: [file] }))) sb.style.display = "none";
+  sb.onclick = function(){ navigator.share({ files: [file], title: L.name }).catch(function(){}); };
 }
 renderFollow();
 $("adsAll").onclick = function(){
@@ -1437,12 +1672,12 @@ function mergeKey(k, a, b){   // a = local, b = remote; returns the merged entry
     return { v: JSON.stringify(wa), t: Math.max(a.t, b.t) };
   }
   if(k === "mp_follow"){
-    var rank = { waiting:0, followed:1, replied:2 }, byId = {}, order = [];
+    var rank = { waiting:0, followed:1, replied:2, quoted:3, won:4, lost:4 }, byId = {}, order = [];
     arr(a.v).concat(arr(b.v)).forEach(function(f){
       if(!f || !f.id) return;
       var o = byId[f.id];
       if(!o){ byId[f.id] = f; order.push(f.id); }
-      else if((rank[f.state]||0) > (rank[o.state]||0)) byId[f.id] = f;
+      else if((rank[f.state]||0) > (rank[o.state]||0) || ((rank[f.state]||0) === (rank[o.state]||0) && (f.la||0) > (o.la||0))) byId[f.id] = f;
     });
     return { v: JSON.stringify(order.map(function(id){ return byId[id]; }).slice(-500)), t: Math.max(a.t, b.t) };
   }
