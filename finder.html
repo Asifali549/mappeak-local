@@ -119,6 +119,8 @@ a{color:var(--brand)}
     <input id="myEmail" class="en" value="mappeak.local@gmail.com">
     <label>ڈاک کا پتہ (امریکی اور برطانوی قانون کے مطابق ای میل میں لکھنا ضروری ہے)</label>
     <textarea id="myAddr" class="en" placeholder="Your mailing address"></textarea>
+    <label>کاروباری واٹس ایپ نمبر (رپورٹ پر لکھا جائے گا)</label>
+    <input id="myWA" class="en" placeholder="+92 300 1234567">
     <label>پاکستانی گاہکوں کے پیغام میں آپ کا تعارف (اردو میں)</label>
     <input id="myIntroUr" value="محمد آصف رضا، فکس دام، جام پور">
     <p class="hint">یہ جملہ واٹس ایپ پیغام میں آپ کے تعارف کے طور پر جائے گا۔</p>
@@ -175,6 +177,7 @@ a{color:var(--brand)}
       <option value="GB">برطانیہ (ای میل، انگریزی میں)</option>
       <option value="AU">آسٹریلیا (ای میل، انگریزی میں)</option>
       <option value="AE">امارات (واٹس ایپ، اردو یا انگریزی)</option>
+      <option value="SA">سعودی عرب (واٹس ایپ، عربی یا انگریزی)</option>
     </select>
     <p class="hint" id="lawHint" style="background:#fff8e6;border:1px solid #f1d79a;border-radius:10px;padding:8px 10px"></p>
     <div style="background:#eef4ff;border:1px solid #c9dafc;border-radius:12px;padding:10px 12px;margin:10px 0">
@@ -298,18 +301,20 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){retu
 })();
 
 /* settings */
-["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v!==null) $(k).value = v; });
+["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myWA","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v!==null) $(k).value = v; });
 $("country").value = store.get("mp_country","US");
-function selC(){ var v = $("country").value; return ["PK","GB","IE","AU","AE"].indexOf(v) >= 0 ? v : "US"; }
-function isWA(c){ return c === "PK" || c === "AE"; }   // countries worked over WhatsApp instead of email
-var TOWNS = { PK:"Jampur\nRajanpur\nDera Ghazi Khan", US:"Abilene, TX\nSan Angelo, TX", GB:"Leicester\nCoventry", IE:"Cork\nLimerick", AU:"Geelong\nToowoomba", AE:"Sharjah\nDubai" };
-var TRADES = { PK:"solar company", AE:"Pakistani restaurant" };
+function selC(){ var v = $("country").value; return ["PK","GB","IE","AU","AE","SA"].indexOf(v) >= 0 ? v : "US"; }
+function isGulf(c){ return c === "AE" || c === "SA"; }
+function isWA(c){ return c === "PK" || isGulf(c); }   // countries worked over WhatsApp instead of email
+var TOWNS = { PK:"Jampur\nRajanpur\nDera Ghazi Khan", US:"Abilene, TX\nSan Angelo, TX", GB:"Leicester\nCoventry", IE:"Cork\nLimerick", AU:"Geelong\nToowoomba", AE:"Sharjah\nDubai", SA:"Riyadh\nJeddah" };
+var TRADES = { PK:"solar company", AE:"Pakistani restaurant", SA:"interior design company" };
 var LAW = {
   US:"امریکہ: کاروبار کو ای میل جائز ہے۔ ہر ای میل میں آپ کا پتہ اور بند کرنے کا طریقہ ضروری ہے (جی میل کے دستخط میں موجود ہے)۔ بہترین دن منگل سے جمعرات، پاکستان کے وقت شام سات بجے کے بعد۔",
   GB:"برطانیہ: صرف کمپنیوں کو ای میل کریں (نام میں Ltd یا Limited ہو تو بہتر)، اکیلے کام کرنے والے شخص کو نہیں۔ ہر ای میل میں بند کرنے کا طریقہ ضروری۔ وہاں صبح نو بجے پاکستان میں دوپہر ایک یا دو بجے ہوتے ہیں۔",
   IE:"آئرلینڈ: صرف کمپنیوں کو، کم تعداد میں، اور بند کرنے کے طریقے کے ساتھ۔",
   AU:"آسٹریلیا: صرف وہ ای میل استعمال کریں جو ان کی اپنی ویب سائٹ یا گوگل پروفائل پر کھلے عام لکھی ہو، اور وہاں 'مارکیٹنگ ای میل نہ بھیجیں' نہ لکھا ہو۔ بات صرف ان کی گوگل پروفائل کی ہو۔ آپ کا نام اور بند کرنے کا طریقہ ضروری۔ وہاں صبح نو بجے پاکستان میں رات تین چار بجے ہوتے ہیں، اس لیے جی میل کا Schedule send استعمال کریں۔",
   AE:"امارات: ایک ایک کر کے، ہاتھ سے، دن میں زیادہ سے زیادہ دس پیغام۔ کوئی لنک نہ بھیجیں۔ کوئی 'نہیں' کہے تو دوبارہ نہ لکھیں۔ وہاں چھٹی ہفتہ اور اتوار کو ہوتی ہے۔ بہترین وقت پاکستان کے وقت صبح گیارہ سے دوپہر تین بجے۔",
+  SA:"سعودی عرب: صرف کاروبار کے اپنے واٹس ایپ پر، ایک ایک کر کے، ہاتھ سے۔ عربی پیغام بہتر ہے۔ کوئی لنک نہ بھیجیں، کوئی 'نہیں' کہے تو دوبارہ نہ لکھیں۔ وہاں چھٹی جمعہ اور ہفتہ کو ہوتی ہے۔ بہترین وقت پاکستان کے وقت دوپہر بارہ سے شام سات بجے۔",
   PK:"پاکستان: پیغام میں کوئی لنک نہ بھیجیں، اور ایک ہی کاروبار کو دو سے زیادہ پیغام نہیں۔"
 };
 function applyCountry(first){
@@ -338,7 +343,7 @@ $("hideBtn").onclick = function(){
 };
 showHidden();
 $("useSig").checked = store.get("mp_useSig","0") === "1";
-$("saveSet").onclick = function(){ ["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ store.set("mp_"+k, $(k).value.trim()); }); store.set("mp_useSig", $("useSig").checked ? "1" : "0");
+$("saveSet").onclick = function(){ ["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myWA","myIntroUr"].forEach(function(k){ store.set("mp_"+k, $(k).value.trim()); }); store.set("mp_useSig", $("useSig").checked ? "1" : "0");
   var su = ($("syncUrl").value||"").trim(); var hadSync = store.get("mp_syncUrl","");
   try{ localStorage.setItem("mp_syncUrl", su); }catch(e){}
   toast("محفوظ ہو گیا"); if(su && su !== hadSync) syncPull(true); };
@@ -679,7 +684,7 @@ function speedBadge(L){
     (L.https === false ? '<span class="pill" style="color:var(--bad)">حفاظتی تالا نہیں</span>' : "");
 }
 function lawBadge(L){
-  if(L.country === "AE") return L.urd ? '<span class="pill" style="color:var(--good)">شاید اردو</span>' : '<span class="pill">انگریزی پیغام</span>';
+  if(isGulf(L.country)) return L.urd ? '<span class="pill" style="color:var(--good)">شاید اردو</span>' : '<span class="pill">انگریزی پیغام</span>';
   if(L.country === "GB") return /\b(ltd|limited|plc|llp)\b/i.test(L.name) ? '<span class="pill" style="color:var(--good)">کمپنی</span>' : '<span class="pill" style="color:var(--warn)">اکیلا شخص ہو سکتا ہے، دیکھ لیں</span>';
   if(L.country === "AU") return '<span class="pill" style="color:var(--warn)">صرف ویب سائٹ پر لکھی ای میل</span>';
   return "";
@@ -797,7 +802,8 @@ function render(keepOrder){
       '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(adsUrl(L))+'">فیس بک اشتہار دیکھیں</a>'+
       (isWA(L.country)
         ? (waNum(L.phone) ? '<a class="btn btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
-          '<button class="btn2 btn-sm" data-a="urdu">'+(L.country === "AE" ? (L.urd ? "اردو پیغام کاپی کریں" : "انگریزی پیغام کاپی کریں") : "بنیادی پیغام کاپی کریں")+'</button>'
+          (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="arab">عربی پیغام کاپی کریں</button>' : '')+
+          '<button class="btn2 btn-sm" data-a="urdu">'+(isGulf(L.country) ? (L.urd ? "اردو پیغام کاپی کریں" : "انگریزی پیغام کاپی کریں") : "بنیادی پیغام کاپی کریں")+'</button>'
         : '<button class="btn2 btn-sm" data-a="email">ای میل کاپی کریں</button>'+
           '<button class="btn2 btn-sm" data-a="report">رپورٹ کاپی کریں</button>')+
       '<button class="btn2 btn-sm" data-a="img">تصویری رپورٹ</button>'+
@@ -812,7 +818,8 @@ function render(keepOrder){
     });
     var eb = d.querySelector('[data-a="email"]'); if(eb) eb.onclick = function(){ copy(emailFor(L)); };
     var rb = d.querySelector('[data-a="report"]'); if(rb) rb.onclick = function(){ copy(reportFor(L)); };
-    var ub = d.querySelector('[data-a="urdu"]'); if(ub) ub.onclick = function(){ copy(L.country === "AE" ? aeMsg(L) : urduMsg(L)); };
+    var ub = d.querySelector('[data-a="urdu"]'); if(ub) ub.onclick = function(){ copy(isGulf(L.country) ? aeMsg(L) : urduMsg(L)); };
+    var abt = d.querySelector('[data-a="arab"]'); if(abt) abt.onclick = function(){ copy(arMsg(L)); };
     d.querySelector('[data-a="img"]').onclick = function(){ showReportImage(L); };
     d.querySelector('[data-a="sent"]').onclick = function(){ if(!L.sent){ addSent(); addFollow(L); } addSeen(L.id); L.sent = true; render(true); toast("نشان لگ گیا، یہ دوبارہ تلاش میں نہیں آئے گا"); };
     d.querySelector('[data-a="skip"]').onclick = function(){ if(confirm("اس کاروبار کو فہرست سے ہٹا دیں؟")){ addSeen(L.id); removeLead(L.id); toast("ہٹا دیا"); } };
@@ -862,6 +869,7 @@ function countryOf(addr, fallback){
   if(/Ireland\s*$/i.test(a)) return "IE";
   if(/Australia\s*$/i.test(a)) return "AU";
   if(/(United Arab Emirates|UAE)\s*$/i.test(a)) return "AE";
+  if(/(Saudi Arabia|KSA)\s*$/i.test(a)) return "SA";
   return fallback || "US";
 }
 function toLead(p, town, country){
@@ -872,7 +880,7 @@ function toLead(p, town, country){
     cat:(p.primaryTypeDisplayName&&p.primaryTypeDisplayName.text)||"", ptype:p.primaryType||"",
     country: country || "US" };
   if(isWA(L.country)) L.mail = "na";
-  if(L.country === "AE") L.urd = PAKRE.test(L.name + " " + L.cat);
+  if(isGulf(L.country)) L.urd = PAKRE.test(L.name + " " + L.cat);
   return L;
 }
 /* ---------- Pakistan: WhatsApp + Urdu message (no links inside the message) ---------- */
@@ -951,12 +959,60 @@ function apiError(status, body){
   return "گوگل سے غلطی آئی: " + status;
 }
 
+
+var AR = {
+  notInAI:["عند سؤال مساعدات الذكاء الاصطناعي عن الأفضل، ذكرت منافسين ولم تذكر نشاطكم","زيادة التقييمات وتفاصيلها، ومحتوى واضح في الموقع، وبيانات متطابقة في كل مكان"],
+  noRating:["لا يوجد تقييم بالنجوم على الملف حتى الآن","اطلبوا من العملاء الراضين كتابة تقييم صادق"],
+  ratingLow:["التقييم أقل من 4 نجوم","الرد على كل تقييم، وطلب التقييم من العملاء الراضين"],
+  ratingMid:["التقييم أقل من 4.5 نجوم","تقييمات حقيقية جديدة بشكل مستمر ترفع المتوسط"],
+  reviews10:["أقل من 10 تقييمات","المنافسون الذين لديهم تقييمات أكثر يحصلون على الاتصال أولاً"],
+  reviews20:["أقل من 20 تقييماً","التقييمات الحديثة تبني ثقة العملاء الجدد"],
+  reviews50:["أقل من 50 تقييماً","استمروا في جمع تقييمات حقيقية كل شهر"],
+  noWebsite:["لا يوجد رابط موقع إلكتروني في الملف","أضيفوا رابط الموقع ليتعرف العملاء على خدماتكم"],
+  noPhone:["لا يوجد رقم هاتف في الملف","أضيفوا رقم الهاتف ليتصل العملاء مباشرة"],
+  noHours:["ساعات العمل غير موجودة في الملف","أضيفوا ساعات العمل ليعرف العملاء متى يتصلون"],
+  fewPhotos:["أقل من 5 صور في الملف","أضيفوا صوراً حقيقية للفريق والأعمال المنجزة"],
+  stale:["لا توجد تقييمات جديدة منذ 3 أشهر","التقييمات الحديثة تُظهر أن النشاط فعّال"],
+  noReplies:["التقييمات بدون رد من النشاط","الرد على كل تقييم خلال يومين"],
+  noPosts:["لا توجد منشورات حديثة على Google","نشر تحديث قصير أو عرض مرة في الأسبوع"],
+  slowSite:["الموقع بطيء على الجوال حسب اختبار Google","تخفيف الصور والصفحات أو الانتقال إلى موقع أسرع"],
+  noHttps:["الموقع غير آمن (بدون HTTPS) ويظهر تحذير للزوار","تفعيل شهادة SSL مجانية"],
+  noDmarc:["نطاق البريد بدون سجل حماية DMARC، وقد تصل رسائلكم إلى البريد المزعج","إضافة سجلات SPF وDKIM وDMARC"],
+  noSpf:["لا يوجد سجل SPF لبريد النطاق","إضافة سجل SPF للخدمات المسموح لها بالإرسال"],
+  unsafeSite:["Google يعرض موقعكم على أنه غير آمن","تنظيف الموقع ثم طلب مراجعة من Search Console"],
+  siteBroken:["رابط الموقع في ملف Google لا يفتح","إصلاح الموقع أو تحديث الرابط في الملف"],
+  siteParked:["رابط الموقع يعرض صفحة \"النطاق للبيع\"","تجديد النطاق أو تحديث الرابط في الملف"],
+  catMismatch:["الفئة الرئيسية تختلف عن الأنشطة الأعلى ترتيباً","اختيار الفئة الأقرب للخدمة الأساسية"],
+  unclaimed:["الملف غير موثّق باسمكم، ويمكن لأي شخص اقتراح تعديلات عليه","المطالبة بالملف وتوثيقه"],
+  notIndexable:["الموقع مخفي عن نتائج بحث Google","إزالة إعداد noindex من الموقع"],
+  recentBadReview:["تقييم بنجمة أو نجمتين خلال الشهرين الماضيين","الرد عليه بهدوء واحترافية، وطلب التقييم من العملاء الراضين"],
+  phoneMismatch:["رقم الهاتف في Google يختلف عن رقم الموقع","استخدام نفس الرقم في كل مكان"],
+  hoursMismatch:["ساعات العمل موجودة في الموقع وغير موجودة في Google","نسخ ساعات العمل إلى ملف Google"],
+  domainExpiring:["نطاق الموقع سينتهي قريباً","تجديد النطاق وتفعيل التجديد التلقائي"],
+  notMobile:["الموقع لا يناسب شاشة الجوال","استخدام تصميم متوافق مع الجوال"],
+  fbAsSite:["الملف يربط بصفحة فيسبوك بدلاً من موقع","إضافة موقع حقيقي مع إبقاء فيسبوك رابطاً إضافياً"],
+  freeDomain:["الموقع على عنوان مجاني وليس نطاقاً خاصاً","الانتقال إلى نطاق خاص يسمح ببريد احترافي"],
+  noMetaDesc:["الموقع بدون وصف لنتائج بحث Google","إضافة وصف قصير يذكر الخدمة والمدينة"],
+  noTitle:["صفحة الموقع بدون عنوان","إضافة عنوان يذكر الاسم والخدمة والمدينة"],
+  fbStale:["لا نشاط على صفحة فيسبوك منذ 3 أشهر","نشر تحديث أو صورة عمل كل أسبوع"],
+  noAttributes:["تفاصيل الدفع وسهولة الوصول غير موجودة في الملف","إضافة خيارات الدفع وسهولة الوصول"]
+};
+function arMsg(L){
+  var top = allIssues(L).filter(function(k){ return AR[k]; }).slice(0,3).map(function(k){ return "- " + AR[k][0]; }).join("\n");
+  var nm = ($("myName").value||"").trim() || "Asif";
+  return "مرحباً،\n\nمعكم " + nm + " من MapPeak Local. اطلعت على ملف " + L.name + " في خرائط Google ولاحظت بعض النقاط التي قد تُفقدكم عملاء:\n" +
+    (top || "- الملف يحتاج إلى استكمال بعض البيانات المهمة") + "\n" +
+    (L.comp ? "- " + L.comp.n + " القريب منكم لديه " + L.comp.r + " تقييماً، لذلك يظهر للعملاء أولاً\n" : "") +
+    "\nيسعدني إرسال تقرير مختصر بالمشاكل وخطوات الحل مجاناً. هل يناسبكم؟\n\n" +
+    "إذا لم ترغبوا في التواصل، أخبروني ولن أراسلكم مرة أخرى.";
+}
 function townSuffix(c, t){
   if(c === "PK" && !/pakistan/i.test(t)) return ", Pakistan";
   if(c === "GB" && !/(uk|united kingdom|england|scotland|wales)\s*$/i.test(t)) return ", UK";
   if(c === "IE" && !/ireland\s*$/i.test(t)) return ", Ireland";
   if(c === "AU" && !/australia\s*$/i.test(t)) return ", Australia";
   if(c === "AE" && !/(uae|emirates)\s*$/i.test(t)) return ", United Arab Emirates";
+  if(c === "SA" && !/(saudi|ksa)/i.test(t)) return ", Saudi Arabia";
   return "";
 }
 async function search(text, key, token){
@@ -1377,7 +1433,7 @@ function addFollow(L){
   saveFollow(); renderFollow();
 }
 function followText(f){
-  if(f.c === "AE" && !f.urd){
+  if(isGulf(f.c) && !f.urd){
     return "Hello again,\n\nJust following up on my message about " + f.n + "'s Google Maps listing. I'm happy to fix one issue for free so you can see the result.\n\nIf now isn't a good time, no problem at all. Thank you.";
   }
   if(isWA(f.c)){
@@ -1524,89 +1580,182 @@ function renderToday(){
   box.querySelectorAll("input[data-c]").forEach(function(c){ c.onchange = function(){ store.set(chkKey(c.getAttribute("data-c")), c.checked ? "1" : "0"); }; });
 }
 
-/* ---------- picture report: one clean image of the business's own problems, to attach to an email or WhatsApp ---------- */
+/* ---------- picture report: one polished image of the business's own problems, English or Arabic ---------- */
+var RT = {
+  en: { title:"Google Business Profile Check", by:"Prepared by MapPeak Local", issues:"Issues found", urgent:"Fix first", rating:"Rating",
+        reviews:"reviews", noRating:"No rating yet", strength:"Profile strength", lv:["Needs attention","Fair","Strong"],
+        vs:"You vs. the top competitor nearby", you:"You", g:["Fix first","Important","Quick wins"], none:"No major issues found.",
+        next:"Next step", cta:"We can fix these for you, step by step and within Google's guidelines. Reply to this message and we'll send a free action plan.",
+        foot:"We never post fake reviews or offer incentives for reviews." },
+  ar: { title:"تقرير فحص ملف Google التجاري", by:"أعدّه فريق MapPeak Local", issues:"مشكلات تم رصدها", urgent:"عاجلة", rating:"التقييم",
+        reviews:"تقييماً", noRating:"لا يوجد تقييم", strength:"قوة الملف", lv:["يحتاج إلى اهتمام","مقبول","قوي"],
+        vs:"مقارنة مع أقوى منافس قريب", you:"نشاطكم", g:["أصلحوها أولاً","مهمة","تحسينات سريعة"], none:"لم يتم رصد مشكلات كبيرة.",
+        next:"الخطوة التالية", cta:"يمكننا إصلاح هذه النقاط لكم خطوة بخطوة ووفق إرشادات Google. ردّوا على هذه الرسالة وسنرسل لكم خطة عمل مجانية.",
+        foot:"لا ننشر تقييمات مزيفة ولا نقدّم أي مقابل للتقييمات." }
+};
+var logoImg = null;
+function loadLogo(){
+  if(logoImg) return Promise.resolve(logoImg);
+  return new Promise(function(res){ var im = new Image(); im.onload = function(){ logoImg = im; res(im); }; im.onerror = function(){ res(null); }; im.src = "logo.png"; });
+}
 function wrapLines(ctx, text, maxW){
   var words = String(text||"").split(/\s+/), lines = [], cur = "";
   words.forEach(function(w){ var t = cur ? cur + " " + w : w; if(ctx.measureText(t).width > maxW && cur){ lines.push(cur); cur = w; } else cur = t; });
   if(cur) lines.push(cur); return lines;
 }
-function drawReport(ctx, L, W){
-  var P = 64, y = 0, F = '"Inter", system-ui, sans-serif', blue = "#1a56db", ink = "#14213d", muted = "#5b6475";
-  function text(t, size, weight, color, x, maxW, lh){
-    ctx.font = weight + " " + size + "px " + F; ctx.fillStyle = color;
-    var ls = wrapLines(ctx, t, maxW); ls.forEach(function(l){ y += lh; ctx.fillText(l, x, y); }); return ls.length;
+function fitText(ctx, t, maxW){ t = String(t||""); if(ctx.measureText(t).width <= maxW) return t; while(t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1); return t + "…"; }
+function rrect(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function drawReport(ctx, L, W, lang){
+  var ar = lang === "ar", t = RT[lang], P = 60, y = 0;
+  var F = ar ? '"Noto Naskh Arabic", "Inter", sans-serif' : '"Inter", system-ui, sans-serif';
+  var blue = "#1a56db", ink = "#14213d", muted = "#5b6475", line = "#e2e6ee";
+  var RED = "#d92d20", AMB = "#d97706", GRN = "#0e9f6e", SKY = "#2563eb";
+  var lhK = ar ? 1.55 : 1.32;   // Arabic script needs taller lines
+  ctx.direction = ar ? "rtl" : "ltr";
+  function X(x, w){ return ar ? W - x - (w || 0) : x; }   // mirror every left-anchored position for Arabic
+  function font(size, weight){ ctx.font = weight + " " + size + "px " + F; }
+  function T(txt, size, weight, color, x, maxW, opt){
+    opt = opt || {}; font(size, weight); ctx.fillStyle = color; ctx.textAlign = ar ? "right" : "left";
+    var lh = Math.round(size * lhK), ls = opt.one ? [fitText(ctx, txt, maxW)] : wrapLines(ctx, txt, maxW);
+    ls.forEach(function(l){ y += lh; ctx.fillText(l, X(x), y - Math.round(size * (lhK - 1) / 2) - 4); });
+    return ls.length;
   }
-  ctx.fillStyle = blue; ctx.fillRect(0, 0, W, 170);
-  y = 30; text("Google Business Profile Check", 44, 700, "#ffffff", P, W - 2*P, 56);
-  text("Prepared by MapPeak Local", 26, 400, "#dbe6ff", P, W - 2*P, 40);
-  y = 190;
-  text(L.name, 46, 700, ink, P, W - 2*P, 58);
-  text(L.address || "", 26, 400, muted, P, W - 2*P, 36);
-  y += 30;
-  var sc = scoreOf(L), cx = P + 80, cy = y + 80;
-  ctx.fillStyle = sc < 45 ? "#e02424" : (sc < 70 ? "#d97706" : "#0e9f6e");
-  ctx.beginPath(); ctx.arc(cx, cy, 80, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "700 60px " + F; ctx.fillText(String(sc), cx, cy + 12);
-  ctx.font = "400 22px " + F; ctx.fillText("out of 100", cx, cy + 44); ctx.textAlign = "left";
-  var sy = y; y = sy + 10;
-  var tx = P + 200, tw = W - tx - P;
-  text("Profile score", 30, 700, ink, tx, tw, 40);
-  text("Rating: " + (L.rating == null ? "none yet" : L.rating + " stars") + "   |   Reviews: " + L.reviews, 28, 400, ink, tx, tw, 40);
-  if(L.comp) text("Top competitor nearby: " + L.comp.n + " (" + L.comp.r + " reviews)", 24, 400, muted, tx, tw, 34);
-  y = Math.max(y, sy + 170) + 30;
-  ctx.fillStyle = "#e2e6ee"; ctx.fillRect(P, y, W - 2*P, 2); y += 20;
-  text("What we found", 34, 700, ink, P, W - 2*P, 48);
-  var used = {}, list = mailIssues(L).slice(0, 6);
-  if(!list.length) text("No major issues found.", 28, 400, muted, P, W - 2*P, 40);
-  list.forEach(function(k, i){
-    y += 14;
-    var top = y;
-    ctx.fillStyle = URGENT.indexOf(k) >= 0 ? "#e02424" : "#d97706";
-    ctx.beginPath(); ctx.arc(P + 22, top + 30, 22, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "700 24px " + F; ctx.fillText(String(i+1), P + 22, top + 39); ctx.textAlign = "left";
-    text(lineFor(k, L, used), 28, 700, ink, P + 64, W - 2*P - 64, 38);
-    text("\u2192 " + CHECKS[k][3], 25, 400, muted, P + 64, W - 2*P - 64, 34);
+  function R(x, yy, w, h, color, r){ ctx.fillStyle = color; rrect(ctx, X(x, w), yy, w, h, r || 0); ctx.fill(); }
+  function Cc(cx, cy, r, color){ ctx.fillStyle = color; ctx.beginPath(); ctx.arc(X(cx), cy, r, 0, Math.PI*2); ctx.fill(); }
+  function centered(txt, size, weight, color, cx, cy){ font(size, weight); ctx.fillStyle = color; ctx.textAlign = "center"; ctx.fillText(txt, X(cx), cy); }
+
+  var issues = mailIssues(L), sc = scoreOf(L), urg = issues.filter(function(k){ return URGENT.indexOf(k) >= 0; });
+
+  /* header */
+  R(0, 0, W, 210, blue);
+  R(P, 44, 120, 120, "#ffffff", 28);
+  if(logoImg) ctx.drawImage(logoImg, X(P + 10, 100), 54, 100, 100);
+  y = 46; T(t.title, ar ? 40 : 42, 700, "#ffffff", P + 150, W - 2*P - 150);
+  T(t.by + "  ·  " + new Date().toLocaleDateString(ar ? "ar-SA-u-nu-latn-ca-gregory" : "en-US", { year:"numeric", month:"long", day:"numeric" }), 24, 400, "#dbe6ff", P + 150, W - 2*P - 150);
+
+  /* business */
+  y = 236;
+  T(L.name, 46, 700, ink, P, W - 2*P);
+  if(L.address) T(L.address, 25, 400, muted, P, W - 2*P);
+  y += 28;
+
+  /* three summary tiles */
+  var tw = (W - 2*P - 40) / 3, ty = y;
+  var tiles = [
+    [String(issues.length), t.issues, issues.length ? AMB : GRN],
+    [String(urg.length), t.urgent, urg.length ? RED : GRN],
+    [L.rating == null ? "—" : L.rating + "★", L.rating == null ? t.noRating : (t.rating + " · " + L.reviews + " " + t.reviews), ink]
+  ];
+  tiles.forEach(function(tl, i){
+    var tx = P + i * (tw + 20);
+    R(tx, ty, tw, 150, "#f4f6fb", 22);
+    centered(tl[0], 54, 700, tl[2], tx + tw/2, ty + 76);
+    font(22, 400); centered(fitText(ctx, tl[1], tw - 24), 22, 400, muted, tx + tw/2, ty + 120);
   });
-  var miss = list.indexOf("notInAI") >= 0 ? null : aiMissed(L)[0];   // already listed as an issue above
-  if(miss){
-    y += 30;
-    var boxTop = y, names = (miss.names||[]).slice(0,3).join(", ");
-    y += 14;
-    text("AI search check", 28, 700, "#9b1c1c", P + 24, W - 2*P - 48, 40);
-    text((miss.eng || "AI assistants") + " was asked \"" + miss.q + "\" and did not name this business." + (names ? " It named: " + names + "." : ""), 25, 400, ink, P + 24, W - 2*P - 48, 34);
-    y += 20;
-    ctx.save(); ctx.globalCompositeOperation = "destination-over"; ctx.fillStyle = "#fdecec"; ctx.fillRect(P, boxTop, W - 2*P, y - boxTop); ctx.restore();
+  y = ty + 150 + 36;
+
+  /* strength meter: a level word instead of a harsh number */
+  var lvl = sc < 45 ? 0 : (sc < 70 ? 1 : 2), lc = [RED, AMB, GRN][lvl];
+  T(t.strength, 28, 700, ink, P, 500, { one:true });
+  font(28, 700); ctx.fillStyle = lc; ctx.textAlign = ar ? "left" : "right"; ctx.fillText(t.lv[lvl], X(W - P), y - Math.round(28 * (lhK - 1) / 2) - 4);
+  y += 14;
+  R(P, y, W - 2*P, 22, "#e9edf5", 11);
+  var fw = Math.max(22, (W - 2*P) * Math.max(0.06, sc / 100));
+  R(P, y, fw, 22, lc, 11);
+  y += 22 + 40;
+
+  /* competitor comparison */
+  if(L.comp && L.comp.r > 0){
+    R(P, y, W - 2*P, 2, line); y += 22;
+    T(t.vs, 30, 700, ink, P, W - 2*P);
+    y += 12;
+    var maxR = Math.max(L.comp.r, L.reviews, 1), labW = 300, barX = P + labW + 20, barW = W - P - barX - 150;
+    [[t.you + " — " + L.name, L.reviews, L.rating, RED], [L.comp.n, L.comp.r, L.comp.rt, GRN]].forEach(function(b){
+      var by = y + 8;
+      font(24, 700); ctx.fillStyle = ink; ctx.textAlign = ar ? "right" : "left";
+      ctx.fillText(fitText(ctx, b[0], labW), X(P), by + 30);
+      R(barX, by, barW, 40, "#eef1f6", 12);
+      R(barX, by, Math.max(14, barW * b[1] / maxR), 40, b[3], 12);
+      font(24, 700); ctx.fillStyle = ink; ctx.textAlign = ar ? "right" : "left";
+      ctx.fillText(b[1] + (b[2] ? "  ·  " + b[2] + "★" : ""), X(barX + barW + 16), by + 30);
+      y = by + 40 + 14;
+    });
+    y += 26;
   }
-  y += 40;
-  var fy = y; y += 14;
-  text("MapPeak Local  |  asifali549.github.io/mappeak-local", 26, 700, blue, P, W - 2*P, 40);
-  text("All fixes follow Google's guidelines. We never post fake reviews or offer incentives for reviews.", 22, 400, muted, P, W - 2*P, 32);
-  text(new Date().toDateString(), 22, 400, muted, P, W - 2*P, 32);
+
+  /* issues in three priority groups */
+  R(P, y, W - 2*P, 2, line); y += 10;
+  if(!issues.length){ y += 10; T(t.none, 28, 400, muted, P, W - 2*P); }
+  var groups = [[], [], []];
+  issues.forEach(function(k){ groups[URGENT.indexOf(k) >= 0 ? 0 : (CHECKS[k][0] >= 12 ? 1 : 2)].push(k); });
+  var shown = 0, used = {}, num = 0, gcol = [RED, AMB, SKY];
+  groups.forEach(function(gk, gi){
+    gk = gk.slice(0, Math.max(0, 7 - shown)); if(!gk.length) return; shown += gk.length;
+    y += 24;
+    R(P, y + 4, 12, 34, gcol[gi], 6);
+    T(t.g[gi], 30, 700, gcol[gi], P + 26, W - 2*P - 26);
+    gk.forEach(function(k){
+      num++; y += 14;
+      var top = y;
+      Cc(P + 24, top + 30, 22, gcol[gi]);
+      centered(String(num), 22, 700, "#ffffff", P + 24, top + 38);
+      if(ar){ T(AR[k] ? AR[k][0] : CHECKS[k][2], 27, 700, ink, P + 64, W - 2*P - 64); T(AR[k] ? "← " + AR[k][1] : "", 24, 400, muted, P + 64, W - 2*P - 64); }
+      else { T(lineFor(k, L, used), 27, 700, ink, P + 64, W - 2*P - 64); T("→ " + CHECKS[k][3], 24, 400, muted, P + 64, W - 2*P - 64); }
+    });
+  });
+  var more = issues.length - shown;
+  if(more > 0){ y += 8; T(ar ? ("و" + more + " نقاط أخرى في التقرير الكامل") : ("+ " + more + " more in the full report"), 24, 400, muted, P + 64, W - 2*P - 64); }
+
+  /* call to action with contact details */
+  y += 36;
+  var cy0 = y; y += 26;
+  T(t.next, 32, 700, blue, P + 32, W - 2*P - 64);
+  y += 4;
+  T(t.cta, 26, 400, ink, P + 32, W - 2*P - 64);
+  var em = ($("myEmail").value||"").trim(), wa = ($("myWA").value||"").trim();
+  y += 10;
+  var contact = [em, wa ? "WhatsApp " + wa : "", "asifali549.github.io/mappeak-local"].filter(Boolean);
+  ctx.save(); ctx.direction = "ltr";
+  contact.forEach(function(c){ font(25, 700); ctx.fillStyle = ink; ctx.textAlign = ar ? "right" : "left"; y += 36; ctx.fillText(c, X(P + 32), y); });
+  ctx.restore();
+  y += 30;
+  ctx.save(); ctx.globalCompositeOperation = "destination-over"; ctx.fillStyle = "#eaf1ff"; rrect(ctx, P, cy0, W - 2*P, y - cy0, 24); ctx.fill(); ctx.restore();
+
+  /* footer */
+  y += 26;
+  T("MapPeak Local  ·  " + t.foot, 21, 400, muted, P, W - 2*P);
   y += 34;
-  ctx.save(); ctx.globalCompositeOperation = "destination-over"; ctx.fillStyle = "#eef2ff"; ctx.fillRect(0, fy, W, y - fy);
-  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, y); ctx.restore();   // white page goes behind everything drawn above
+  ctx.save(); ctx.globalCompositeOperation = "destination-over"; ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, y); ctx.restore();
   return y;
 }
-async function makeReportImage(L){
-  try{ if(document.fonts && document.fonts.load){ await document.fonts.load('700 30px "Inter"'); await document.fonts.load('400 30px "Inter"'); } }catch(e){}
-  var W = 1080, tmp = document.createElement("canvas"); tmp.width = W; tmp.height = 4000;
-  var h = drawReport(tmp.getContext("2d"), L, W);
+async function makeReportImage(L, lang){
+  try{ if(document.fonts && document.fonts.load){
+    await document.fonts.load('700 30px "Inter"'); await document.fonts.load('400 30px "Inter"');
+    if(lang === "ar"){ await document.fonts.load('700 30px "Noto Naskh Arabic"', "عربي"); await document.fonts.load('400 30px "Noto Naskh Arabic"', "عربي"); }
+  } }catch(e){}
+  await loadLogo();
+  var W = 1080, tmp = document.createElement("canvas"); tmp.width = W; tmp.height = 5000;
+  var h = drawReport(tmp.getContext("2d"), L, W, lang);
   var c = document.createElement("canvas"); c.width = W; c.height = Math.ceil(h);
-  drawReport(c.getContext("2d"), L, W);
+  drawReport(c.getContext("2d"), L, W, lang);
   return c;
 }
-async function showReportImage(L){
-  var c = await makeReportImage(L);
+async function showReportImage(L, lang){
+  lang = lang || (isGulf(L.country) ? "ar" : "en");
+  var c = await makeReportImage(L, lang);
   var blob = await new Promise(function(r){ c.toBlob(r, "image/png"); });
-  var fname = "MapPeak_" + String(L.name||"report").replace(/[^A-Za-z0-9]+/g, "_").slice(0, 40) + ".png";
+  var fname = "MapPeak_" + String(L.name||"report").replace(/[^A-Za-z0-9]+/g, "_").slice(0, 40) + (lang === "ar" ? "_AR" : "") + ".png";
   var url = URL.createObjectURL(blob);
+  var old = document.querySelector(".ov"); if(old) old.remove();
   var ov = document.createElement("div"); ov.className = "ov";
   ov.innerHTML = '<img alt="" src="' + url + '"><div class="btns"><button class="btn btn-sm" style="width:auto" data-a="share">شیئر کریں</button>' +
     '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" download="' + fname + '" href="' + url + '">ڈاؤن لوڈ کریں</a>' +
+    '<button class="btn2 btn-sm" data-a="lang">' + (lang === "ar" ? "انگریزی رپورٹ" : "عربی رپورٹ") + '</button>' +
     '<button class="btn2 btn-sm" data-a="close">بند کریں</button></div>' +
-    '<p class="hint" style="color:#dde;text-align:center;max-width:520px">یہ تصویر ای میل کے ساتھ لگائیں، یا واٹس ایپ پر پیغام کے ساتھ بھیجیں۔ گاہک اپنی پروفائل کی خامیاں خود دیکھے تو جواب کا امکان بڑھ جاتا ہے۔</p>';
+    '<p class="hint" style="color:#dde;text-align:center;max-width:520px">یہ تصویر ای میل کے ساتھ لگائیں، یا واٹس ایپ پر پیغام کے ساتھ بھیجیں۔ رپورٹ پر آپ کا رابطہ ترتیبات سے آتا ہے، واٹس ایپ نمبر وہاں لکھ دیں۔</p>';
   document.body.appendChild(ov);
   ov.querySelector('[data-a="close"]').onclick = function(){ ov.remove(); URL.revokeObjectURL(url); };
+  ov.querySelector('[data-a="lang"]').onclick = function(){ URL.revokeObjectURL(url); showReportImage(L, lang === "ar" ? "en" : "ar"); };
   var sb = ov.querySelector('[data-a="share"]');
   var file = null; try{ file = new File([blob], fname, { type: "image/png" }); }catch(e){}
   if(!(file && navigator.canShare && navigator.canShare({ files: [file] }))) sb.style.display = "none";
@@ -1633,7 +1782,7 @@ $("csv").onclick = function(){
 
 /* ---------- phone + computer sync through the user's own Google Apps Script ---------- */
 var SECRET_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey"];
-var SYNC_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey","mp_watch","mp_gone","mp_goneDel","mp_leads","mp_seen","mp_follow","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myIntroUr","mp_useSig"];
+var SYNC_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey","mp_watch","mp_gone","mp_goneDel","mp_leads","mp_seen","mp_follow","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myWA","mp_myIntroUr","mp_useSig"];
 var syncApplying = false, syncTimer = null, syncBusy = false;
 function syncTouched(k){
   if(!SYNC_KEYS || syncApplying || SYNC_KEYS.indexOf(k) < 0) return;
@@ -1700,7 +1849,7 @@ function syncApply(remote){
     gone = arr(store.get("mp_gone","[]")).filter(function(g){ return del.indexOf(g.id) < 0; });
     gone.forEach(function(g){ delete watch[g.id]; }); del.forEach(function(id){ delete watch[id]; });
     showWatch();
-    ["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v !== null) $(k).value = v; });
+    ["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myWA","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v !== null) $(k).value = v; });
     $("useSig").checked = store.get("mp_useSig","0") === "1";
     showHidden(); render(true); renderFollow();
   }
