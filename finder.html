@@ -158,6 +158,8 @@ a{color:var(--brand)}
         <div><label>ملک</label><select id="mCountry"><option value="US">امریکہ</option><option value="GB">برطانیہ</option><option value="AU">آسٹریلیا</option><option value="IE">آئرلینڈ</option><option value="AE">امارات</option><option value="SA">سعودی عرب</option><option value="PK">پاکستان</option><option value="XX">کوئی اور</option></select></div>
         <div><label>کہاں سے ملا</label><select id="mSource"><option>Google Community</option><option>Reddit</option><option>WhatsApp</option><option>Lead Finder</option><option>Referral</option><option>Other</option></select></div>
       </div>
+      <label>پوسٹ کا لنک (اختیاری)</label>
+      <input id="mLink" class="en" placeholder="https://www.reddit.com/r/GoogleMyBusiness/...">
       <label>رابطہ (فون، ای میل یا ریڈٹ کا نام)</label>
       <input id="mContact" class="en" placeholder="+966... / name@email.com / u/username">
       <label>ابھی کہاں ہیں</label>
@@ -166,6 +168,7 @@ a{color:var(--brand)}
       <input id="mNote" placeholder="مثلاً: ریویو غائب ہونے کا مسئلہ">
       <div class="btns"><button class="btn btn-sm" id="mAdd" style="width:auto">شامل کریں</button></div>
     </details>
+    <div class="btns"><button class="btn2 btn-sm" id="pipeCsv">گاہکوں کی فہرست ڈاؤن لوڈ کریں</button></div>
   </details>
 
   <div class="card" id="searchCard">
@@ -176,6 +179,7 @@ a{color:var(--brand)}
       <option value="PK">پاکستان (واٹس ایپ، اردو میں)</option>
       <option value="GB">برطانیہ (ای میل، انگریزی میں)</option>
       <option value="AU">آسٹریلیا (ای میل، انگریزی میں)</option>
+      <option value="IE">آئرلینڈ (ای میل، انگریزی میں)</option>
       <option value="AE">امارات (واٹس ایپ، اردو یا انگریزی)</option>
       <option value="SA">سعودی عرب (واٹس ایپ، عربی یا انگریزی)</option>
     </select>
@@ -803,7 +807,8 @@ function render(keepOrder){
       (isWA(L.country)
         ? (waNum(L.phone) ? '<a class="btn btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
           (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="arab">عربی پیغام کاپی کریں</button>' : '')+
-          '<button class="btn2 btn-sm" data-a="urdu">'+(isGulf(L.country) ? (L.urd ? "اردو پیغام کاپی کریں" : "انگریزی پیغام کاپی کریں") : "بنیادی پیغام کاپی کریں")+'</button>'
+          '<button class="btn2 btn-sm" data-a="urdu">'+(isGulf(L.country) ? (L.urd ? "اردو پیغام کاپی کریں" : "انگریزی پیغام کاپی کریں") : "بنیادی پیغام کاپی کریں")+'</button>'+
+          (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="email">ای میل کاپی کریں</button>' : '')
         : '<button class="btn2 btn-sm" data-a="email">ای میل کاپی کریں</button>'+
           '<button class="btn2 btn-sm" data-a="report">رپورٹ کاپی کریں</button>')+
       '<button class="btn2 btn-sm" data-a="img">تصویری رپورٹ</button>'+
@@ -1517,6 +1522,8 @@ function renderPipe(){
       (f.amt ? '<span class="pill">رقم: <b class="en">' + esc(f.amt) + '</b></span>' : '') + '</div>' +
       (f.note ? '<div class="hint" style="margin-top:4px">نوٹ: ' + esc(f.note) + '</div>' : '') +
       '<div class="btns">' +
+      (f.link && /^https?:\/\//.test(f.link) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.link) + '">پوسٹ کھولیں</a>' : '') +
+      (f.phone && waNum(f.phone) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone) + '">واٹس ایپ کھولیں</a>' : '') +
       (f.state === "followed" ? '<button class="btn2 btn-sm" data-a="rep">جواب آ گیا</button>' : '') +
       (f.state === "replied" ? '<button class="btn2 btn-sm" data-a="quote">قیمت بتا دی</button>' : '') +
       (f.state === "replied" || f.state === "quoted" ? '<button class="btn2 btn-sm" data-a="touch">آج رابطہ کر لیا</button><button class="btn2 btn-sm" data-a="won">پیسے مل گئے</button>' : '') +
@@ -1532,10 +1539,22 @@ function renderPipe(){
       setStage(f, "won", { amt: a.trim(), wat: Date.now() }); toast("مبارک ہو! 🎉");
     });
     on("note", function(){ var t = prompt("نوٹ لکھیں", f.note || ""); if(t !== null){ f.note = t.trim(); f.la = Date.now(); saveFollow(); renderFollow(); } });
-    on("lost", function(){ if(confirm("اس گاہک سے بات ختم سمجھیں؟")) setStage(f, "lost"); });
+    on("lost", function(){ if(confirm("اس گاہک سے بات ختم سمجھیں؟ بعد میں واپس بھی لا سکتے ہیں۔")) setStage(f, "lost", { prev: f.state }); });
     box.appendChild(d);
   });
-  if(!box.children.length) box.innerHTML = '<p class="hint">ابھی کوئی جواب دینے والا گاہک نہیں۔ جس کا جواب آئے، یاد دہانی والے خانے میں "جواب آ گیا" دبائیں، یا نیچے سے ہاتھ سے شامل کریں۔</p>';
+  var lost = follows.filter(function(f){ return f.state === "lost"; });
+  if(lost.length){
+    var det = document.createElement("details"); det.style.marginTop = "8px";
+    det.innerHTML = '<summary style="font-size:15px">جن سے بات ختم ہوئی (<span class="en">' + lost.length + '</span>)</summary>';
+    lost.slice(-30).reverse().forEach(function(f){
+      var r = document.createElement("div"); r.className = "task";
+      r.innerHTML = '<div class="tx"><b class="en">' + esc(f.n) + '</b></div><button class="btn2 btn-sm">واپس لائیں</button>';
+      r.querySelector("button").onclick = function(){ setStage(f, f.prev && f.prev !== "lost" ? f.prev : "replied"); toast("واپس آ گیا"); };
+      det.appendChild(r);
+    });
+    box.appendChild(det);
+  }
+  if(!box.querySelector(".lead")) box.insertAdjacentHTML("afterbegin", '<p class="hint">ابھی کوئی جواب دینے والا گاہک نہیں۔ جس کا جواب آئے، یاد دہانی والے خانے میں "جواب آ گیا" دبائیں، یا نیچے سے ہاتھ سے شامل کریں۔</p>');
   $("pipeDue").textContent = due;
   if(due) $("pipeBox").open = true;
 }
@@ -1543,12 +1562,23 @@ $("mAdd").onclick = function(){
   var n = ($("mName").value||"").trim(); if(!n){ toast("پہلے نام لکھیں"); return; }
   var st = $("mState").value, now = Date.now();
   var f = { id: "m_" + now, n: n, c: $("mCountry").value, src: $("mSource").value, contact: ($("mContact").value||"").trim(),
-    note: ($("mNote").value||"").trim(), town: "", at: now, la: now, state: st, manual: true };
+    note: ($("mNote").value||"").trim(), link: ($("mLink").value||"").trim(), town: "", at: now, la: now, state: st, manual: true };
   if(/^\+?[\d\s\-]{7,}$/.test(f.contact)) f.phone = f.contact;
   if(st === "replied") f.next = now; else if(NEXT_DAYS[st]) f.next = now + NEXT_DAYS[st]*864e5;
   follows.push(f); saveFollow(); renderFollow();
-  ["mName","mContact","mNote"].forEach(function(k){ $(k).value = ""; });
+  ["mName","mContact","mNote","mLink"].forEach(function(k){ $(k).value = ""; });
   toast("شامل ہو گیا");
+};
+
+$("pipeCsv").onclick = function(){
+  if(!follows.length){ toast("ابھی کوئی گاہک نہیں"); return; }
+  var rows = [["Name","Stage","Country","Source","Contact","Post link","Amount","Note","First contact","Last update"]];
+  var d = function(t){ return t ? new Date(t).toISOString().slice(0,10) : ""; };
+  follows.forEach(function(f){ rows.push([f.n, f.state, f.c||"", f.src||"", f.contact||f.phone||f.w||"", f.link||"", f.amt||"", f.note||"", d(f.at), d(f.la||f.at)]); });
+  var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c==null?"":c).replace(/"/g,'""')+'"'; }).join(","); }).join("\r\n");
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\ufeff"+csv], {type:"text/csv"}));
+  a.download = "mappeak_clients_" + today() + ".csv"; document.body.appendChild(a); a.click(); a.remove();
 };
 
 /* ---------- today: one screen with everything due today ---------- */
@@ -1566,11 +1596,15 @@ function renderToday(){
   row(cliDue === 0, cliDue ? 'گاہکوں سے رابطہ: <b class="en">' + cliDue + '</b> کو آج جواب یا یاد دہانی' : "گاہکوں کا کوئی رابطہ باقی نہیں", cliDue ? "کھولیں" : "", function(){ $("pipeBox").open = true; $("pipeBox").scrollIntoView({behavior:"smooth"}); });
   row(fuDue === 0, fuDue ? 'یاد دہانی: <b class="en">' + fuDue + '</b> کاروباروں کو آج بھیجنی ہے' : "کوئی یاد دہانی باقی نہیں", fuDue ? "کھولیں" : "", function(){ $("fuBox").open = true; $("fuBox").scrollIntoView({behavior:"smooth"}); });
   row(sent >= 5, 'آج کے نئے پیغام: <b class="en">' + sent + '</b> بھیجے، ہدف <b class="en">5</b>' + (sent >= 5 ? "، مکمل" : '، <b class="en">' + (5 - sent) + '</b> باقی'), sent >= 5 ? "" : "تلاش پر جائیں", function(){ $("searchCard").scrollIntoView({behavior:"smooth"}); });
+  var fr = parseInt(store.get("mp_forum_" + today(), "0"), 10) || 0;
+  row(fr >= 3, 'فورم پر جواب اور پیغام: <b class="en">' + fr + '</b> بھیجے، ہدف <b class="en">3</b>', "ایک بھیجا", function(){ store.set("mp_forum_" + today(), String(fr + 1)); renderToday(); toast("شاباش"); });
+  var sf = store.get("mp_syncFail", "");
+  if(store.get("mp_syncUrl","") && sf) row(false, '<span style="color:var(--bad)">فون اور کمپیوٹر کا ملانا ناکام ہوا ہے، آپ کا کام دوسرے آلے پر محفوظ نہیں ہو رہا۔</span>', "دوبارہ ملائیں", function(){ syncPull(true); });
   box.innerHTML = rows.map(function(r, i){
     return '<div class="task"><span class="' + (r.done ? "ok" : "") + '" style="font-size:20px">' + (r.done ? "✓" : "•") + '</span><div class="tx">' + r.text + '</div>' +
       (r.btn ? '<button class="btn2 btn-sm" data-i="' + i + '">' + r.btn + '</button>' : '') + '</div>';
   }).join("") +
-  [["comm","گوگل کمیونٹی کی تازہ فہرست دیکھی"],["feed","فیڈر میں ریڈٹ کی نئی پوسٹیں دیکھیں"]].map(function(c){
+  [["comm","صبح دس بجے کی خودکار گاہک رپورٹ دیکھی"],["feed","شام چھ بجے کی خودکار گاہک رپورٹ دیکھی"]].map(function(c){
     var on = store.get(chkKey(c[0]), "") === "1";
     return '<label class="task" style="margin:0;font-weight:400"><input type="checkbox" data-c="' + c[0] + '"' + (on ? " checked" : "") + '><div class="tx">' + c[1] + '</div></label>';
   }).join("") +
@@ -1906,14 +1940,23 @@ async function syncPull(loud){
     var r = await fetch(url, { cache:"no-store" }); var remote = await r.json();
     var merged = syncApply(remote && typeof remote === "object" && !remote.err ? remote : {});
     var body = JSON.stringify(merged);
-    if(body !== JSON.stringify(remote)) await fetch(url, { method:"POST", body: body });
+    if(body !== JSON.stringify(remote)){
+      await fetch(url, { method:"POST", body: body });
+      var check = await (await fetch(url, { cache:"no-store" })).json();   // read back: did the script really keep everything?
+      var missing = Object.keys(merged).filter(function(k){ return !check || !check[k] || check[k].v !== merged[k].v; });
+      if(missing.length) throw new Error("partial:" + missing.join(","));
+    }
+    try{ localStorage.removeItem("mp_syncFail"); }catch(e){}
     syncSay("فون اور کمپیوٹر مل گئے۔ آخری بار: " + new Date().toLocaleTimeString());
     if(loud) toast("دونوں آلے مل گئے");
   }catch(e){
-    syncSay("ملانے میں مسئلہ آیا۔ لنک اور انٹرنیٹ چیک کریں۔");
-    if(loud) toast("ملانے میں مسئلہ آیا");
+    var partial = e && /^partial:/.test(e.message || "");
+    try{ localStorage.setItem("mp_syncFail", String(Date.now())); }catch(x){}
+    syncSay(partial ? "ملانا ادھورا رہا: گوگل اسکرپٹ نے سارا ڈیٹا محفوظ نہیں کیا (شاید ڈیٹا بہت بڑا ہے)۔ مجھے بتائیں۔" : "ملانے میں مسئلہ آیا۔ لنک اور انٹرنیٹ چیک کریں۔");
+    if(loud) toast(partial ? "ملانا ادھورا رہا" : "ملانے میں مسئلہ آیا");
   }
   syncBusy = false;
+  try{ renderToday(); }catch(e){}
 }
 $("syncUrl").value = store.get("mp_syncUrl","");
 $("syncNow").onclick = function(){ syncPull(true); };
