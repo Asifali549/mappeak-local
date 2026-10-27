@@ -874,6 +874,28 @@ function pickTopCat(L, all){
     }
   })();
 }
+/* what to search for competitors: a trade word from the name when Google's category is too general ("Services") */
+var TRADE_WORDS = ["solar","plumber","plumbing","electric","electrician","roofing","roofer","hvac","dentist","dental","clinic","hospital","pharmacy","medical",
+  "restaurant","cafe","coffee","bakery","sweets","hotel","school","academy","college","salon","barber","beauty","gym","fitness","tailor","boutique",
+  "mobile","electronics","computer","furniture","interior","construction","builders","property","real estate","motors","auto","car","tyre","tire",
+  "printing","travel","courier","cargo","jewellers","jewelers","shoes","garments","fabrics","grocery","mart","store","marble","steel","cement","paint",
+  "pest","cleaning","laundry","photography","studio","lawyer","law","accountant","insurance","veterinary","pet","driving","tuition","optical","lab"];
+var GENERIC_CAT = /^(services?|store|shop|business|company|point of interest|establishment|corporate office|local business)$/i;
+function compQuery(L){
+  var nm = String(L.name||"").toLowerCase(), cat = String(L.cat||"").trim();
+  var w = TRADE_WORDS.filter(function(t){ return new RegExp("\\b" + t + "\\b").test(nm); })[0];
+  if(cat && !GENERIC_CAT.test(cat)) return { q:cat, word:w || null, type:L.ptype || null };
+  if(w) return { q:w, word:w, type:null };
+  return null;
+}
+function sameTrade(p, L, cq){
+  if(p.id === L.id) return true;
+  var txt = (((p.displayName&&p.displayName.text)||"") + " " + ((p.primaryTypeDisplayName&&p.primaryTypeDisplayName.text)||"")).toLowerCase();
+  if(cq.word && txt.indexOf(cq.word) >= 0) return true;
+  if(cq.type && p.primaryType === cq.type) return true;
+  if(!cq.word && cq.q && txt.indexOf(cq.q.toLowerCase()) >= 0) return true;
+  return false;
+}
 /* city for a business found by name: the last real place name in its address */
 function cityFromAddr(L){
   if(/^(US|AU)$/.test(L.country||"")) return cityOf(L);
@@ -1119,16 +1141,18 @@ $("goName").onclick = async function(){
     });
     /* competitors: one more search for the same kind of business in the same city, so the report can compare */
     var top = found.length ? leads.filter(function(L){ return L.id === found[0].id; })[0] : null, compNote = "";
-    if(top && top.cat && getCount() < (parseInt($("dayLimit").value,10)||1)){
+    var cq = top ? compQuery(top) : null;
+    if(top && cq && getCount() < (parseInt($("dayLimit").value,10)||1)){
       var city = cityFromAddr(top);
       if(city){
         try{
-          log("مقابلے والے ڈھونڈے جا رہے ہیں: " + top.cat + " in " + city);
-          var cd = await search(top.cat + " in " + city + townSuffix(ctry, city), key, null);
+          log("مقابلے والے ڈھونڈے جا رہے ہیں: " + cq.q + " in " + city);
+          var cd = await search(cq.q + " in " + city + townSuffix(ctry, city), key, null);
           addCount();
           var plist = [];
           (cd.places||[]).forEach(function(p){
             if(p.businessStatus && p.businessStatus !== "OPERATIONAL") return;
+            if(!sameTrade(p, top, cq)) return;
             plist.push({ id:p.id, n:(p.displayName&&p.displayName.text)||"", r:p.userRatingCount||0, rt:p.rating||null,
               t:p.primaryType||"", c:(p.primaryTypeDisplayName&&p.primaryTypeDisplayName.text)||"" });
           });
