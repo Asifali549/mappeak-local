@@ -1716,17 +1716,20 @@ var URR = {
 var RT = {
   en: { title:"Google Business Profile Check", by:"Prepared by MapPeak Local", issues:"Issues found", urgent:"Fix first", rating:"Rating",
         reviews:"reviews", noRating:"No rating yet", strength:"Profile strength", lv:["Needs attention","Fair","Strong"],
-        vs:"You vs. the top competitor nearby", you:"You", g:["Fix first","Important","Quick wins"], none:"No major issues found.",
+        vs:"You vs. the top competitor nearby", you:"You", them:"Top competitor nearby", compRev:"Competitor's reviews",
+        gap:function(n, cr, r){ return n + " has " + cr + " reviews and you have " + r + ". Customers usually call the business with more reviews first."; }, g:["Fix first","Important","Quick wins"], none:"No major issues found.",
         next:"Next step", cta:"We can fix these for you, step by step and within Google's guidelines. Reply to this message and we'll send a free action plan.",
         foot:"We never post fake reviews or offer incentives for reviews." },
   ar: { title:"تقرير فحص ملف Google التجاري", by:"أعدّه فريق MapPeak Local", issues:"مشكلات تم رصدها", urgent:"عاجلة", rating:"التقييم",
         reviews:"تقييماً", noRating:"لا يوجد تقييم", strength:"قوة الملف", lv:["يحتاج إلى اهتمام","مقبول","قوي"],
-        vs:"مقارنة مع أقوى منافس قريب", you:"نشاطكم", g:["أصلحوها أولاً","مهمة","تحسينات سريعة"], none:"لم يتم رصد مشكلات كبيرة.",
+        vs:"مقارنة مع أقوى منافس قريب", you:"نشاطكم", them:"أقوى منافس قريب", compRev:"تقييمات المنافس",
+        gap:function(n, cr, r){ return "لدى " + n + " عدد " + cr + " تقييماً، ولديكم " + r + ". العملاء يتصلون عادةً بصاحب التقييمات الأكثر أولاً."; }, g:["أصلحوها أولاً","مهمة","تحسينات سريعة"], none:"لم يتم رصد مشكلات كبيرة.",
         next:"الخطوة التالية", cta:"يمكننا إصلاح هذه النقاط لكم خطوة بخطوة ووفق إرشادات Google. ردّوا على هذه الرسالة وسنرسل لكم خطة عمل مجانية.",
         foot:"لا ننشر تقييمات مزيفة ولا نقدّم أي مقابل للتقييمات." },
   ur: { title:"گوگل بزنس پروفائل کی جانچ", by:"تیار کردہ: میپ پیک لوکل (MapPeak Local)", issues:"خامیاں ملیں", urgent:"فوری", rating:"ریٹنگ",
         reviews:"ریویو", noRating:"ابھی ریٹنگ نہیں", strength:"پروفائل کی مضبوطی", lv:["توجہ کی ضرورت","درمیانی","مضبوط"],
-        vs:"آپ اور قریب کا سب سے مضبوط مقابلے والا", you:"آپ", g:["پہلے ٹھیک کریں","اہم","جلدی والی بہتریاں"], none:"کوئی بڑی خامی نہیں ملی۔",
+        vs:"آپ اور قریب کا سب سے مضبوط مقابلے والا", you:"آپ کی دکان", them:"قریب کا سب سے مضبوط مقابلے والا", compRev:"مقابلے والے کے ریویو",
+        gap:function(n, cr, r){ return n + " کے " + cr + " ریویو ہیں اور آپ کے صرف " + r + "۔ گاہک عام طور پر پہلے زیادہ ریویو والے کو فون کرتا ہے۔"; }, g:["پہلے ٹھیک کریں","اہم","جلدی والی بہتریاں"], none:"کوئی بڑی خامی نہیں ملی۔",
         next:"اگلا قدم", cta:"ہم یہ سب خامیاں گوگل کے اصولوں کے مطابق، قدم بہ قدم آپ کے لیے ٹھیک کر سکتے ہیں۔ اس پیغام کا جواب دیں، ہم مفت لائحہ عمل بھیج دیں گے۔",
         foot:"ہم جعلی ریویو نہیں لگاتے اور نہ ریویو کے بدلے کوئی انعام دیتے ہیں۔" }
 };
@@ -1741,6 +1744,7 @@ function wrapLines(ctx, text, maxW){
   if(cur) lines.push(cur); return lines;
 }
 function fitText(ctx, t, maxW){ t = String(t||""); if(ctx.measureText(t).width <= maxW) return t; while(t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1); return t + "…"; }
+function cleanBiz(n){ return String(n||"").replace(/\s*\((pvt|private)[^)]*\)?\s*(ltd\.?|limited)?\s*$/i,"").replace(/\s+(pvt\.?|private)\s*(ltd\.?|limited)?\.?\s*$/i,"").trim() || String(n||""); }
 function rrect(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function drawReport(ctx, L, W, lang){
   var ar = lang !== "en", t = RT[lang], P = 60, y = 0, DICT = lang === "ur" ? URR : AR;   // "ar" below means right-to-left (Arabic or Urdu)
@@ -1780,7 +1784,7 @@ function drawReport(ctx, L, W, lang){
   var tw = (W - 2*P - 40) / 3, ty = y;
   var tiles = [
     [String(issues.length), t.issues, issues.length ? AMB : GRN],
-    [String(urg.length), t.urgent, urg.length ? RED : GRN],
+    (!urg.length && L.comp && L.comp.r > L.reviews) ? [String(L.comp.r), t.compRev, GRN] : [String(urg.length), t.urgent, urg.length ? RED : GRN],
     [L.rating == null ? "—" : L.rating + "★", L.rating == null ? t.noRating : (t.rating + " · " + L.reviews + " " + t.reviews), ink]
   ];
   tiles.forEach(function(tl, i){
@@ -1806,17 +1810,20 @@ function drawReport(ctx, L, W, lang){
     R(P, y, W - 2*P, 2, line); y += 22;
     T(t.vs, 30, 700, ink, P, W - 2*P);
     y += 12;
-    var maxR = Math.max(L.comp.r, L.reviews, 1), labW = 300, barX = P + labW + 20, barW = W - P - barX - 150;
-    [[t.you + " — " + L.name, L.reviews, L.rating, RED], [L.comp.n, L.comp.r, L.comp.rt, GRN]].forEach(function(b){
+    var maxR = Math.max(L.comp.r, L.reviews, 1), labW = 330, barX = P + labW + 20, barW = W - P - barX - 200;
+    [[cleanBiz(L.name), t.you, L.reviews, L.rating, RED], [cleanBiz(L.comp.n), t.them, L.comp.r, L.comp.rt, GRN]].forEach(function(b){
       var by = y + 8;
-      font(24, 700); ctx.fillStyle = ink; ctx.textAlign = ar ? "right" : "left";
-      ctx.fillText(fitText(ctx, b[0], labW), X(P), by + 30);
-      R(barX, by, barW, 40, "#eef1f6", 12);
-      R(barX, by, Math.max(14, barW * b[1] / maxR), 40, b[3], 12);
-      font(24, 700); ctx.fillStyle = ink; ctx.textAlign = ar ? "right" : "left";
-      ctx.fillText(b[1] + (b[2] ? "  ·  " + b[2] + "★" : ""), X(barX + barW + 16), by + 30);
-      y = by + 40 + 14;
+      font(23, 700); ctx.fillStyle = ink; ctx.textAlign = ar ? "right" : "left";
+      ctx.fillText(fitText(ctx, b[0], labW), X(P), by + 24);
+      font(19, 400); ctx.fillStyle = muted;
+      ctx.fillText(fitText(ctx, b[1], labW), X(P), by + 54);
+      R(barX, by + 8, barW, 40, "#eef1f6", 12);
+      R(barX, by + 8, Math.max(14, barW * b[2] / maxR), 40, b[4], 12);
+      font(23, 700); ctx.fillStyle = ink; ctx.textAlign = ar ? "right" : "left";
+      ctx.fillText(b[2] + " " + t.reviews + (b[3] ? "  ·  " + b[3] + "★" : ""), X(barX + barW + 16), by + 38);
+      y = by + 62 + 10;
     });
+    if(L.comp.r > L.reviews){ y += 6; T(t.gap(cleanBiz(L.comp.n), L.comp.r, L.reviews), 23, 400, muted, P, W - 2*P); }
     y += 26;
   }
 
