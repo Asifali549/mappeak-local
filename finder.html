@@ -843,6 +843,14 @@ function render(keepOrder){
 function assignComps(){
   leads.forEach(function(L){
     var list = pool[L.town] || []; if(!list.length) return;
+    pickComp(L, list);
+  });
+  /* main category check: what do the top 3 businesses Google shows for this search use? */
+  leads.forEach(function(L){ var list = pool[L.town] || []; if(list.length) pickTopCat(L, list); });
+  render();
+}
+function pickComp(L, list){
+  (function(){
     var idx = -1; list.forEach(function(x, i){ if(idx < 0 && x.id === L.id) idx = i; });
     var better = list.filter(function(x){ return x.id !== L.id && x.r > L.reviews && x.n; });
     var local = better.filter(function(x){ return x.r <= 1500; });
@@ -852,10 +860,11 @@ function assignComps(){
     if(!pickFrom.length){ L.comp = null; return; }
     var c = pickFrom.slice().sort(function(a,b){ return b.r - a.r; })[0];
     L.comp = { n:c.n, r:c.r, rt:c.rt, above: above.length > 0, cat:c.c };
-  });
-  /* main category check: what do the top 3 businesses Google shows for this search use? */
-  leads.forEach(function(L){
-    var list = (pool[L.town] || []).filter(function(x){ return x.id !== L.id && x.t; }).slice(0,3);
+  })();
+}
+function pickTopCat(L, all){
+  (function(){
+    var list = all.filter(function(x){ return x.id !== L.id && x.t; }).slice(0,3);
     var cnt = {}; list.forEach(function(x){ cnt[x.t] = (cnt[x.t]||0) + 1; });
     var best = Object.keys(cnt).sort(function(a,b){ return cnt[b]-cnt[a]; })[0];
     L.topCat = null;
@@ -863,8 +872,14 @@ function assignComps(){
       var x = list.filter(function(y){ return y.t === best; })[0];
       L.topCat = x.c || best.replace(/_/g," ");
     }
-  });
-  render();
+  })();
+}
+/* city for a business found by name: the last real place name in its address */
+function cityFromAddr(L){
+  if(/^(US|AU)$/.test(L.country||"")) return cityOf(L);
+  var parts = String(L.address||"").split(",").map(function(x){ return x.trim().replace(/\s*\d{4,6}\s*$/,"").trim(); })
+    .filter(function(x){ return x && !/^\d+$/.test(x) && !/^(pakistan|united kingdom|uk|ireland|united arab emirates|uae|saudi arabia|ksa|australia|usa|united states)$/i.test(x) && !/(punjab|sindh|khyber|balochistan|islamabad capital territory|province)$/i.test(x); });
+  return parts.length ? parts[parts.length-1] : "";
 }
 function countryOf(addr, fallback){
   var a = String(addr||"");
@@ -1102,8 +1117,29 @@ $("goName").onclick = async function(){
       if(leads.some(function(L){ return L.id === p.id; })) return;
       var L = toLead(p, q, ctry); L.byName = true; leads.unshift(L); added++;
     });
+    /* competitors: one more search for the same kind of business in the same city, so the report can compare */
+    var top = found.length ? leads.filter(function(L){ return L.id === found[0].id; })[0] : null, compNote = "";
+    if(top && top.cat && getCount() < (parseInt($("dayLimit").value,10)||1)){
+      var city = cityFromAddr(top);
+      if(city){
+        try{
+          log("مقابلے والے ڈھونڈے جا رہے ہیں: " + top.cat + " in " + city);
+          var cd = await search(top.cat + " in " + city + townSuffix(ctry, city), key, null);
+          addCount();
+          var plist = [];
+          (cd.places||[]).forEach(function(p){
+            if(p.businessStatus && p.businessStatus !== "OPERATIONAL") return;
+            plist.push({ id:p.id, n:(p.displayName&&p.displayName.text)||"", r:p.userRatingCount||0, rt:p.rating||null,
+              t:p.primaryType||"", c:(p.primaryTypeDisplayName&&p.primaryTypeDisplayName.text)||"" });
+          });
+          if(!plist.some(function(x){ return x.id === top.id; })) plist.push({ id:top.id, n:top.name, r:top.reviews, rt:top.rating, t:top.ptype, c:top.cat });
+          pickComp(top, plist); pickTopCat(top, plist);
+          compNote = top.comp ? " مقابلے والا بھی مل گیا، ایک اور کریڈٹ لگا۔" : " اس شہر میں اس سے زیادہ ریویو والا مقابلے والا نہیں ملا۔";
+        }catch(e){ compNote = " مقابلے والے نہیں مل سکے۔"; }
+      }
+    }
     render(true);
-    log(found.length ? ("نام سے " + found.length + " نتیجے ملے، سب سے اوپر دکھا دیے۔ ایک کریڈٹ لگا۔") : "اس نام سے کچھ نہیں ملا۔ نام انگریزی میں اور ساتھ شہر لکھ کر دوبارہ کوشش کریں۔");
+    log(found.length ? ("نام سے " + found.length + " نتیجے ملے، سب سے اوپر دکھا دیے۔ ایک کریڈٹ لگا۔" + compNote) : "اس نام سے کچھ نہیں ملا۔ نام انگریزی میں اور ساتھ شہر لکھ کر دوبارہ کوشش کریں۔");
     if(added) checkMailAll();
   }catch(e){
     log((e && e.message && /[؀-ۿ]/.test(e.message)) ? e.message : "انٹرنیٹ یا گوگل سے رابطہ نہیں ہو سکا۔");
