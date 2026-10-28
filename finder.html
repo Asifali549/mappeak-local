@@ -182,7 +182,13 @@ a{color:var(--brand)}
       <option value="IE">آئرلینڈ (ای میل، انگریزی میں)</option>
       <option value="AE">امارات (واٹس ایپ، اردو یا انگریزی)</option>
       <option value="SA">سعودی عرب (واٹس ایپ، عربی یا انگریزی)</option>
+      <option value="XX">دوسرا ملک (نیچے نام لکھیں)</option>
     </select>
+    <div id="otherBox" style="display:none">
+      <label>ملک کا نام انگریزی میں، جیسے Turkey یا Netherlands</label>
+      <input id="otherC" class="en" list="worldList" placeholder="Turkey">
+      <datalist id="worldList"></datalist>
+    </div>
     <p class="hint" id="lawHint" style="background:#fff8e6;border:1px solid #f1d79a;border-radius:10px;padding:8px 10px"></p>
     <div style="background:#eef4ff;border:1px solid #c9dafc;border-radius:12px;padding:10px 12px;margin:10px 0">
     <label style="margin-top:0">نام سے تلاش: جیسے گوگل پر لکھتے ہیں، دکان کا نام اور شہر لکھیں</label>
@@ -274,7 +280,7 @@ var store = {
   set: function(k, v){ try{ localStorage.setItem(k, v); }catch(e){} syncTouched(k); }
 };
 var FIELDS = ["places.id","places.displayName","places.formattedAddress","places.rating","places.userRatingCount",
-  "places.websiteUri","places.nationalPhoneNumber","places.regularOpeningHours","places.primaryTypeDisplayName","places.primaryType",
+  "places.websiteUri","places.nationalPhoneNumber","places.internationalPhoneNumber","places.regularOpeningHours","places.primaryTypeDisplayName","places.primaryType",
   "places.photos","places.reviews","places.googleMapsUri","places.businessStatus",
   "places.paymentOptions","places.accessibilityOptions","nextPageToken"].join(",");
 
@@ -307,8 +313,36 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){retu
 /* settings */
 ["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myWA","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v!==null) $(k).value = v; });
 $("country").value = store.get("mp_country","US");
-function selC(){ var v = $("country").value; return ["PK","GB","IE","AU","AE","SA"].indexOf(v) >= 0 ? v : "US"; }
-function isGulf(c){ return c === "AE" || c === "SA"; }
+/* any other country: [English name, Urdu name, language code, Urdu language name, flags]  a = Arabic (WhatsApp + Arabic message), s = strict (no cold sales email) */
+var WORLD = {
+  CA:["Canada","کینیڈا","en","انگریزی",""], NZ:["New Zealand","نیوزی لینڈ","en","انگریزی",""], ZA:["South Africa","جنوبی افریقہ","en","انگریزی",""],
+  SG:["Singapore","سنگاپور","en","انگریزی",""], MY:["Malaysia","ملائیشیا","ms","ملے",""], PH:["Philippines","فلپائن","en","انگریزی",""],
+  NL:["Netherlands","ہالینڈ","nl","ڈچ",""], BE:["Belgium","بیلجیم","nl","ڈچ",""], DE:["Germany","جرمنی","de","جرمن","s"], AT:["Austria","آسٹریا","de","جرمن","s"],
+  CH:["Switzerland","سوئٹزرلینڈ","de","جرمن","s"], FR:["France","فرانس","fr","فرانسیسی",""], ES:["Spain","سپین","es","ہسپانوی",""],
+  PT:["Portugal","پرتگال","pt","پرتگالی",""], IT:["Italy","اٹلی","it","اطالوی",""], SE:["Sweden","سویڈن","sv","سویڈش",""], NO:["Norway","ناروے","no","نارویجن",""],
+  DK:["Denmark","ڈنمارک","da","ڈینش",""], FI:["Finland","فن لینڈ","fi","فنش",""], PL:["Poland","پولینڈ","pl","پولش",""], GR:["Greece","یونان","el","یونانی",""],
+  CZ:["Czechia","چیک ریپبلک","cs","چیک",""], RO:["Romania","رومانیہ","ro","رومانوی",""], HU:["Hungary","ہنگری","hu","ہنگیرین",""],
+  TR:["Turkey","ترکی","tr","ترکی",""], MX:["Mexico","میکسیکو","es","ہسپانوی",""], BR:["Brazil","برازیل","pt","پرتگالی",""], AR:["Argentina","ارجنٹینا","es","ہسپانوی",""],
+  CL:["Chile","چلی","es","ہسپانوی",""], CO:["Colombia","کولمبیا","es","ہسپانوی",""], JP:["Japan","جاپان","ja","جاپانی",""], KR:["South Korea","جنوبی کوریا","ko","کورین",""],
+  TH:["Thailand","تھائی لینڈ","th","تھائی",""], ID:["Indonesia","انڈونیشیا","id","انڈونیشین",""], VN:["Vietnam","ویتنام","vi","ویتنامی",""],
+  QA:["Qatar","قطر","ar","عربی","a"], KW:["Kuwait","کویت","ar","عربی","a"], BH:["Bahrain","بحرین","ar","عربی","a"], OM:["Oman","عمان","ar","عربی","a"],
+  EG:["Egypt","مصر","ar","عربی","a"], JO:["Jordan","اردن","ar","عربی","a"], MA:["Morocco","مراکش","ar","عربی","a"], IQ:["Iraq","عراق","ar","عربی","a"]
+};
+var WORLD_ALIAS = { "turkiye":"TR", "türkiye":"TR", "holland":"NL", "the netherlands":"NL", "deutschland":"DE", "korea":"KR", "czech republic":"CZ", "uae":"AE", "ksa":"SA" };
+function worldCode(name){
+  var n = String(name||"").trim().toLowerCase(); if(!n) return "";
+  if(WORLD_ALIAS[n]) return WORLD_ALIAS[n];
+  for(var k in WORLD){ if(WORLD[k][0].toLowerCase() === n || k.toLowerCase() === n) return k; }
+  return "";
+}
+function selC(){
+  var v = $("country").value;
+  if(v === "XX") return worldCode($("otherC").value) || "XX";
+  return ["PK","GB","IE","AU","AE","SA"].indexOf(v) >= 0 ? v : "US";
+}
+function isGulf(c){ return c === "AE" || c === "SA" || !!(WORLD[c] && WORLD[c][4].indexOf("a") >= 0); }
+function langOf(c){ return WORLD[c] ? WORLD[c][2] : "en"; }
+function trUrl(text, lang){ return "https://translate.google.com/?sl=en&tl=" + lang + "&op=translate&text=" + encodeURIComponent(text); }
 function isWA(c){ return c === "PK" || isGulf(c); }   // countries worked over WhatsApp instead of email
 var TOWNS = { PK:"Jampur\nRajanpur\nDera Ghazi Khan", US:"Abilene, TX\nSan Angelo, TX", GB:"Leicester\nCoventry", IE:"Cork\nLimerick", AU:"Geelong\nToowoomba", AE:"Sharjah\nDubai", SA:"Riyadh\nJeddah" };
 var TRADES = { PK:"solar company", AE:"Pakistani restaurant", SA:"interior design company" };
@@ -321,9 +355,21 @@ var LAW = {
   SA:"سعودی عرب: صرف کاروبار کے اپنے واٹس ایپ پر، ایک ایک کر کے، ہاتھ سے۔ عربی پیغام بہتر ہے۔ کوئی لنک نہ بھیجیں، کوئی 'نہیں' کہے تو دوبارہ نہ لکھیں۔ وہاں چھٹی جمعہ اور ہفتہ کو ہوتی ہے۔ بہترین وقت پاکستان کے وقت دوپہر بارہ سے شام سات بجے۔",
   PK:"پاکستان: پیغام میں کوئی لنک نہ بھیجیں، اور ایک ہی کاروبار کو دو سے زیادہ پیغام نہیں۔"
 };
+function lawText(c){
+  if(LAW[c]) return LAW[c];
+  var w = WORLD[c];
+  if(!w) return c === "XX" ? "یہ ملک ٹول کی لسٹ میں نہیں، اس لیے زبان اور قانون خود پہچانا نہیں جا سکا۔ تلاش پھر بھی چلے گی، ای میل انگریزی میں بنے گی۔ ملک کا نام انگریزی میں درست لکھیں، جیسے Turkey۔" : "";
+  if(w[4].indexOf("a") >= 0) return w[1] + ": صرف کاروبار کے اپنے واٹس ایپ پر، ایک ایک کر کے، ہاتھ سے۔ عربی پیغام بہتر ہے۔ کوئی لنک نہ بھیجیں، کوئی 'نہیں' کہے تو دوبارہ نہ لکھیں۔";
+  if(w[4].indexOf("s") >= 0) return w[1] + ": یہاں کاروبار کو بغیر اجازت پہلی سیلز ای میل بھیجنا قانوناً منع ہے۔ صرف فورم پر مدد کریں، اور ای میل تب کریں جب مالک خود جواب دے۔";
+  return w[1] + ": کاروبار کو ای میل کریں، ایک ایک کر کے، ہر ای میل میں بند کرنے کا طریقہ ہو (جی میل کے دستخط میں موجود ہے)۔" + (w[2] !== "en" ? " ای میل انگریزی میں بنے گی، " + w[3] + " میں ترجمہ والا بٹن دبا کر اسی زبان میں بھیجیں۔" : "") + " وہاں صبح نو بجے کے حساب سے Schedule send لگائیں۔";
+}
+(function(){ var dl = $("worldList"); Object.keys(WORLD).forEach(function(k){ var o = document.createElement("option"); o.value = WORLD[k][0]; dl.appendChild(o); }); })();
+$("otherC").value = store.get("mp_otherC", "");
+$("otherC").onchange = function(){ store.set("mp_otherC", $("otherC").value.trim()); applyCountry(false); render(true); };
 function applyCountry(first){
   var pk = $("country").value === "PK";
-  $("lawHint").textContent = LAW[selC()] || "";
+  $("otherBox").style.display = $("country").value === "XX" ? "block" : "none";
+  $("lawHint").textContent = lawText(selC());
   store.set("mp_country", $("country").value);
   if(!first){
     var wa = isWA(selC());
@@ -331,7 +377,7 @@ function applyCountry(first){
     $("urgentOnly").checked = !wa; store.set("mp_urgentOnly", wa ? "0" : "1");
     $("trade").value = TRADES[selC()] || "plumber";
     $("minReviews").value = pk ? 0 : (wa ? 3 : 5); store.set("mp_n_minReviews", $("minReviews").value);
-    $("towns").value = TOWNS[selC()];
+    $("towns").value = TOWNS[selC()] || "";
   }
 }
 $("country").onchange = function(){ applyCountry(false); render(true); };
@@ -691,6 +737,7 @@ function lawBadge(L){
   if(isGulf(L.country)) return L.urd ? '<span class="pill" style="color:var(--good)">شاید اردو</span>' : '<span class="pill">انگریزی پیغام</span>';
   if(L.country === "GB") return /\b(ltd|limited|plc|llp)\b/i.test(L.name) ? '<span class="pill" style="color:var(--good)">کمپنی</span>' : '<span class="pill" style="color:var(--warn)">اکیلا شخص ہو سکتا ہے، دیکھ لیں</span>';
   if(L.country === "AU") return '<span class="pill" style="color:var(--warn)">صرف ویب سائٹ پر لکھی ای میل</span>';
+  if(WORLD[L.country]) return WORLD[L.country][4].indexOf("s") >= 0 ? '<span class="pill" style="color:var(--bad)">' + WORLD[L.country][1] + ': سیلز ای میل منع، صرف فورم</span>' : '<span class="pill">' + WORLD[L.country][1] + '</span>';
   return "";
 }
 function mailBadge(L){
@@ -805,11 +852,12 @@ function render(keepOrder){
       '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(fbUrl(L))+'">فیس بک پر تلاش</a>'+
       '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(adsUrl(L))+'">فیس بک اشتہار دیکھیں</a>'+
       (isWA(L.country)
-        ? (waNum(L.phone) ? '<a class="btn btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
+        ? (waNum(L.phone, L.country, L.intl) ? '<a class="btn btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
           (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="arab">عربی پیغام کاپی کریں</button>' : '')+
           '<button class="btn2 btn-sm" data-a="urdu">'+(isGulf(L.country) ? (L.urd ? "اردو پیغام کاپی کریں" : "انگریزی پیغام کاپی کریں") : "بنیادی پیغام کاپی کریں")+'</button>'+
           (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="email">ای میل کاپی کریں</button>' : '')
         : '<button class="btn2 btn-sm" data-a="email">ای میل کاپی کریں</button>'+
+          (langOf(L.country) !== "en" ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(trUrl(emailFor(L), langOf(L.country)))+'">'+WORLD[L.country][3]+' میں ترجمہ</a>' : '')+
           '<button class="btn2 btn-sm" data-a="report">رپورٹ کاپی کریں</button>')+
       '<button class="btn2 btn-sm" data-a="img">تصویری رپورٹ</button>'+
       '<button class="btn2 btn-sm" data-a="sent">'+(isWA(L.country) ? "پیغام بھیج دیا" : "ای میل بھیج دی")+'</button>'+
@@ -898,9 +946,9 @@ function sameTrade(p, L, cq){
 }
 /* city for a business found by name: the last real place name in its address */
 function cityFromAddr(L){
-  if(/^(US|AU)$/.test(L.country||"")) return cityOf(L);
+  if(/^(US|AU|CA)$/.test(L.country||"")) return cityOf(L);
   var parts = String(L.address||"").split(",").map(function(x){ return x.trim().replace(/\s*\d{4,6}\s*$/,"").trim(); })
-    .filter(function(x){ return x && !/^\d+$/.test(x) && !/^(pakistan|united kingdom|uk|ireland|united arab emirates|uae|saudi arabia|ksa|australia|usa|united states)$/i.test(x) && !/(punjab|sindh|khyber|balochistan|islamabad capital territory|province)$/i.test(x); });
+    .filter(function(x){ return x && !/^\d+$/.test(x) && !worldCode(x) && !/^(pakistan|united kingdom|uk|ireland|united arab emirates|uae|saudi arabia|ksa|australia|usa|united states)$/i.test(x) && !/(punjab|sindh|khyber|balochistan|islamabad capital territory|province)$/i.test(x); });
   return parts.length ? parts[parts.length-1] : "";
 }
 function countryOf(addr, fallback){
@@ -912,12 +960,14 @@ function countryOf(addr, fallback){
   if(/Australia\s*$/i.test(a)) return "AU";
   if(/(United Arab Emirates|UAE)\s*$/i.test(a)) return "AE";
   if(/(Saudi Arabia|KSA)\s*$/i.test(a)) return "SA";
+  var last = a.split(",").pop().replace(/\d+/g,"").trim(), w = worldCode(last);
+  if(w) return w;
   return fallback || "US";
 }
 function toLead(p, town, country){
   country = countryOf(p.formattedAddress, country);
   var L = { id:p.id, name:(p.displayName&&p.displayName.text)||"", address:p.formattedAddress||"", town:town,
-    rating:(p.rating==null?null:p.rating), reviews:p.userRatingCount||0, phone:p.nationalPhoneNumber||"",
+    rating:(p.rating==null?null:p.rating), reviews:p.userRatingCount||0, phone:p.nationalPhoneNumber||"", intl:p.internationalPhoneNumber||"",
     website:p.websiteUri||"", maps:p.googleMapsUri||"", issues:evaluate(p), manual:{replies:null,posts:null},
     cat:(p.primaryTypeDisplayName&&p.primaryTypeDisplayName.text)||"", ptype:p.primaryType||"",
     country: country || "US" };
@@ -926,12 +976,16 @@ function toLead(p, town, country){
   return L;
 }
 /* ---------- Pakistan: WhatsApp + Urdu message (no links inside the message) ---------- */
-function waNum(phone){
+var DIAL = { PK:"92", AE:"971", SA:"966", QA:"974", KW:"965", BH:"973", OM:"968", EG:"20", JO:"962", MA:"212", IQ:"964" };
+function waNum(phone, country, intl){
+  if(intl){ var i = String(intl).replace(/[^0-9]/g,""); if(i.length >= 9) return i; }   // Google's international format, works for any country
+  if(/^\s*(\+|00)/.test(String(phone||""))){ var x = String(phone).replace(/[^0-9]/g,"").replace(/^00/,""); if(x.length >= 9) return x; }   // already international
   var d = String(phone||"").replace(/[^0-9]/g,"");
   if(/^03\d{9}$/.test(d)) return "92" + d.slice(1);
   if(/^923\d{9}$/.test(d)) return d;
-  if(/^05\d{8}$/.test(d)) return "971" + d.slice(1);   // UAE mobile
-  if(/^9715\d{8}$/.test(d)) return d;
+  var cc = DIAL[country];
+  if(cc && country !== "PK"){ if(d.indexOf(cc) === 0 && d.length > 9) return d; if(d.length >= 7) return cc + d.replace(/^0+/, ""); }
+  if(!country){ if(/^05\d{8}$/.test(d)) return "971" + d.slice(1); if(/^9715\d{8}$/.test(d)) return d; }
   return "";
 }
 var UR_ISSUE = {
@@ -978,7 +1032,7 @@ function aeMsg(L){
     "اگر آپ اردو میں بات کرنا چاہیں تو بتائیں، میں پاکستان سے ہوں۔\n\n" +
     "If you'd rather not hear from me, just say so and I won't message again.";
 }
-function waUrl(L){ return "https://wa.me/" + waNum(L.phone); }   // opens an empty chat: each business gets its own written message
+function waUrl(L){ return "https://wa.me/" + waNum(L.phone, L.country, L.intl); }   // opens an empty chat: each business gets its own written message
 function passes(p, f){
   if(p.businessStatus && p.businessStatus !== "OPERATIONAL") return false;
   var nm = normName(p.displayName && p.displayName.text);
@@ -1055,10 +1109,13 @@ function townSuffix(c, t){
   if(c === "AU" && !/australia\s*$/i.test(t)) return ", Australia";
   if(c === "AE" && !/(uae|emirates)\s*$/i.test(t)) return ", United Arab Emirates";
   if(c === "SA" && !/(saudi|ksa)/i.test(t)) return ", Saudi Arabia";
+  var nm = WORLD[c] ? WORLD[c][0] : (c === "XX" ? ($("otherC").value||"").trim() : "");
+  if(nm && t.toLowerCase().indexOf(nm.toLowerCase()) < 0) return ", " + nm;
   return "";
 }
 async function search(text, key, token){
-  var body = { textQuery:text, pageSize:20, languageCode:"en", regionCode:selC() };
+  var rc = selC(), body = { textQuery:text, pageSize:20, languageCode:"en" };
+  if(/^[A-Z]{2}$/.test(rc) && rc !== "XX") body.regionCode = rc;
   if(token) body.pageToken = token;
   var res = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method:"POST", headers:{ "Content-Type":"application/json", "X-Goog-Api-Key":key, "X-Goog-FieldMask":FIELDS },
@@ -1527,7 +1584,7 @@ function renderFollow(){
       (isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج Reminder بھیجیں</span>'
              : '<span class="pill">پہلا پیغام بھیجے ہوئے <b class="en">' + days + '</b> دن، Reminder <b class="en">' + (4 - days) + '</b> دن بعد</span>') +
       '<div class="btns">' +
-      (isWA(f.c) && waNum(f.phone) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone) + '">واٹس ایپ کھولیں</a>' : '') +
+      (isWA(f.c) && waNum(f.phone, f.c) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone, f.c) + '">واٹس ایپ کھولیں</a>' : '') +
       (f.c !== "PK" && f.w ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.w) + '">Website</a>' : '') +
       '<button class="btn2 btn-sm" data-a="copy">Reminder کاپی کریں</button>' +
       '<button class="btn2 btn-sm" data-a="done">Reminder بھیج دی</button>' +
@@ -1583,7 +1640,7 @@ function renderPipe(){
       (f.note ? '<div class="hint" style="margin-top:4px">نوٹ: ' + esc(f.note) + '</div>' : '') +
       '<div class="btns">' +
       (f.link && /^https?:\/\//.test(f.link) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.link) + '">پوسٹ کھولیں</a>' : '') +
-      (f.phone && waNum(f.phone) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone) + '">واٹس ایپ کھولیں</a>' : '') +
+      (f.phone && waNum(f.phone, f.c) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone, f.c) + '">واٹس ایپ کھولیں</a>' : '') +
       (f.state === "followed" ? '<button class="btn2 btn-sm" data-a="rep">جواب آ گیا</button>' : '') +
       (f.state === "replied" ? '<button class="btn2 btn-sm" data-a="quote">Price بتا دی</button>' : '') +
       (f.state === "replied" || f.state === "quoted" ? '<button class="btn2 btn-sm" data-a="touch">آج رابطہ کر لیا</button><button class="btn2 btn-sm" data-a="won">Payment مل گئی</button>' : '') +
