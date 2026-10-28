@@ -1775,19 +1775,19 @@ var RT = {
         reviews:"reviews", noRating:"No rating yet", strength:"Profile strength", lv:["Needs attention","Fair","Strong"],
         vs:"You vs. the top competitor nearby", you:"You", them:"Top competitor nearby", compRev:"Competitor's reviews",
         gap:function(n, cr, r){ return n + " has " + cr + " reviews and you have " + r + ". Customers usually call the business with more reviews first."; }, g:["Fix first","Important","Quick wins"], none:"No major issues found.",
-        next:"Next step", cta:"We can fix these for you, step by step and within Google's guidelines. Reply to this message and we'll send a free action plan.",
+        site:"No website yet? We can also build you a simple one-page website together with the profile fix, at a discounted combined price.", next:"Next step", cta:"We can fix these for you, step by step and within Google's guidelines. Reply to this message and we'll send a free action plan.",
         foot:"We never post fake reviews or offer incentives for reviews." },
   ar: { title:"تقرير فحص ملف Google التجاري", by:"أعدّه فريق MapPeak Local", issues:"مشكلات تم رصدها", urgent:"عاجلة", rating:"التقييم",
         reviews:"تقييماً", noRating:"لا يوجد تقييم", strength:"قوة الملف", lv:["يحتاج إلى اهتمام","مقبول","قوي"],
         vs:"مقارنة مع أقوى منافس قريب", you:"نشاطكم", them:"أقوى منافس قريب", compRev:"تقييمات المنافس",
         gap:function(n, cr, r){ return "لدى " + n + " عدد " + cr + " تقييماً، ولديكم " + r + ". العملاء يتصلون عادةً بصاحب التقييمات الأكثر أولاً."; }, g:["أصلحوها أولاً","مهمة","تحسينات سريعة"], none:"لم يتم رصد مشكلات كبيرة.",
-        next:"الخطوة التالية", cta:"يمكننا إصلاح هذه النقاط لكم خطوة بخطوة ووفق إرشادات Google. ردّوا على هذه الرسالة وسنرسل لكم خطة عمل مجانية.",
+        site:"ليس لديكم موقع إلكتروني؟ يمكننا أيضاً إنشاء موقع بسيط من صفحة واحدة مع إصلاح الملف، بسعر مخفّض للباقة.", next:"الخطوة التالية", cta:"يمكننا إصلاح هذه النقاط لكم خطوة بخطوة ووفق إرشادات Google. ردّوا على هذه الرسالة وسنرسل لكم خطة عمل مجانية.",
         foot:"لا ننشر تقييمات مزيفة ولا نقدّم أي مقابل للتقييمات." },
   ur: { title:"گوگل بزنس پروفائل کی جانچ", by:"تیار کردہ: میپ پیک لوکل (MapPeak Local)", issues:"خامیاں ملیں", urgent:"فوری", rating:"ریٹنگ",
         reviews:"ریویو", noRating:"ابھی ریٹنگ نہیں", strength:"پروفائل کی مضبوطی", lv:["توجہ کی ضرورت","درمیانی","مضبوط"],
         vs:"آپ اور قریب کا سب سے مضبوط مقابلے والا", you:"آپ کی دکان", them:"قریب کا سب سے مضبوط مقابلے والا", compRev:"مقابلے والے کے ریویو",
         gap:function(n, cr, r){ return n + " کے " + cr + " ریویو ہیں اور آپ کے صرف " + r + "۔ گاہک عام طور پر پہلے زیادہ ریویو والے کو فون کرتا ہے۔"; }, g:["پہلے ٹھیک کریں","اہم","جلدی والی بہتریاں"], none:"کوئی بڑی خامی نہیں ملی۔",
-        next:"اگلا قدم", cta:"ہم یہ سب خامیاں گوگل کے اصولوں کے مطابق، قدم بہ قدم آپ کے لیے ٹھیک کر سکتے ہیں۔ اس پیغام کا جواب دیں، ہم مفت لائحہ عمل بھیج دیں گے۔",
+        site:"آپ کی ویب سائٹ نہیں ہے؟ پروفائل ٹھیک کرنے کے ساتھ ہم آپ کی ایک صفحے کی ویب سائٹ بھی بنا سکتے ہیں، دونوں ایک ساتھ رعایتی قیمت پر۔", next:"اگلا قدم", cta:"ہم یہ سب خامیاں گوگل کے اصولوں کے مطابق، قدم بہ قدم آپ کے لیے ٹھیک کر سکتے ہیں۔ اس پیغام کا جواب دیں، ہم مفت لائحہ عمل بھیج دیں گے۔",
         foot:"ہم جعلی ریویو نہیں لگاتے اور نہ ریویو کے بدلے کوئی انعام دیتے ہیں۔" }
 };
 var logoImg = null;
@@ -1913,6 +1913,7 @@ function drawReport(ctx, L, W, lang){
   T(t.next, 32, 700, blue, P + 32, W - 2*P - 64);
   y += 4;
   T(t.cta, 26, 400, ink, P + 32, W - 2*P - 64);
+  if(!L.website || (L.issues||[]).indexOf("fbAsSite") >= 0){ y += 8; T(t.site, 26, 700, GRN, P + 32, W - 2*P - 64); }   // offered only to businesses without a real website
   var em = ($("myEmail").value||"").trim(), wa = ($("myWA").value||"").trim();
   y += 10;
   var contact = [em, wa ? "WhatsApp " + wa : "", "asifali549.github.io/mappeak-local"].filter(Boolean);
