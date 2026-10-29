@@ -1,6 +1,7 @@
 # MapPeak Local: project notes (read this first in any new chat)
 
 Also read `STATUS.md` (current leads and next steps). Update it at the end of each working day.
+**This repo is public: never write client emails, phone numbers or other contact details in any file here.** Contacts live only in the tool's Client Follow-up list.
 
 Owner: Muhammad Asif Raza (Google account name "Asif Ali"), Jampur, Rajanpur, Punjab, Pakistan.
 Business: **MapPeak Local**, fixes Google Business Profiles (and Apple Maps listings) for local businesses.
