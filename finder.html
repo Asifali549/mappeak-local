@@ -712,13 +712,36 @@ async function speedCheck(L){
     L.seo = { crawl:auditOk(lr,"is-crawlable"), desc:auditOk(lr,"meta-description"), title:auditOk(lr,"document-title"), mobile:auditOk(lr,"viewport") };
     var shot = lr.audits && lr.audits["final-screenshot"] && lr.audits["final-screenshot"].details;
     if(shot && shot.data) shots[L.id] = shot.data;
+    L.adTried = true;
+    if(!L.parked) L.adTags = adTagsOf(lr);
   }catch(e){ L.speed = -2; if(e && e.broken) L.broken = true; }
+}
+/* ad tags: Google's speed test lists every file the website loaded. Google Ads and Meta (Facebook) ad tracking codes
+   show that the owner has paid for ads (not proof that ads are running today). No extra search, no extra credit. */
+var GADS_RE = /googleadservices\.com\/pagead\/conversion|googleads\.g\.doubleclick\.net\/pagead\/(viewthroughconversion|conversion)|google\.com\/pagead\/1p-(conversion|user-list)|[?&](id|tid)=AW-\d|fls\.doubleclick\.net|ad\.doubleclick\.net\/activity/i;
+var META_RE = /connect\.facebook\.net\/[^?#]*fbevents\.js|facebook\.com\/tr[\/?]/i;
+function adTagsOf(lr){
+  var nr = lr && lr.audits && lr.audits["network-requests"];
+  var items = (nr && nr.details && nr.details.items) || [];
+  if(!items.length) return undefined;   // the test gave no file list: unknown, not "no ads"
+  var g = false, m = false;
+  items.forEach(function(it){ var u = String(it.url||""); if(GADS_RE.test(u)) g = true; if(META_RE.test(u)) m = true; });
+  return { g:g, m:m };
+}
+function adTagBadge(L){
+  if(!L.adTags) return "";
+  return (L.adTags.g ? '<span class="pill" style="background:var(--good);color:#fff">💰 گوگل اشتہار کا کوڈ</span>' : '') +
+    (L.adTags.m ? '<span class="pill" style="background:var(--good);color:#fff">💰 فیس بک اشتہار کا کوڈ</span>' : '');
+}
+function gAdsUrl(L){
+  var d = domainOf(L.website), rc = /^[A-Z]{2}$/.test(L.country||"") && L.country !== "XX" ? L.country : "anywhere";
+  return d ? "https://adstransparency.google.com/?region=" + rc + "&domain=" + encodeURIComponent(d) : "";
 }
 var speedRunning = false;
 async function checkSpeedAll(){
   if(speedRunning) return; speedRunning = true;
   try{
-    var todo = leads.filter(function(L){ return L.website && (L.speed == null || (L.speed >= 0 && L.seo === undefined)); });
+    var todo = leads.filter(function(L){ return L.website && (L.speed == null || (L.speed >= 0 && (L.seo === undefined || (L.adTags === undefined && !L.parked && !L.adTried)))); });
     for(var i=0;i<todo.length;i++){ await speedCheck(todo[i]); render(true); }
     if(todo.length) render();
   } finally { speedRunning = false; }
@@ -813,7 +836,12 @@ function q(text, key){
 function render(keepOrder){
   saveLeads();
   leads.forEach(function(L){ L.score = scoreOf(L); });
-  var adsFirst = function(L){ return (L.manual && L.manual.ads === "yes") ? -1000 : 0; };
+  var adsFirst = function(L){   // businesses that pay for ads come first: they already spend on getting customers
+    if(L.manual && L.manual.ads === "yes") return -1000;
+    if(L.adTags && L.adTags.g) return -900;
+    if(L.adTags && L.adTags.m) return -700;
+    return 0;
+  };
   var urg = function(L){ return urgentOf(L).length ? -500 : 0; };
   if(!keepOrder) leads.sort(function(a,b){ return (adsFirst(a) + urg(a) + a.score) - (adsFirst(b) + urg(b) + b.score); });
   var curC = selC();
@@ -830,7 +858,7 @@ function render(keepOrder){
       '<div style="flex:1;min-width:0"><div class="name">'+esc(L.name)+'</div>'+
       '<div class="meta en" style="text-align:left">'+esc(L.address)+'</div>'+
       '<div class="stat" style="margin-top:4px"><span class="pill">ریٹنگ <b class="en">'+(L.rating==null?"-":L.rating)+'</b></span>'+
-      '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+mailBadge(L)+speedBadge(L)+riskBadge(L)+lawBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
+      '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+adTagBadge(L)+mailBadge(L)+speedBadge(L)+riskBadge(L)+lawBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
       '<div class="body"><b>غلطیاں:</b><ul>'+urIssues+'</ul>'+
       '<div class="en" style="text-align:left;font-size:15px">'+(L.phone?esc(L.phone)+" &middot; ":"")+(L.website?'<a target="_blank" rel="noopener" href="'+esc(L.website)+'">Website</a>':'No website')+'</div>'+
       compLine(L)+aiLine(L)+
@@ -852,6 +880,7 @@ function render(keepOrder){
       '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(gUrl(L))+'">گوگل پر تلاش</a>'+
       '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(fbUrl(L))+'">فیس بک پر تلاش</a>'+
       '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(adsUrl(L))+'">فیس بک اشتہار دیکھیں</a>'+
+      (gAdsUrl(L) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(gAdsUrl(L))+'">گوگل اشتہار دیکھیں</a>' : '')+
       (isWA(L.country)
         ? (waNum(L.phone, L.country, L.intl) ? '<a class="btn btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
           (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="arab">عربی پیغام کاپی کریں</button>' : '')+
@@ -1534,6 +1563,7 @@ $("demo").onclick = function(){
     leads[0].seo = {crawl:true, desc:false, title:true, mobile:true}; leads[1].seo = {crawl:true, desc:true, title:true, mobile:true};
     leads[0].risk = "safe"; leads[1].risk = "safe"; leads[0].exp = leads[1].exp = leads[2].exp = "done";
     leads[1].expiring = new Date(Date.now()+20*864e5).toISOString().slice(0,10);
+    leads[1].adTags = {g:true, m:true}; leads[0].adTags = {g:false, m:false};
     leads[0].comp = {n:"Air-Tech Plumbing", r:227, rt:4.7, above:true};
     leads[1].comp = {n:"Anytime Drain Service", r:69, rt:4.7, above:false};
   }
