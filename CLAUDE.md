@@ -31,7 +31,8 @@ Site: https://asifali549.github.io/mappeak-local/ (GitHub Pages, this repo). No 
 - **Keyless AI check**: opens Gemini/ChatGPT with a ready question (free Gemini API quota runs out after one search).
 - **Suspended Listing Monitor**: remembers searched businesses, flags ones that disappear.
 - **Today card**: follow-ups due, reminders, outreach messages (target 5/day), forum replies (target 3/day), sync-failure warning, Auto Leads report checkboxes, monthly clients and earnings.
-- **Client Follow-up**: stages waiting / followed / replied / quoted / won / lost, manual add form (only name required; he prefers just name + contact + country + source), CSV export.
+- **Client Follow-up**: stages waiting / followed / replied / quoted / won / lost, manual add form (only name required; he prefers just name + contact + country + source), CSV export. Duplicate guard: typing a name or contact already in the list shows a red warning and asks before adding (work sometimes happens in other chats, so the tool is the one record).
+- Work rule: do all lead work in ONE main chat; before any email, search Gmail for the company name to avoid sending twice.
 - Storage: localStorage keys start with `mp_` (mp_leads, mp_follow, mp_watch, mp_apiKey, mp_syncUrl, ...).
 
 ## How clients are found (current routine)

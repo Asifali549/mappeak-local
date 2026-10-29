@@ -154,6 +154,7 @@ a{color:var(--brand)}
       <summary style="font-size:16px">نیا گاہک ہاتھ سے شامل کریں (کمیونٹی، ریڈٹ، واٹس ایپ)</summary>
       <label>کاروبار یا بندے کا نام</label>
       <input id="mName" class="en" placeholder="Bravura Build">
+      <div id="mDup" class="hint" style="display:none;color:var(--bad);font-weight:700"></div>
       <div class="row">
         <div><label>ملک</label><select id="mCountry"><option value="US">امریکہ</option><option value="GB">برطانیہ</option><option value="AU">آسٹریلیا</option><option value="IE">آئرلینڈ</option><option value="AE">امارات</option><option value="SA">سعودی عرب</option><option value="PK">پاکستان</option><option value="XX">کوئی اور</option></select></div>
         <div><label>کہاں سے ملا</label><select id="mSource"><option>Google Community</option><option>Reddit</option><option>WhatsApp</option><option>Lead Finder</option><option>Referral</option><option>Other</option></select></div>
@@ -1547,6 +1548,7 @@ var follows = []; try{ follows = JSON.parse(store.get("mp_follow","[]")) || []; 
 function saveFollow(){ store.set("mp_follow", JSON.stringify(follows.slice(-500))); }
 function addFollow(L){
   if(follows.some(function(f){ return f.id === L.id; })) return;
+  var dup = findDup(L.name, L.phone); if(dup) toast("خبردار: " + dup.n + " پہلے سے کلائنٹ لسٹ میں ہے");
   var top = mailIssues(L)[0];
   follows.push({ id:L.id, n:L.name, c:L.country, phone:L.phone, w:L.website, maps:L.maps, town:cityOf(L),
     first: top ? lineFor(top, L, {}) : "", ur: top && UR_ISSUE[top] ? UR_ISSUE[top] : "",
@@ -1675,15 +1677,37 @@ function renderPipe(){
   $("pipeDue").textContent = due;
   if(due) $("pipeBox").open = true;
 }
+/* duplicate guard: the tool is the one record of who was already contacted, whichever chat the work came from */
+function contactKey(c){ c = String(c||"").trim().toLowerCase(); if(/@/.test(c)) return c; var d = c.replace(/[^0-9]/g,""); return d.length >= 7 ? d.slice(-9) : ""; }
+function findDup(name, contact){
+  var nn = normName(name), ck = contactKey(contact);
+  return follows.filter(function(f){
+    var fn = normName(f.n);
+    var byName = nn.length >= 4 && fn.length >= 4 && (fn === nn || (Math.min(fn.length, nn.length) >= 6 && (fn.indexOf(nn) >= 0 || nn.indexOf(fn) >= 0)));
+    var byContact = ck && [f.contact, f.phone].some(function(x){ return x && contactKey(x) === ck; });
+    return byName || byContact;
+  })[0] || null;
+}
+function dupText(f){
+  var d = f.at ? new Date(f.at).toLocaleDateString("ur-PK-u-nu-latn", { day:"numeric", month:"long" }) : "";
+  return "یہ کلائنٹ پہلے سے لسٹ میں ہے: " + f.n + "۔ مرحلہ: " + ((STAGES[f.state]||[f.state])[0]) + (d ? "۔ پہلا رابطہ: " + d : "") + "۔ دوبارہ ای میل یا پیغام سے پہلے دیکھ لیں۔";
+}
+function showDup(){
+  var f = findDup($("mName").value, $("mContact").value), el = $("mDup");
+  if(f){ el.textContent = dupText(f); el.style.display = "block"; } else { el.textContent = ""; el.style.display = "none"; }
+}
+$("mName").oninput = showDup; $("mContact").oninput = showDup;
 $("mAdd").onclick = function(){
   var n = ($("mName").value||"").trim(); if(!n){ toast("پہلے نام لکھیں"); return; }
+  var dup = findDup(n, $("mContact").value);
+  if(dup && !confirm(dupText(dup) + "\n\nکیا پھر بھی نیا شامل کریں؟")) return;
   var st = $("mState").value, now = Date.now();
   var f = { id: "m_" + now, n: n, c: $("mCountry").value, src: $("mSource").value, contact: ($("mContact").value||"").trim(),
     note: ($("mNote").value||"").trim(), link: ($("mLink").value||"").trim(), town: "", at: now, la: now, state: st, manual: true };
   if(/^\+?[\d\s\-]{7,}$/.test(f.contact)) f.phone = f.contact;
   if(st === "replied") f.next = now; else if(NEXT_DAYS[st]) f.next = now + NEXT_DAYS[st]*864e5;
   follows.push(f); saveFollow(); renderFollow();
-  ["mName","mContact","mNote","mLink"].forEach(function(k){ $(k).value = ""; });
+  ["mName","mContact","mNote","mLink"].forEach(function(k){ $(k).value = ""; }); showDup();
   toast("شامل ہو گیا");
 };
 
