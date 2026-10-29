@@ -1,5 +1,7 @@
 # MapPeak Local: project notes (read this first in any new chat)
 
+Also read `STATUS.md` (current leads and next steps). Update it at the end of each working day.
+
 Owner: Muhammad Asif Raza (Google account name "Asif Ali"), Jampur, Rajanpur, Punjab, Pakistan.
 Business: **MapPeak Local**, fixes Google Business Profiles (and Apple Maps listings) for local businesses.
 Gmail: mappeak.local@gmail.com. Business WhatsApp: +923038567928 (WhatsApp Business, Jazz number).
