@@ -157,8 +157,11 @@ a{color:var(--brand)}
       <div id="mDup" class="hint" style="display:none;color:var(--bad);font-weight:700"></div>
       <div class="row">
         <div><label>ملک</label><select id="mCountry"><option value="US">امریکہ</option><option value="GB">برطانیہ</option><option value="AU">آسٹریلیا</option><option value="IE">آئرلینڈ</option><option value="AE">امارات</option><option value="SA">سعودی عرب</option><option value="PK">پاکستان</option><option value="XX">کوئی اور</option></select></div>
-        <div><label>کہاں سے ملا</label><select id="mSource"><option>Google Community</option><option>Reddit</option><option>WhatsApp</option><option>Lead Finder</option><option>Referral</option><option>Other</option></select></div>
+        <div><label>کہاں سے ملا</label><select id="mSource"><option>Google Community</option><option>Google Maps Community</option><option>Reddit</option><option>Local Search Forum</option><option>Shopify Community</option><option>WhatsApp</option><option>Lead Finder</option><option>Referral</option><option>Other</option></select></div>
       </div>
+      <label>پہلا رابطہ کس دن کیا (ای میل یا پیغام)</label>
+      <input id="mDate" type="date" class="en">
+      <p class="hint">آج کیا ہے تو ایسے ہی رہنے دیں۔ پہلے کیا تھا تو وہ دن چنیں، تاکہ Reminder صحیح دن آئے۔</p>
       <label>پوسٹ کا لنک (اختیاری)</label>
       <input id="mLink" class="en" placeholder="https://www.reddit.com/r/GoogleMyBusiness/...">
       <label>رابطہ (فون، ای میل یا ریڈٹ کا نام)</label>
@@ -348,16 +351,36 @@ function isWA(c){ return c === "PK" || isGulf(c); }   // countries worked over W
 var TOWNS = { PK:"Jampur\nRajanpur\nDera Ghazi Khan", US:"Abilene, TX\nSan Angelo, TX", GB:"Leicester\nCoventry", IE:"Cork\nLimerick", AU:"Geelong\nToowoomba", AE:"Sharjah\nDubai", SA:"Riyadh\nJeddah" };
 var TRADES = { PK:"solar company", AE:"Pakistani restaurant", SA:"interior design company" };
 var LAW = {
-  US:"امریکہ: کاروبار کو ای میل جائز ہے۔ ہر ای میل میں آپ کا پتہ اور بند کرنے کا طریقہ ضروری ہے (جی میل کے دستخط میں موجود ہے)۔ بہترین دن منگل سے جمعرات، پاکستان کے وقت شام سات بجے کے بعد۔",
-  GB:"برطانیہ: صرف کمپنیوں کو ای میل کریں (نام میں Ltd یا Limited ہو تو بہتر)، اکیلے کام کرنے والے شخص کو نہیں۔ ہر ای میل میں بند کرنے کا طریقہ ضروری۔ وہاں صبح نو بجے پاکستان میں دوپہر ایک یا دو بجے ہوتے ہیں۔",
-  IE:"آئرلینڈ: صرف کمپنیوں کو، کم تعداد میں، اور بند کرنے کے طریقے کے ساتھ۔",
-  AU:"آسٹریلیا: صرف وہ ای میل استعمال کریں جو ان کی اپنی ویب سائٹ یا گوگل پروفائل پر کھلے عام لکھی ہو، اور وہاں 'مارکیٹنگ ای میل نہ بھیجیں' نہ لکھا ہو۔ بات صرف ان کی گوگل پروفائل کی ہو۔ آپ کا نام اور بند کرنے کا طریقہ ضروری۔ وہاں صبح نو بجے پاکستان میں رات تین چار بجے ہوتے ہیں، اس لیے جی میل کا Schedule send استعمال کریں۔",
+  US:"امریکہ: کاروبار کو ای میل جائز ہے۔ ہر ای میل میں آپ کا پتہ اور بند کرنے کا طریقہ ضروری ہے (جی میل کے دستخط میں موجود ہے)۔ بہترین دن منگل سے جمعرات۔ وہاں صبح نو بجے کے لیے Schedule send: مشرقی امریکہ {US_E}، وسطی امریکہ {US_C}، کیلیفورنیا {US_W} (پاکستان کا وقت)۔",
+  GB:"برطانیہ: صرف کمپنیوں کو ای میل کریں (نام میں Ltd یا Limited ہو تو بہتر)، اکیلے کام کرنے والے شخص کو نہیں۔ ہر ای میل میں بند کرنے کا طریقہ ضروری۔ وہاں صبح نو بجے پاکستان میں {GB} ہوتے ہیں۔",
+  IE:"آئرلینڈ: صرف کمپنیوں کو، کم تعداد میں، اور بند کرنے کے طریقے کے ساتھ۔ وہاں صبح نو بجے پاکستان میں {IE} ہوتے ہیں۔",
+  AU:"آسٹریلیا: صرف وہ ای میل استعمال کریں جو ان کی اپنی ویب سائٹ یا گوگل پروفائل پر کھلے عام لکھی ہو، اور وہاں 'مارکیٹنگ ای میل نہ بھیجیں' نہ لکھا ہو۔ بات صرف ان کی گوگل پروفائل کی ہو۔ آپ کا نام اور بند کرنے کا طریقہ ضروری۔ وہاں صبح نو بجے پاکستان میں {AU} ہوتے ہیں (سڈنی اور میلبورن کے حساب سے)، اس لیے جی میل کا Schedule send استعمال کریں۔",
   AE:"امارات: ایک ایک کر کے، ہاتھ سے، دن میں زیادہ سے زیادہ دس پیغام۔ کوئی لنک نہ بھیجیں۔ کوئی 'نہیں' کہے تو دوبارہ نہ لکھیں۔ وہاں چھٹی ہفتہ اور اتوار کو ہوتی ہے۔ بہترین وقت پاکستان کے وقت صبح گیارہ سے دوپہر تین بجے۔",
   SA:"سعودی عرب: صرف کاروبار کے اپنے واٹس ایپ پر، ایک ایک کر کے، ہاتھ سے۔ عربی پیغام بہتر ہے۔ کوئی لنک نہ بھیجیں، کوئی 'نہیں' کہے تو دوبارہ نہ لکھیں۔ وہاں چھٹی جمعہ اور ہفتہ کو ہوتی ہے۔ بہترین وقت پاکستان کے وقت دوپہر بارہ سے شام سات بجے۔",
   PK:"پاکستان: پیغام میں کوئی لنک نہ بھیجیں، اور ایک ہی کاروبار کو دو سے زیادہ پیغام نہیں۔"
 };
+/* Pakistan time when it is 9 AM in a time zone, worked out for today's date (so clock changes are handled) */
+function tzOffMin(tz, d){
+  var o = {}; new Intl.DateTimeFormat("en-US", { timeZone:tz, hourCycle:"h23", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" })
+    .formatToParts(d).forEach(function(p){ o[p.type] = p.value; });
+  return Math.round((Date.UTC(+o.year, +o.month - 1, +o.day, +o.hour % 24, +o.minute) - d.getTime()) / 60000);
+}
+var UR_NUM = ["بارہ","ایک","دو","تین","چار","پانچ","چھ","سات","آٹھ","نو","دس","گیارہ"];
+function urClock(mins){   // minutes after midnight -> "شام سات بجے"
+  mins = ((mins % 1440) + 1440) % 1440;
+  var h = Math.floor(mins / 60), half = mins % 60 >= 30;
+  var part = h < 4 ? "رات" : (h < 12 ? "صبح" : (h < 16 ? "دوپہر" : (h < 20 ? "شام" : "رات")));
+  return part + " " + (half ? "ساڑھے " : "") + UR_NUM[h % 12] + " بجے";
+}
+function pk9(tz){
+  try{ var d = new Date(); return urClock(9*60 - tzOffMin(tz, d) + 300); }catch(e){ return "?"; }
+}
+function lawTimes(s){
+  return s.replace("{US_E}", pk9("America/New_York")).replace("{US_C}", pk9("America/Chicago")).replace("{US_W}", pk9("America/Los_Angeles"))
+    .replace("{GB}", pk9("Europe/London")).replace("{IE}", pk9("Europe/Dublin")).replace("{AU}", pk9("Australia/Sydney"));
+}
 function lawText(c){
-  if(LAW[c]) return LAW[c];
+  if(LAW[c]) return lawTimes(LAW[c]);
   var w = WORLD[c];
   if(!w) return c === "XX" ? "یہ ملک ٹول کی لسٹ میں نہیں، اس لیے زبان اور قانون خود پہچانا نہیں جا سکا۔ تلاش پھر بھی چلے گی، ای میل انگریزی میں بنے گی۔ ملک کا نام انگریزی میں درست لکھیں، جیسے Turkey۔" : "";
   if(w[4].indexOf("a") >= 0) return w[1] + ": صرف کاروبار کے اپنے واٹس ایپ پر، ایک ایک کر کے، ہاتھ سے۔ عربی پیغام بہتر ہے۔ کوئی لنک نہ بھیجیں، کوئی 'نہیں' کہے تو دوبارہ نہ لکھیں۔";
@@ -806,9 +829,10 @@ function compLine(L){
 function reportFor(L){
   var used = {};
   var lines = mailIssues(L).map(function(k,i){ return (i+1) + ". " + lineFor(k, L, used) + "\n   Fix: " + CHECKS[k][3]; }).join("\n");
+  var sc = scoreOf(L);
   return "Google Business Profile Review\n" + L.name + " - " + L.address + "\n\n" +
     "Rating: " + (L.rating==null?"none":L.rating) + " | Reviews: " + L.reviews + "\n" +
-    "Profile score: " + scoreOf(L) + "/100\n\n" +
+    "Profile strength: " + RT.en.lv[sc < 45 ? 0 : (sc < 70 ? 1 : 2)] + "\n\n" +
     "What we found:\n" + (lines || "No major issues found.") + "\n\n" +
     "Prepared by MapPeak Local. We never post fake reviews or offer incentives for reviews; all recommendations follow Google's guidelines.";
 }
@@ -1602,19 +1626,27 @@ function followText(f){
     "Just following up on my note from a few days ago about your Google listing." + (first ? " One quick example that's still showing today: " + first.charAt(0).toLowerCase() + first.slice(1) + "." : "") + "\n\n" +
     "I'm happy to send the free list of fixes if it's useful. If now isn't a good time, no problem at all." + signature();
 }
+/* reminder day: 4 days after the first message, moved past the lead's weekend (nobody reads business email then) */
+function offDays(c){ if(c === "SA") return [5,6]; if(c === "PK") return [0]; return [6,0]; }
+function remindAt(f){
+  var d = new Date(f.at + 4*864e5); d.setHours(0,0,0,0);
+  var off = offDays(f.c);
+  for(var i=0; i<3 && off.indexOf(d.getDay()) >= 0; i++) d.setDate(d.getDate() + 1);
+  return d.getTime();
+}
 function renderFollow(){
   var box = $("fuList"); box.innerHTML = "";
   var now = Date.now(), due = 0;
   var list = follows.filter(function(f){ return f.state === "waiting"; });
   list.sort(function(a,b){ return a.at - b.at; });
   list.forEach(function(f){
-    var days = Math.floor((now - f.at) / 864e5), isDue = days >= 4;
+    var days = Math.floor((now - f.at) / 864e5), ra = remindAt(f), isDue = now >= ra, left = Math.max(1, Math.ceil((ra - now) / 864e5));
     if(isDue) due++;
     var d = document.createElement("div"); d.className = "lead";
     d.innerHTML = '<div class="body"><div class="name">' + esc(f.n) + '</div>' +
       '<div class="meta en" style="text-align:left">' + esc(f.town||"") + '</div>' +
       (isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج Reminder بھیجیں</span>'
-             : '<span class="pill">پہلا پیغام بھیجے ہوئے <b class="en">' + days + '</b> دن، Reminder <b class="en">' + (4 - days) + '</b> دن بعد</span>') +
+             : '<span class="pill">پہلا پیغام بھیجے ہوئے <b class="en">' + days + '</b> دن، Reminder <b class="en">' + left + '</b> دن بعد</span>') +
       '<div class="btns">' +
       (isWA(f.c) && waNum(f.phone, f.c) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone, f.c) + '">واٹس ایپ کھولیں</a>' : '') +
       (f.c !== "PK" && f.w ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.w) + '">Website</a>' : '') +
@@ -1622,7 +1654,7 @@ function renderFollow(){
       '<button class="btn2 btn-sm" data-a="done">Reminder بھیج دی</button>' +
       '<button class="btn2 btn-sm" data-a="reply">جواب آ گیا</button></div></div>';
     d.querySelector('[data-a="copy"]').onclick = function(){ copy(followText(f)); };
-    d.querySelector('[data-a="done"]').onclick = function(){ f.state = "followed"; f.fat = Date.now(); saveFollow(); renderFollow(); toast("نشان لگ گیا، اب اسے دوبارہ پیغام نہیں بھیجنا"); };
+    d.querySelector('[data-a="done"]').onclick = function(){ f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); renderFollow(); toast("نشان لگ گیا، اب اسے دوبارہ پیغام نہیں بھیجنا"); };
     d.querySelector('[data-a="reply"]').onclick = function(){ setStage(f, "replied"); toast("بہت اچھا! اب یہ گاہکوں کے سفر میں ہے"); };
     box.appendChild(d);
   });
@@ -1709,11 +1741,20 @@ function renderPipe(){
 }
 /* duplicate guard: the tool is the one record of who was already contacted, whichever chat the work came from */
 function contactKey(c){ c = String(c||"").trim().toLowerCase(); if(/@/.test(c)) return c; var d = c.replace(/[^0-9]/g,""); return d.length >= 7 ? d.slice(-9) : ""; }
+/* same business if every distinctive word of the shorter name is in the longer one ("InfoTank" = "InfoTank (Avery Sellers)"),
+   but trade words alone never match ("Plumbing" is not "Air-Tech Plumbing") */
+function sameNameTokens(a, b){
+  var ta = sigTokens(a), tb = sigTokens(b);
+  if(!ta.length || !tb.length) return false;
+  var s = ta.length <= tb.length ? ta : tb, l = ta.length <= tb.length ? tb : ta;
+  if(s.join("").length < 4) return false;
+  return s.every(function(t){ return l.indexOf(t) >= 0; });
+}
 function findDup(name, contact){
   var nn = normName(name), ck = contactKey(contact);
   return follows.filter(function(f){
     var fn = normName(f.n);
-    var byName = nn.length >= 4 && fn.length >= 4 && (fn === nn || (Math.min(fn.length, nn.length) >= 6 && (fn.indexOf(nn) >= 0 || nn.indexOf(fn) >= 0)));
+    var byName = nn.length >= 4 && fn.length >= 4 && (fn === nn || sameNameTokens(name, f.n));
     var byContact = ck && [f.contact, f.phone].some(function(x){ return x && contactKey(x) === ck; });
     return byName || byContact;
   })[0] || null;
@@ -1727,17 +1768,32 @@ function showDup(){
   if(f){ el.textContent = dupText(f); el.style.display = "block"; } else { el.textContent = ""; el.style.display = "none"; }
 }
 $("mName").oninput = showDup; $("mContact").oninput = showDup;
+function localDay(t){ var d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function resetMDate(){ $("mDate").value = localDay(Date.now()); $("mDate").max = localDay(Date.now()); }
+resetMDate();
+/* country list in the manual form: the main countries plus every country the tool knows (so Gulf countries get WhatsApp + Arabic) */
+(function(){
+  var sel = $("mCountry"), xx = sel.querySelector('option[value="XX"]'), g = document.createElement("optgroup"); g.label = "دوسرے ملک";
+  Object.keys(WORLD).sort(function(a,b){ return WORLD[a][1].localeCompare(WORLD[b][1]); }).forEach(function(k){
+    var o = document.createElement("option"); o.value = k; o.textContent = WORLD[k][1]; g.appendChild(o);
+  });
+  sel.insertBefore(g, xx);
+})();
 $("mAdd").onclick = function(){
   var n = ($("mName").value||"").trim(); if(!n){ toast("پہلے نام لکھیں"); return; }
   var dup = findDup(n, $("mContact").value);
   if(dup && !confirm(dupText(dup) + "\n\nکیا پھر بھی نیا شامل کریں؟")) return;
   var st = $("mState").value, now = Date.now();
+  var dv = $("mDate").value, at = now;
+  if(dv && dv !== localDay(now)){ var p = dv.split("-"); at = new Date(+p[0], +p[1]-1, +p[2], 12, 0, 0).getTime(); if(!(at < now)) at = now; }
   var f = { id: "m_" + now, n: n, c: $("mCountry").value, src: $("mSource").value, contact: ($("mContact").value||"").trim(),
-    note: ($("mNote").value||"").trim(), link: ($("mLink").value||"").trim(), town: "", at: now, la: now, state: st, manual: true };
+    note: ($("mNote").value||"").trim(), link: ($("mLink").value||"").trim(), town: "", at: at, la: now, state: st, manual: true };
   if(/^\+?[\d\s\-]{7,}$/.test(f.contact)) f.phone = f.contact;
   if(st === "replied") f.next = now; else if(NEXT_DAYS[st]) f.next = now + NEXT_DAYS[st]*864e5;
-  follows.push(f); saveFollow(); renderFollow();
-  ["mName","mContact","mNote","mLink"].forEach(function(k){ $(k).value = ""; }); showDup();
+  follows.push(f); saveFollow();
+  if(st === "waiting" && f.contact && localDay(at) === localDay(now)) addSent();   // an email or WhatsApp sent today counts toward the daily 5
+  renderFollow();
+  ["mName","mContact","mNote","mLink"].forEach(function(k){ $(k).value = ""; }); resetMDate(); showDup();
   toast("شامل ہو گیا");
 };
 
@@ -1754,13 +1810,26 @@ $("pipeCsv").onclick = function(){
 
 /* ---------- today: one screen with everything due today ---------- */
 function chkKey(k){ return "mp_chk_" + k + "_" + today(); }
+/* "50 USD", "USD 50", "$50", "5,000 PKR", "Rs 5000", "5000 روپے", "199 SAR"... -> {n, cur} */
+function parseAmt(s){
+  s = String(s||"").trim(); if(!s) return null;
+  var m = /(\d[\d,]*(?:\.\d+)?)/.exec(s); if(!m) return null;
+  var n = parseFloat(m[1].replace(/,/g,"")); if(!(n > 0)) return null;
+  var rest = (s.slice(0, m.index) + " " + s.slice(m.index + m[1].length)).trim();
+  var cur = "?", c3 = /\b([A-Za-z]{3})\b/.exec(rest);
+  if(/\$/.test(rest)) cur = "USD"; else if(/£/.test(rest)) cur = "GBP"; else if(/€/.test(rest)) cur = "EUR";
+  else if(/روپ|\brs\.?\b|\brupees?\b/i.test(rest)) cur = "PKR";
+  else if(/ریال|ريال/.test(rest)) cur = "SAR"; else if(/درہم|درهم/.test(rest)) cur = "AED";
+  else if(c3) cur = c3[1].toUpperCase();
+  return { n:n, cur:cur };
+}
 function renderToday(){
   var box = $("todayList"); if(!box) return;
   var sent = sentCount(), now = Date.now();
-  var fuDue = follows.filter(function(f){ return f.state === "waiting" && now - f.at >= 4*864e5; }).length;
+  var fuDue = follows.filter(function(f){ return f.state === "waiting" && now >= remindAt(f); }).length;
   var cliDue = follows.filter(isDueF).length;
   var mk = monthKey(now), won = follows.filter(function(f){ return f.state === "won" && monthKey(f.wat || f.la || 0) === mk; });
-  var sums = {}; won.forEach(function(f){ var m = /([\d.,]+)\s*([A-Za-z]{3})?/.exec(f.amt || ""); if(m){ var cur = (m[2]||"").toUpperCase() || "?"; sums[cur] = (sums[cur]||0) + parseFloat(m[1].replace(/,/g,"")); } });
+  var sums = {}; won.forEach(function(f){ var a = parseAmt(f.amt); if(a) sums[a.cur] = (sums[a.cur]||0) + a.n; });
   var earn = Object.keys(sums).map(function(c){ return sums[c] + " " + c; }).join(" + ");
   var rows = [];
   function row(done, text, btn, act){ rows.push({ done: done, text: text, btn: btn, act: act }); }
@@ -1775,7 +1844,7 @@ function renderToday(){
     return '<div class="task"><span class="' + (r.done ? "ok" : "") + '" style="font-size:20px">' + (r.done ? "✓" : "•") + '</span><div class="tx">' + r.text + '</div>' +
       (r.btn ? '<button class="btn2 btn-sm" data-i="' + i + '">' + r.btn + '</button>' : '') + '</div>';
   }).join("") +
-  [["comm","صبح دس بجے کی Auto Leads رپورٹ دیکھی"],["feed","شام چھ بجے کی Auto Leads رپورٹ دیکھی"]].map(function(c){
+  [["comm","صبح والی Auto Leads رپورٹ دیکھی"],["feed","شام والی Auto Leads رپورٹ دیکھی"]].map(function(c){
     var on = store.get(chkKey(c[0]), "") === "1";
     return '<label class="task" style="margin:0;font-weight:400"><input type="checkbox" data-c="' + c[0] + '"' + (on ? " checked" : "") + '><div class="tx">' + c[1] + '</div></label>';
   }).join("") +
@@ -2039,7 +2108,7 @@ $("csv").onclick = function(){
 /* ---------- phone + computer sync through the user's own Google Apps Script ---------- */
 var SECRET_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey"];
 var SYNC_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey","mp_watch","mp_gone","mp_goneDel","mp_leads","mp_seen","mp_follow","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myWA","mp_myIntroUr","mp_useSig"];
-var syncApplying = false, syncTimer = null, syncBusy = false;
+var syncApplying = false, syncTimer = null, syncBusy = false, syncAgain = false;
 function syncTouched(k){
   if(!SYNC_KEYS || syncApplying || SYNC_KEYS.indexOf(k) < 0) return;
   try{ localStorage.setItem("mp_ts_" + k, String(Date.now())); }catch(e){}
@@ -2077,21 +2146,37 @@ function mergeKey(k, a, b){   // a = local, b = remote; returns the merged entry
     return { v: JSON.stringify(wa), t: Math.max(a.t, b.t) };
   }
   if(k === "mp_follow"){
+    /* the most recent change wins (so "bring back" after "lost" survives a sync); the later stage only breaks exact ties */
     var rank = { waiting:0, followed:1, replied:2, quoted:3, won:4, lost:4 }, byId = {}, order = [];
+    var when = function(f){ return f.la || f.fat || f.at || 0; };
     arr(a.v).concat(arr(b.v)).forEach(function(f){
       if(!f || !f.id) return;
       var o = byId[f.id];
       if(!o){ byId[f.id] = f; order.push(f.id); }
-      else if((rank[f.state]||0) > (rank[o.state]||0) || ((rank[f.state]||0) === (rank[o.state]||0) && (f.la||0) > (o.la||0))) byId[f.id] = f;
+      else if(when(f) > when(o) || (when(f) === when(o) && (rank[f.state]||0) > (rank[o.state]||0))) byId[f.id] = f;
     });
     return { v: JSON.stringify(order.map(function(id){ return byId[id]; }).slice(-500)), t: Math.max(a.t, b.t) };
   }
   return b.t > a.t ? b : a;   // newest wins
 }
+/* search results from two devices: keep the newer list and add the other device's businesses,
+   except ones that were skipped there (in the seen list without an "email sent" mark) */
+function mergeLeads(a, b, seenV){
+  if(!a) return b; if(!b) return a;
+  var nw = b.t > a.t ? b : a, od = nw === a ? b : a, pn = null, po = null;
+  try{ pn = JSON.parse(nw.v); po = JSON.parse(od.v); }catch(e){ return nw; }
+  if(!pn || !pn.leads || !po || !po.leads) return nw;
+  var seen = arr(seenV), ids = {};
+  pn.leads.forEach(function(L){ ids[L.id] = 1; });
+  po.leads.forEach(function(L){ if(L && L.id && !ids[L.id] && (L.sent || seen.indexOf(L.id) < 0)){ pn.leads.push(L); ids[L.id] = 1; } });
+  pn.leads = pn.leads.slice(-300);
+  return { v: JSON.stringify(pn), t: nw.t };
+}
 function syncApply(remote){
   var local = syncLocal(), merged = {}, changed = false;
-  SYNC_KEYS.forEach(function(k){
-    var m = mergeKey(k, local[k], remote[k]);
+  var order = SYNC_KEYS.filter(function(k){ return k !== "mp_leads"; }).concat(["mp_leads"]);   // leads last: they need the merged seen list
+  order.forEach(function(k){
+    var m = k === "mp_leads" ? mergeLeads(local[k], remote[k], merged.mp_seen ? merged.mp_seen.v : "[]") : mergeKey(k, local[k], remote[k]);
     if(!m) return; merged[k] = m;
     if(!local[k] || local[k].v !== m.v){ changed = true;
       syncApplying = true; store.set(k, m.v); syncApplying = false;
@@ -2114,7 +2199,9 @@ function syncApply(remote){
 function syncSay(t){ $("syncState").textContent = t; }
 async function syncPull(loud){
   var url = store.get("mp_syncUrl","");
-  if(!url || syncBusy) return; syncBusy = true;
+  if(!url) return;
+  if(syncBusy){ syncAgain = true; return; }   // a change made during a sync goes out right after it
+  syncBusy = true; syncAgain = false;
   try{
     var r = await fetch(url, { cache:"no-store" }); var remote = await r.json();
     var merged = syncApply(remote && typeof remote === "object" && !remote.err ? remote : {});
@@ -2136,6 +2223,7 @@ async function syncPull(loud){
   }
   syncBusy = false;
   try{ renderToday(); }catch(e){}
+  if(syncAgain){ syncAgain = false; setTimeout(function(){ syncPull(false); }, 500); }
 }
 $("syncUrl").value = store.get("mp_syncUrl","");
 $("syncNow").onclick = function(){ syncPull(true); };
