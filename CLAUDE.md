@@ -43,7 +43,8 @@ Site: https://asifali549.github.io/mappeak-local/ (GitHub Pages, this repo). No 
 - Scheduled task **"MapPeak Daily Leads"** runs at ~9:40 and ~17:40 Pakistan time. It reads Reddit (r/GoogleMyBusiness, r/smallbusiness, r/localseo), the Google Business Profile Community, Google Maps Community, Apple Communities, Shopify Community and Local Search Forum, and sends him drafts only (never posts). The report ends with one code block he copies to Claude in one tap.
 - Each run is a separate chat; he pastes the report (links) into the main chat. Claude then reads every thread in full (Playwright render; plain curl returns no post text) before finalising replies.
 - His forum display name: **"Asif MapPeak Local"**. Reddit: u/MapPeakLocal (new account, DMs blocked, max 2 to 3 comments per run).
-- Order: public forum reply first (helpful, no links, no prices, no self-promotion), then a short private email that mentions the reply and offers a free look.
+- Order: public forum reply first (helpful, no links, no prices, no self-promotion), then a short private email that offers a free look. Mention the forum reply in the email ONLY after Claude has checked (logged-out render) that the reply is publicly visible; new-account replies are sometimes held by the filter (Greece thread, 30 Oct).
+- Skip threads with any Diamond/Platinum/Gold Product Expert reply, threads where a Silver PE is still talking with the owner, and threads where other replies already cover our points (rule added to the leads task 30 Oct). Never contradict a Product Expert.
 - US/UK/Europe/Australia: **email only** from the Gmail app, never cold WhatsApp. Gulf and Pakistan: WhatsApp is fine. Schedule so it arrives ~9 AM in their time zone.
 - Never send sales messages through a business's customer quote/estimate form.
 - Skip: agencies posting for clients, threads a Gold/Platinum Product Expert is already handling, suspicious posts, India-based posts.
