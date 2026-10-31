@@ -372,8 +372,8 @@ function urClock(mins){   // minutes after midnight -> "شام سات بجے"
   var part = h < 4 ? "رات" : (h < 12 ? "صبح" : (h < 16 ? "دوپہر" : (h < 20 ? "شام" : "رات")));
   return part + " " + (half ? "ساڑھے " : "") + UR_NUM[h % 12] + " بجے";
 }
-function pk9(tz){
-  try{ var d = new Date(); return urClock(9*60 - tzOffMin(tz, d) + 300); }catch(e){ return "?"; }
+function pk9(tz, when){
+  try{ var d = when || new Date(); return urClock(9*60 - tzOffMin(tz, d) + 300); }catch(e){ return "?"; }
 }
 function lawTimes(s){
   return s.replace("{US_E}", pk9("America/New_York")).replace("{US_C}", pk9("America/Chicago")).replace("{US_W}", pk9("America/Los_Angeles"))
@@ -1679,7 +1679,26 @@ function greetOf(f){
   return f.manual ? "Hi there," : "Hi " + bizOf(f) + " team,";
 }
 /* a lead we can actually write to (forum-only leads with no email or phone get no reminder) */
-function hasContact(f){ return !f.manual || !!(f.contact || f.phone || f.w); }
+function isRedditHandle(c){ return /^\/?u\/|reddit\.com/i.test(String(c||"").trim()); }   // Reddit DMs are blocked for his new account
+function hasContact(f){ return !f.manual || !!(f.phone || f.w || (f.contact && !isRedditHandle(f.contact))); }
+/* the lead's weekend today? then the reminder waits for their next working day */
+var UR_DAY = ["اتوار","پیر","منگل","بدھ","جمعرات","جمعہ","ہفتہ"];
+function offToday(f){ return offDays(f.c).indexOf(new Date().getDay()) >= 0; }
+function nextWorkDate(f){ var d = new Date(), off = offDays(f.c); d.setHours(12,0,0,0); for(var i=0;i<7;i++){ d.setDate(d.getDate()+1); if(off.indexOf(d.getDay()) < 0) break; } return d; }
+function nextWorkDay(f){ return UR_DAY[nextWorkDate(f).getDay()]; }
+function dueNow(f){ return Date.now() >= remindAt(f) && !offToday(f); }
+/* Pakistan time for 9 AM in the lead's country (US: east and west coast) */
+var CTZ = { GB:"Europe/London", IE:"Europe/Dublin", AU:"Australia/Sydney", NL:"Europe/Amsterdam", BE:"Europe/Brussels", FR:"Europe/Paris", ES:"Europe/Madrid",
+  IT:"Europe/Rome", PT:"Europe/Lisbon", GR:"Europe/Athens", SE:"Europe/Stockholm", NO:"Europe/Oslo", DK:"Europe/Copenhagen", FI:"Europe/Helsinki", PL:"Europe/Warsaw",
+  CZ:"Europe/Prague", RO:"Europe/Bucharest", HU:"Europe/Budapest", TR:"Europe/Istanbul", CA:"America/Toronto", NZ:"Pacific/Auckland", SG:"Asia/Singapore", MY:"Asia/Kuala_Lumpur",
+  PH:"Asia/Manila", JP:"Asia/Tokyo", KR:"Asia/Seoul", TH:"Asia/Bangkok", ID:"Asia/Jakarta", VN:"Asia/Ho_Chi_Minh", ZA:"Africa/Johannesburg", MX:"America/Mexico_City",
+  BR:"America/Sao_Paulo", AR:"America/Argentina/Buenos_Aires", CL:"America/Santiago", CO:"America/Bogota", AE:"Asia/Dubai", SA:"Asia/Riyadh", QA:"Asia/Qatar",
+  KW:"Asia/Kuwait", BH:"Asia/Bahrain", OM:"Asia/Muscat", EG:"Africa/Cairo", JO:"Asia/Amman", MA:"Africa/Casablanca", IQ:"Asia/Baghdad" };
+function sendTimeText(c, when){
+  if(c === "PK") return "";
+  if(c === "US" || !c) return "وقت: مشرقی امریکہ " + pk9("America/New_York", when) + "، کیلیفورنیا " + pk9("America/Los_Angeles", when);
+  return CTZ[c] ? "وقت: " + pk9(CTZ[c], when) : "";
+}
 function isEmailLead(f){ return !isWA(f.c) && (!f.manual || /@/.test(f.contact||"")); }
 function gmailSearch(f){
   var who = /@/.test(f.contact||"") ? "to:" + f.contact : '"' + bizOf(f) + '"';
@@ -1710,12 +1729,13 @@ function renderFollow(){
       d.querySelector('[data-a="lost"]').onclick = function(){ if(confirm("اس سے بات ختم سمجھیں؟ بعد میں واپس بھی لا سکتے ہیں۔")) setStage(f, "lost", { prev: "waiting" }); };
       box.appendChild(d); return;
     }
-    var days = Math.floor((now - f.at) / 864e5), ra = remindAt(f), isDue = now >= ra, left = Math.max(1, Math.ceil((ra - now) / 864e5));
+    var days = Math.floor((now - f.at) / 864e5), ra = remindAt(f), isDue = dueNow(f), held = now >= ra && !isDue, left = Math.max(1, Math.ceil((ra - now) / 864e5)), tt = sendTimeText(f.c, held ? nextWorkDate(f) : null);
     if(isDue) due++;
     var who = [f.town, f.contact || f.phone].filter(Boolean).join(" · ");
     d.innerHTML = '<div class="body"><div class="name">' + esc(f.n) + '</div>' +
       (who ? '<div class="meta en" style="text-align:left">' + esc(who) + '</div>' : '') +
-      (isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج Reminder بھیجیں</span>'
+      (isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج Reminder بھیجیں</span>' + (tt ? '<span class="pill">' + tt + '</span>' : '')
+     : held ? '<span class="pill" style="color:var(--warn)">وہاں آج چھٹی ہے، Reminder ' + nextWorkDay(f) + ' کو بھیجیں</span>' + (tt ? '<span class="pill">' + tt + '</span>' : '')
              : (f.at > now
                  ? '<span class="pill">ای میل Schedule ہے، <b class="en">' + Math.max(1, Math.round((new Date(f.at).setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0)) / 864e5)) + '</b> دن بعد جائے گی۔ Reminder <b class="en">' + left + '</b> دن بعد</span>'
                  : '<span class="pill">پہلا پیغام بھیجے ہوئے <b class="en">' + days + '</b> دن، Reminder <b class="en">' + left + '</b> دن بعد</span>')) +
@@ -1894,7 +1914,7 @@ $("mAdd").onclick = function(){
   if(/^\+?[\d\s\-]{7,}$/.test(f.contact)) f.phone = f.contact;
   if(st === "replied") f.next = now; else if(NEXT_DAYS[st]) f.next = now + NEXT_DAYS[st]*864e5;
   follows.push(f); saveFollow();
-  if(st === "waiting" && f.contact && localDay(at) === localDay(now)){ addSent(); f.cnt = today(); saveFollow(); }   // an email or WhatsApp sent today counts toward the daily 5
+  if(st === "waiting" && hasContact(f) && localDay(at) === localDay(now)){ addSent(); f.cnt = today(); saveFollow(); }   // an email or WhatsApp sent today counts toward the daily 5
   renderFollow();
   ["mName","mContact","mNote","mLink"].forEach(function(k){ $(k).value = ""; }); resetMDate(); showDup();
   toast("شامل ہو گیا");
@@ -1929,7 +1949,7 @@ function parseAmt(s){
 function renderToday(){
   var box = $("todayList"); if(!box) return;
   var sent = sentCount(), now = Date.now();
-  var fuDue = follows.filter(function(f){ return f.state === "waiting" && hasContact(f) && now >= remindAt(f); }).length;
+  var fuDue = follows.filter(function(f){ return f.state === "waiting" && hasContact(f) && dueNow(f); }).length;
   var cliDue = follows.filter(isDueF).length;
   var mk = monthKey(now), won = follows.filter(function(f){ return f.state === "won" && monthKey(f.wat || f.la || 0) === mk; });
   var sums = {}; won.forEach(function(f){ var a = parseAmt(f.amt); if(a) sums[a.cur] = (sums[a.cur]||0) + a.n; });
