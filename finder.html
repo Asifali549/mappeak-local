@@ -1945,6 +1945,8 @@ $("pipeCsv").onclick = function(){
   var a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["\ufeff"+csv], {type:"text/csv"}));
   a.download = "mappeak_clients_" + today() + ".csv"; document.body.appendChild(a); a.click(); a.remove();
+  try{ localStorage.setItem("mp_lastBackup", String(Date.now())); }catch(e){}   // this device's last backup (not synced)
+  setTimeout(function(){ try{ renderToday(); }catch(e){} }, 0);
 };
 
 /* ---------- today: one screen with everything due today ---------- */
@@ -1977,6 +1979,10 @@ function renderToday(){
   row(sent >= 5, 'آج کے نئے پیغام: <b class="en">' + sent + '</b> بھیجے، ہدف <b class="en">5</b>' + (sent >= 5 ? "، مکمل" : '، <b class="en">' + (5 - sent) + '</b> باقی'), sent >= 5 ? "" : "تلاش پر جائیں", function(){ $("searchCard").scrollIntoView({behavior:"smooth"}); });
   var fr = dayGet("f");
   row(fr >= 3, 'فورم پر جواب اور پیغام: <b class="en">' + fr + '</b> بھیجے، ہدف <b class="en">3</b>', "ایک بھیجا", function(){ dayAdd("f", 1); renderToday(); toast("شاباش"); });
+  /* weekly backup: a copy of the client list on the phone, in case both Sync passwords are forgotten and the phone is reset */
+  var lb = parseInt(store.get("mp_lastBackup", "0"), 10) || 0;
+  if(follows.length && now - lb >= 7*864e5)
+    row(false, '<span style="color:var(--warn)">ہفتہ وار بیک اپ: گاہکوں کی لسٹ ڈاؤن لوڈ کر لیں' + (lb ? '' : ' (پہلی بار)') + '</span>', "ڈاؤن لوڈ کریں", function(){ $("pipeCsv").click(); toast("فائل فون کے Downloads میں چلی گئی"); });
   var sf = store.get("mp_syncFail", "");
   if(store.get("mp_syncUrl","") && sf) row(false, '<span style="color:var(--bad)">Sync ناکام ہو گئی ہے، آپ کا کام دوسرے آلے پر محفوظ نہیں ہو رہا۔</span>', "دوبارہ Sync کریں", function(){ syncPull(true); });
   box.innerHTML = rows.map(function(r, i){

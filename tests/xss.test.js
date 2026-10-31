@@ -1,0 +1,20 @@
+const { chromium } = require('playwright');
+(async () => {
+  const b = await chromium.launch(); const ctx = await b.newContext(); await ctx.route(/^https?:\/\/(?!localhost)/, r=>r.abort());
+  const X = '<img src=x onerror="window.__pwned=1">';
+  await ctx.addInitScript(x=>{ if(!localStorage.getItem('s')){ const o=Date.now()-6*864e5;
+    localStorage.setItem('mp_follow', JSON.stringify([{id:'1',n:x,c:'US',contact:x+'@a.b',note:x,amt:x,link:'javascript:window.__pwned=2',at:o,la:o,state:'replied',manual:true,src:x},{id:'2',n:x+'2',c:'US',contact:'a@b.c',at:o,la:o,state:'waiting',manual:true}]));
+    localStorage.setItem('mp_leads', JSON.stringify({trade:'x',leads:[{id:'L1',name:x,address:x,country:'US',issues:['noWebsite'],manual:{},reviews:1,phone:x,website:'javascript:window.__pwned=3',comp:{n:x,r:9,rt:4}}]}));
+    localStorage.setItem('mp_gone', JSON.stringify([{id:'g',n:x,a:x,p:x,w:'javascript:window.__pwned=4'}])); localStorage.setItem('mp_hideNames', JSON.stringify([x])); localStorage.setItem('s','1'); } }, X);
+  const p = await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
+  await p.goto((process.env.BASE||'http://localhost:8765')+'/finder.html'); await p.waitForTimeout(800);
+  await p.evaluate(()=>{ document.querySelectorAll('details').forEach(d=>d.open=true); document.getElementById('urgentOnly').checked=false; document.getElementById('urgentOnly').onchange(); });
+  await p.waitForTimeout(500);
+  const imgs = await p.$$eval('img[src="x"]', a=>a.length);
+  const jsLinks = await p.$$eval('a[href^="javascript:"]', a=>a.map(x=>x.textContent.trim()));
+  const ran = await p.evaluate(()=>window.__pwned||0);
+  console.log((ran===0?'PASS':'FAIL')+' X1 hostile names never run code');
+  console.log((imgs===0?'PASS':'FAIL')+' X2 no injected HTML elements');
+  console.log((jsLinks.length===0?'PASS':'FAIL')+' X3 no javascript: links ('+jsLinks.length+')');
+  await b.close();
+})();
