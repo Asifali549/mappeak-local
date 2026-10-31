@@ -1,6 +1,6 @@
 # MapPeak Local: lead status (update at the end of each working day)
 
-Last updated: 30 October 2026, evening (Pakistan time).
+Last updated: 31 October 2026, evening (Pakistan time).
 
 **This repo is public. Never write emails, phone numbers or other contact details here.** Contacts live only in the tool's Client Follow-up list.
 
@@ -27,6 +27,21 @@ Last updated: 30 October 2026, evening (Pakistan time).
 | Alhamdulillah Solar Jampur (Meer Taqi) | Pakistan | Phone call, picture report sent 27 Oct; he said he'd talk "in the morning". No call yet on 29 or 30 Oct; Asif plans to call Sat 31 Oct | Call/close. Offer: 5,000 PKR profile fix after work (or 12,000 with one-page website). Competitor AMJAD SOLAR (18 reviews, unclaimed). Don't pitch Amjad Solar while Meer Taqi is open. |
 | Forum-only (no email found) | various | Mama Moon Concierge, The Cajun Crab, MILAM Fencing, Korea Holic, Erase Laser Tattoo, Atif Driving School skipped | Watch Gmail for forum notifications |
 | Reddit u/Equivalent_Win_1038 | USA | Public comment; DMs blocked | Low priority |
+
+## 31 Oct (Saturday)
+| Lead | Country | What was done | Next step |
+|---|---|---|---|
+| Pizzazz (NYC) | USA | Forum reply; email scheduled Mon 2 Nov 7:00 PM PKT | Follow up after 4 working days |
+| Blue Sky Childcare, Bellevue | USA | Forum reply only (not on Maps, no email) | Wait for forum reply |
+| Cakery Bakery, Edinburgh | UK | Forum reply only (sole trader, no email) | Wait for forum reply |
+| Mňam Kebab Holešovice (Jakub), Prague | Czech Republic | Forum reply 31 Oct evening (fake 1-star wave). Not publicly visible at 18:16 PKT (held?). No email found | Recheck visibility Sun morning; do not repost |
+| Mars Nails, Manhattan | USA | Forum reply 31 Oct evening; not visible at 18:16 PKT. A Diamond PE then replied ("wait 30-60 days"), so write nothing more there. No email confirmed | Forum only |
+| Champaign Collision Center (Justin, Fixed Ops Director) | USA | Forum reply 31 Oct evening; not visible at 18:16 PKT. Probably a dealership body shop (big company), email not searched | Forum only, low priority |
+| UAE auto search: 30 Pakistani restaurants | UAE | Sorted. SEND Mon 2 Nov 5 PM PKT: Wadi Lahore (Fujairah), Chaska (Fujairah), Faizan (UAQ), Chaudhary BBQ (UAQ), Khyber Darbar (Al Ain); Urdu WhatsApp drafts given in chat. Tue: Aflatoon, Lahore Waly, Israh, Lahore Palace, Zaharaa Public Kitchen (2 branches, one message) | Send Monday; press "پیغام بھیج دیا" after each |
+- Skipped 31 Oct: TORA; Reddit second-location; Dumpukht Al Ain (Duchin Group, big company; domain renews 10 Dec, auto-renewed last year); Pak Darbar (group); Karachi Palace branch 3; two landline restaurants.
+- Tool 31 Oct: auto search, Europe/Turkey ad signals, copy-all-for-Claude button, "big company?" hint, review-age/domain-expiry/filters fixes. Tests 106/106. Tool frozen again.
+- Meer Taqi call still pending (since 27 Oct).
+- Monday 2 Nov PKT: 1 PM Klusservice reminder; 5 PM five UAE WhatsApps; 7 PM Pizzazz email (scheduled) + Lights&Story reminder; 10 PM AP Black Car reminder.
 
 ## Skipped on 29 Oct (evening report)
 - Don at Daugherty Hair Company / Don at Ohio Hair Company (Massillon, Ohio): thread soft-locked (only Product Experts can reply) and a Diamond Product Expert already answered. No reply, no email.
