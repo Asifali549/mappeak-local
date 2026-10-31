@@ -409,7 +409,20 @@ applyCountry(true);
 if(!store.get("mp_apiKey","")) $("setBox").open = true;
 function hiddenNames(){ try{ return JSON.parse(store.get("mp_hideNames","[]")); }catch(e){ return []; } }
 function normName(s){ return String(s||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,""); }
-function showHidden(){ var h = hiddenNames(); $("hiddenList").textContent = h.length ? ("ہٹائے گئے نام: " + h.length) : ""; }
+function showHidden(){   // list of hidden names, each with a button to bring it back
+  var h = hiddenNames(), el = $("hiddenList"); el.innerHTML = "";
+  if(!h.length) return;
+  el.insertAdjacentHTML("beforeend", "ہٹائے گئے نام (✕ دبانے سے واپس تلاش میں آ جائے گا):");
+  h.forEach(function(n){
+    var s = document.createElement("span"); s.className = "pill"; s.style.cssText = "display:inline-block;margin:4px 4px 0 0";
+    s.innerHTML = '<span class="en">' + esc(n) + '</span> <button class="btn2 btn-sm" style="padding:2px 8px" aria-label="remove">✕</button>';
+    s.querySelector("button").onclick = function(){
+      store.set("mp_hideNames", JSON.stringify(hiddenNames().filter(function(x){ return x !== n; })));
+      showHidden(); toast("واپس آ گیا");
+    };
+    el.appendChild(s);
+  });
+}
 $("hideBtn").onclick = function(){
   var n = ($("hideName").value||"").trim(); if(!n) return;
   var h = hiddenNames(); if(h.indexOf(n) < 0) h.push(n); store.set("mp_hideNames", JSON.stringify(h));
@@ -421,14 +434,39 @@ $("saveSet").onclick = function(){ ["apiKey","gemKey","oaiKey","myName","myEmail
   var su = ($("syncUrl").value||"").trim(); var hadSync = store.get("mp_syncUrl","");
   try{ localStorage.setItem("mp_syncUrl", su); }catch(e){}
   toast("Save ہو گیا"); if(su && su !== hadSync) syncPull(true); };
-$("clearSeen").onclick = function(){ if(confirm("پہلے دیکھے گئے سب کاروبار دوبارہ نظر آنے لگیں گے۔ صاف کریں؟")){ store.set("mp_seen","[]"); toast("صاف ہو گیا"); } };
+$("clearSeen").onclick = function(){ if(confirm("پہلے دیکھے گئے سب کاروبار دوبارہ نظر آنے لگیں گے۔ صاف کریں؟")){ store.set("mp_seenEpoch", String(Date.now())); store.set("mp_seen","[]"); toast("صاف ہو گیا"); } };
 $("todayCount").textContent = getCount();
 ["target","runLimit","dayLimit","minReviews","maxReviews","maxRating"].forEach(function(k){
   var v = store.get("mp_n_"+k, null); if(v !== null) $(k).value = v;
   $(k).onchange = function(){ store.set("mp_n_"+k, $(k).value); };
 });
-function sentCount(){ return parseInt(store.get("mp_sent_"+today(), "0"), 10) || 0; }
-function addSent(){ var c = sentCount()+1; store.set("mp_sent_"+today(), String(c)); $("sentToday").textContent = c; setTimeout(function(){ try{ renderToday(); }catch(e){} }, 0);
+/* daily counters (messages sent "s", forum replies "f"), kept per device and added up, so phone + PC show the same total after a sync */
+var DEV = (function(){ var d = ""; try{ d = localStorage.getItem("mp_dev") || ""; if(!d){ d = "d" + Math.random().toString(36).slice(2, 8); localStorage.setItem("mp_dev", d); } }catch(e){ d = "d0"; } return d; })();
+function dayData(){ try{ return JSON.parse(store.get("mp_days","{}")) || {}; }catch(e){ return {}; } }
+function recentDays(n){ var out = {}, d = new Date(); for(var i=0;i<n;i++){ out[d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()] = 1; d.setDate(d.getDate()-1); } return out; }
+function dayGet(field){ var d = dayData()[today()] || {}, s = 0; Object.keys(d).forEach(function(k){ s += (d[k] && d[k][field]) || 0; }); return s; }
+function dayAdd(field, n){
+  var all = dayData(), t = today(), keep = recentDays(21);
+  all[t] = all[t] || {}; var me = all[t][DEV] = all[t][DEV] || {};
+  me[field] = Math.max(0, (me[field] || 0) + n);
+  Object.keys(all).forEach(function(k){ if(!keep[k]) delete all[k]; });
+  store.set("mp_days", JSON.stringify(all));
+}
+(function(){   // first run after this update: carry over today's old counts, and clean up old per-day keys
+  var all = dayData(), t = today();
+  if(!(all[t] && all[t][DEV])){
+    var s = parseInt(store.get("mp_sent_"+t, "0"), 10) || 0, f = parseInt(store.get("mp_forum_"+t, "0"), 10) || 0;
+    if(s) dayAdd("s", s); if(f) dayAdd("f", f);
+  }
+  try{
+    var keep = recentDays(21), rm = [];
+    for(var i=0;i<localStorage.length;i++){ var k = localStorage.key(i), m = /^mp_(cnt|sent|forum|chk_\w+)_(\d{4}-\d{1,2}-\d{1,2})$/.exec(k||""); if(m && !keep[m[2]]) rm.push(k); }
+    rm.forEach(function(k){ localStorage.removeItem(k); });
+  }catch(e){}
+})();
+function sentCount(){ return dayGet("s"); }
+function addSent(n){ dayAdd("s", n == null ? 1 : n); var c = sentCount(); $("sentToday").textContent = c; setTimeout(function(){ try{ renderToday(); }catch(e){} }, 0);
+  if(n != null && n < 0) return;
   if(c === 5) setTimeout(function(){ toast("آج کے پانچ پیغام پورے ہو گئے، شاباش"); }, 1900); }
 $("sentToday").textContent = sentCount();
 
@@ -599,7 +637,7 @@ function mailIssues(L){   // drop "no rating" when "no reviews" already says it
 function emailFor(L){
   var all = mailIssues(L), top = all.slice(0,3), used = {};
   var count = all.length;
-  var subject = count >= 3 ? L.name + ": 3 issues on your Google listing" : "A quick note about " + L.name + "'s Google listing";
+  var subject = "Quick question about " + L.name + " on Google Maps";
   var adsNote = (L.manual && L.manual.ads === "yes") ? "I noticed you're running Facebook ads, but your Google listing may be losing the customers who search on Google instead. " : "";
   var intro = adsNote + (count > 3
     ? "I reviewed your Google Maps listing and found " + count + " issues that may be costing you calls. The top three:"
@@ -1250,6 +1288,11 @@ $("goName").onclick = async function(){
       if(leads.some(function(L){ return L.id === p.id; })) return;
       var L = toLead(p, q, ctry); L.byName = true; leads.unshift(L); added++;
     });
+    found.forEach(function(p){   // businesses looked up by name are watched for suspension too
+      var had = !!watch[p.id]; addWatch(p, cityFromAddr(toLead(p, q, ctry)) || q);
+      if(!had && watch[p.id]) watch[p.id].tr = (p.primaryTypeDisplayName && p.primaryTypeDisplayName.text) || "";
+    });
+    saveWatch(); showWatch();
     /* competitors: one more search for the same kind of business in the same city, so the report can compare */
     var top = found.length ? leads.filter(function(L){ return L.id === found[0].id; })[0] : null, compNote = "";
     var cq = top ? compQuery(top) : null;
@@ -1606,7 +1649,7 @@ function addFollow(L){
   var top = mailIssues(L)[0];
   follows.push({ id:L.id, n:L.name, c:L.country, phone:L.phone, w:L.website, maps:L.maps, town:cityOf(L),
     first: top ? lineFor(top, L, {}) : "", ur: top && UR_ISSUE[top] ? UR_ISSUE[top] : "",
-    urd: !!L.urd, subj: isWA(L.country) ? "" : (mailIssues(L).length >= 3 ? L.name + ": 3 issues on your Google listing" : "A quick note about " + L.name + "'s Google listing"),
+    urd: !!L.urd, subj: isWA(L.country) ? "" : "Quick question about " + L.name + " on Google Maps",
     at: Date.now(), state: "waiting" });
   saveFollow(); renderFollow();
 }
@@ -1620,11 +1663,28 @@ function followText(f){
       "اگر آپ چاہیں تو میں ایک کمی مفت میں ٹھیک کر کے دکھا دیتا ہوں، پسند آئے تو آگے بات کر لیں گے۔\n\n" +
       "اگر ابھی فرصت نہیں تو کوئی بات نہیں۔ شکریہ۔";
   }
+  /* email reminder: sent as a Reply in the same Gmail thread, so no subject line */
   var first = f.first ? f.first.replace(/\.$/, "") : "";
-  return "Subject: Re: " + (f.subj || "my earlier message") + "\n\n" +
-    "Hi " + f.n + " team,\n\n" +
-    "Just following up on my note from a few days ago about your Google listing." + (first ? " One quick example that's still showing today: " + first.charAt(0).toLowerCase() + first.slice(1) + "." : "") + "\n\n" +
-    "I'm happy to send the free list of fixes if it's useful. If now isn't a good time, no problem at all." + signature();
+  return greetOf(f) + "\n\n" +
+    "Just following up on my note from a few days ago about " + bizOf(f) + "'s Google Business Profile." + (first ? " One quick example that's still showing today: " + first.charAt(0).toLowerCase() + first.slice(1) + "." : "") + "\n\n" +
+    (f.manual ? "I'm still happy to take a free look at your situation, no obligation." : "I'm happy to send the free list of fixes if it's useful.") +
+    " If now isn't a good time, no problem at all." + signature();
+}
+/* "InfoTank (Avery Sellers)" -> greet "Hi Avery," and business "InfoTank" */
+function bizOf(f){ return String(f.n||"").replace(/\s*\([^)]*\)\s*/g, " ").trim() || f.n; }
+function greetOf(f){
+  var m = /\(([^)]+)\)/.exec(f.n||""), p = m ? m[1].trim().split(/[\s,]+/) : [];
+  if(p[0] && /^(dr|mr|mrs|ms|eng)\.?$/i.test(p[0]) && p[1]) p = p.slice(1);
+  if(p[0] && /^[A-Za-z][A-Za-z'.-]+$/.test(p[0]) && !/team|owner|support|ltd|llc|inc/i.test(p[0])) return "Hi " + p[0] + ",";
+  return f.manual ? "Hi there," : "Hi " + bizOf(f) + " team,";
+}
+/* a lead we can actually write to (forum-only leads with no email or phone get no reminder) */
+function hasContact(f){ return !f.manual || !!(f.contact || f.phone || f.w); }
+function isEmailLead(f){ return !isWA(f.c) && (!f.manual || /@/.test(f.contact||"")); }
+function gmailSearch(f){
+  var who = /@/.test(f.contact||"") ? "to:" + f.contact : '"' + bizOf(f) + '"';
+  var acct = ($("myEmail").value||"").trim();
+  return "https://mail.google.com/mail/" + (acct ? "?authuser=" + encodeURIComponent(acct) : "") + "#search/" + encodeURIComponent(who);
 }
 /* reminder day: 4 days after the first message, moved past the lead's weekend (nobody reads business email then) */
 function offDays(c){ if(c === "SA") return [5,6]; if(c === "PK") return [0]; return [6,0]; }
@@ -1638,19 +1698,32 @@ function renderFollow(){
   var box = $("fuList"); box.innerHTML = "";
   var now = Date.now(), due = 0;
   var list = follows.filter(function(f){ return f.state === "waiting"; });
-  list.sort(function(a,b){ return a.at - b.at; });
+  list.sort(function(a,b){ return (hasContact(b)?1:0) - (hasContact(a)?1:0) || a.at - b.at; });   // forum-only leads go to the end
   list.forEach(function(f){
+    var d = document.createElement("div"); d.className = "lead";
+    if(!hasContact(f)){   // forum-only: no reminder to send, just wait for their forum reply
+      d.innerHTML = '<div class="body"><div class="name">' + esc(f.n) + '</div>' +
+        '<span class="pill">صرف فورم والا، اسے Reminder نہیں بھیجنا۔ فورم پر جواب آئے تو "جواب آ گیا" دبائیں</span>' +
+        '<div class="btns">' + (f.link && /^https?:\/\//.test(f.link) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.link) + '">پوسٹ کھولیں</a>' : '') +
+        '<button class="btn2 btn-sm" data-a="reply">جواب آ گیا</button><button class="btn2 btn-sm" data-a="lost">بات ختم</button></div></div>';
+      d.querySelector('[data-a="reply"]').onclick = function(){ setStage(f, "replied"); toast("بہت اچھا! اب یہ گاہکوں کے سفر میں ہے"); };
+      d.querySelector('[data-a="lost"]').onclick = function(){ if(confirm("اس سے بات ختم سمجھیں؟ بعد میں واپس بھی لا سکتے ہیں۔")) setStage(f, "lost", { prev: "waiting" }); };
+      box.appendChild(d); return;
+    }
     var days = Math.floor((now - f.at) / 864e5), ra = remindAt(f), isDue = now >= ra, left = Math.max(1, Math.ceil((ra - now) / 864e5));
     if(isDue) due++;
-    var d = document.createElement("div"); d.className = "lead";
+    var who = [f.town, f.contact || f.phone].filter(Boolean).join(" · ");
     d.innerHTML = '<div class="body"><div class="name">' + esc(f.n) + '</div>' +
-      '<div class="meta en" style="text-align:left">' + esc(f.town||"") + '</div>' +
+      (who ? '<div class="meta en" style="text-align:left">' + esc(who) + '</div>' : '') +
       (isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج Reminder بھیجیں</span>'
              : (f.at > now
                  ? '<span class="pill">ای میل Schedule ہے، <b class="en">' + Math.max(1, Math.round((new Date(f.at).setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0)) / 864e5)) + '</b> دن بعد جائے گی۔ Reminder <b class="en">' + left + '</b> دن بعد</span>'
                  : '<span class="pill">پہلا پیغام بھیجے ہوئے <b class="en">' + days + '</b> دن، Reminder <b class="en">' + left + '</b> دن بعد</span>')) +
+      (isDue && isEmailLead(f) ? '<p class="hint" style="margin-top:6px">جی میل میں اپنی پہلی ای میل کھولیں، Reply دبائیں، اور Reminder وہیں پیسٹ کریں۔ اس طرح گاہک کو پوری بات ایک جگہ نظر آتی ہے۔</p>' : '') +
       '<div class="btns">' +
       (isWA(f.c) && waNum(f.phone, f.c) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone, f.c) + '">واٹس ایپ کھولیں</a>' : '') +
+      (isEmailLead(f) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(gmailSearch(f)) + '">جی میل میں پہلی ای میل</a>' : '') +
+      (/@/.test(f.contact||"") ? '<button class="btn2 btn-sm" data-a="addr">ای میل کا پتہ کاپی کریں</button>' : '') +
       (f.c !== "PK" && f.w ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.w) + '">Website</a>' : '') +
       '<button class="btn2 btn-sm" data-a="copy">Reminder کاپی کریں</button>' +
       '<button class="btn2 btn-sm" data-a="done">Reminder بھیج دی</button>' +
@@ -1659,6 +1732,7 @@ function renderFollow(){
       '<div data-a="datebox" style="display:none;margin-top:8px"><label style="margin-top:0">پہلا رابطہ کس دن</label>' +
       '<input type="date" class="en"><div class="btns"><button class="btn btn-sm" style="width:auto" data-a="datesave">Save کریں</button></div></div></div>';
     d.querySelector('[data-a="copy"]').onclick = function(){ copy(followText(f)); };
+    var ab = d.querySelector('[data-a="addr"]'); if(ab) ab.onclick = function(){ copy(f.contact); };
     d.querySelector('[data-a="done"]').onclick = function(){ f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); renderFollow(); toast("نشان لگ گیا، اب اسے دوبارہ پیغام نہیں بھیجنا"); };
     d.querySelector('[data-a="reply"]').onclick = function(){ setStage(f, "replied"); toast("بہت اچھا! اب یہ گاہکوں کے سفر میں ہے"); };
     (function(){   // change the first-contact day (for example an email scheduled for Monday)
@@ -1672,6 +1746,9 @@ function renderFollow(){
         var p = v.split("-"), t = new Date(+p[0], +p[1]-1, +p[2], 12, 0, 0).getTime();
         if(!(t > 0)) return;
         f.at = Math.min(t, Date.now() + 8*864e5); f.la = Date.now();
+        var isToday = localDay(f.at) === localDay(Date.now());   // keep today's "sent" count honest
+        if(f.cnt === today() && !isToday){ addSent(-1); delete f.cnt; }
+        else if(!f.cnt && isToday && hasContact(f) && f.state === "waiting"){ addSent(); f.cnt = today(); }
         saveFollow(); renderFollow(); toast("تاریخ بدل گئی");
       };
     })();
@@ -1789,6 +1866,13 @@ function showDup(){
 $("mName").oninput = showDup; $("mContact").oninput = showDup;
 function localDay(t){ var d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
 function resetMDate(){ $("mDate").value = localDay(Date.now()); $("mDate").max = localDay(Date.now() + 7*864e5); }   // scheduled emails go out on a later day
+$("mDate").onfocus = function(){ $("mDate").max = localDay(Date.now() + 7*864e5); };   // the app may stay open for days
+document.addEventListener("visibilitychange", function(){   // coming back to the app: refresh today's send times and limits
+  if(document.visibilityState !== "visible") return;
+  try{ $("lawHint").textContent = lawText(selC()); $("mDate").max = localDay(Date.now() + 7*864e5);
+    if($("mDate").value < localDay(Date.now() - 30*864e5)) resetMDate();
+    $("sentToday").textContent = sentCount(); $("todayCount").textContent = getCount(); renderFollow(); }catch(e){}
+});
 resetMDate();
 /* country list in the manual form: the main countries plus every country the tool knows (so Gulf countries get WhatsApp + Arabic) */
 (function(){
@@ -1810,7 +1894,7 @@ $("mAdd").onclick = function(){
   if(/^\+?[\d\s\-]{7,}$/.test(f.contact)) f.phone = f.contact;
   if(st === "replied") f.next = now; else if(NEXT_DAYS[st]) f.next = now + NEXT_DAYS[st]*864e5;
   follows.push(f); saveFollow();
-  if(st === "waiting" && f.contact && localDay(at) === localDay(now)) addSent();   // an email or WhatsApp sent today counts toward the daily 5
+  if(st === "waiting" && f.contact && localDay(at) === localDay(now)){ addSent(); f.cnt = today(); saveFollow(); }   // an email or WhatsApp sent today counts toward the daily 5
   renderFollow();
   ["mName","mContact","mNote","mLink"].forEach(function(k){ $(k).value = ""; }); resetMDate(); showDup();
   toast("شامل ہو گیا");
@@ -1845,7 +1929,7 @@ function parseAmt(s){
 function renderToday(){
   var box = $("todayList"); if(!box) return;
   var sent = sentCount(), now = Date.now();
-  var fuDue = follows.filter(function(f){ return f.state === "waiting" && now >= remindAt(f); }).length;
+  var fuDue = follows.filter(function(f){ return f.state === "waiting" && hasContact(f) && now >= remindAt(f); }).length;
   var cliDue = follows.filter(isDueF).length;
   var mk = monthKey(now), won = follows.filter(function(f){ return f.state === "won" && monthKey(f.wat || f.la || 0) === mk; });
   var sums = {}; won.forEach(function(f){ var a = parseAmt(f.amt); if(a) sums[a.cur] = (sums[a.cur]||0) + a.n; });
@@ -1855,8 +1939,8 @@ function renderToday(){
   row(cliDue === 0, cliDue ? 'گاہکوں سے رابطہ: <b class="en">' + cliDue + '</b> کو آج جواب یا Reminder' : "گاہکوں کا کوئی رابطہ باقی نہیں", cliDue ? "کھولیں" : "", function(){ $("pipeBox").open = true; $("pipeBox").scrollIntoView({behavior:"smooth"}); });
   row(fuDue === 0, fuDue ? 'Reminder: <b class="en">' + fuDue + '</b> کاروباروں کو آج بھیجنی ہے' : "کوئی Reminder باقی نہیں", fuDue ? "کھولیں" : "", function(){ $("fuBox").open = true; $("fuBox").scrollIntoView({behavior:"smooth"}); });
   row(sent >= 5, 'آج کے نئے پیغام: <b class="en">' + sent + '</b> بھیجے، ہدف <b class="en">5</b>' + (sent >= 5 ? "، مکمل" : '، <b class="en">' + (5 - sent) + '</b> باقی'), sent >= 5 ? "" : "تلاش پر جائیں", function(){ $("searchCard").scrollIntoView({behavior:"smooth"}); });
-  var fr = parseInt(store.get("mp_forum_" + today(), "0"), 10) || 0;
-  row(fr >= 3, 'فورم پر جواب اور پیغام: <b class="en">' + fr + '</b> بھیجے، ہدف <b class="en">3</b>', "ایک بھیجا", function(){ store.set("mp_forum_" + today(), String(fr + 1)); renderToday(); toast("شاباش"); });
+  var fr = dayGet("f");
+  row(fr >= 3, 'فورم پر جواب اور پیغام: <b class="en">' + fr + '</b> بھیجے، ہدف <b class="en">3</b>', "ایک بھیجا", function(){ dayAdd("f", 1); renderToday(); toast("شاباش"); });
   var sf = store.get("mp_syncFail", "");
   if(store.get("mp_syncUrl","") && sf) row(false, '<span style="color:var(--bad)">Sync ناکام ہو گئی ہے، آپ کا کام دوسرے آلے پر محفوظ نہیں ہو رہا۔</span>', "دوبارہ Sync کریں", function(){ syncPull(true); });
   box.innerHTML = rows.map(function(r, i){
@@ -2126,7 +2210,8 @@ $("csv").onclick = function(){
 
 /* ---------- phone + computer sync through the user's own Google Apps Script ---------- */
 var SECRET_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey"];
-var SYNC_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey","mp_watch","mp_gone","mp_goneDel","mp_leads","mp_seen","mp_follow","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myWA","mp_myIntroUr","mp_useSig"];
+var mergeEpoch = 0;   // "forget seen businesses" time, so an old list on another device doesn't bring them back
+var SYNC_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey","mp_watch","mp_gone","mp_goneDel","mp_leads","mp_seenEpoch","mp_seen","mp_days","mp_follow","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myWA","mp_myIntroUr","mp_useSig"];
 var syncApplying = false, syncTimer = null, syncBusy = false, syncAgain = false;
 function syncTouched(k){
   if(!SYNC_KEYS || syncApplying || SYNC_KEYS.indexOf(k) < 0) return;
@@ -2143,10 +2228,24 @@ function mergeKey(k, a, b){   // a = local, b = remote; returns the merged entry
   if(SECRET_KEYS.indexOf(k) >= 0){   // a filled key always beats an empty one, so an empty box never erases the other device's key
     if(!a.v && b.v) return b; if(a.v && !b.v) return a;
   }
-  if(k === "mp_seen" || k === "mp_hideNames"){
-    var u = arr(a.v); arr(b.v).forEach(function(x){ if(u.indexOf(x) < 0) u.push(x); });
-    return { v: JSON.stringify(k === "mp_seen" ? u.slice(-3000) : u), t: Math.max(a.t, b.t) };
+  if(k === "mp_seen"){   // union, except lists older than the last "forget" on any device
+    var u = a.t >= mergeEpoch ? arr(a.v) : [];
+    (b.t >= mergeEpoch ? arr(b.v) : []).forEach(function(x){ if(u.indexOf(x) < 0) u.push(x); });
+    return { v: JSON.stringify(u.slice(-3000)), t: Math.max(a.t, b.t) };
   }
+  if(k === "mp_days"){   // per device, per day: keep the higher count
+    var da = {}, db = {}; try{ da = JSON.parse(a.v) || {}; }catch(e){} try{ db = JSON.parse(b.v) || {}; }catch(e){}
+    Object.keys(db).forEach(function(day){
+      da[day] = da[day] || {};
+      Object.keys(db[day] || {}).forEach(function(dev){
+        var x = da[day][dev] = da[day][dev] || {}, y = db[day][dev] || {};
+        Object.keys(y).forEach(function(fl){ x[fl] = Math.max(x[fl] || 0, y[fl] || 0); });
+      });
+    });
+    var keep = recentDays(21); Object.keys(da).forEach(function(day){ if(!keep[day]) delete da[day]; });
+    return { v: JSON.stringify(da), t: Math.max(a.t, b.t) };
+  }
+  /* mp_hideNames: newest list wins (so a name can be un-hidden) */
   if(k === "mp_goneDel"){
     var d = arr(a.v); arr(b.v).forEach(function(x){ if(d.indexOf(x) < 0) d.push(x); });
     return { v: JSON.stringify(d.slice(-3000)), t: Math.max(a.t, b.t) };
@@ -2194,7 +2293,9 @@ function mergeLeads(a, b, seenV){
 function syncApply(remote){
   var local = syncLocal(), merged = {}, changed = false;
   var order = SYNC_KEYS.filter(function(k){ return k !== "mp_leads"; }).concat(["mp_leads"]);   // leads last: they need the merged seen list
+  mergeEpoch = 0;
   order.forEach(function(k){
+    if(k === "mp_seen") mergeEpoch = merged.mp_seenEpoch ? (+merged.mp_seenEpoch.v || 0) : 0;
     var m = k === "mp_leads" ? mergeLeads(local[k], remote[k], merged.mp_seen ? merged.mp_seen.v : "[]") : mergeKey(k, local[k], remote[k]);
     if(!m) return; merged[k] = m;
     if(!local[k] || local[k].v !== m.v){ changed = true;
@@ -2212,6 +2313,7 @@ function syncApply(remote){
     ["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myWA","myIntroUr"].forEach(function(k){ var v = store.get("mp_"+k, null); if(v !== null) $(k).value = v; });
     $("useSig").checked = store.get("mp_useSig","0") === "1";
     showHidden(); render(true); renderFollow();
+    try{ $("sentToday").textContent = sentCount(); }catch(e){}
   }
   return merged;
 }
