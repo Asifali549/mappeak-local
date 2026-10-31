@@ -131,6 +131,9 @@ a{color:var(--brand)}
     <label class="check"><input type="checkbox" id="useSig"> جی میل میں دستخط لگا ہوا ہے (ای میل کے آخر میں نام اور پتہ ٹول نہیں لکھے گا)</label>
     <label>Sync لنک (گوگل اسکرپٹ والا)</label>
     <input id="syncUrl" class="en" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
+    <label>Sync پاس ورڈ (تالا)</label>
+    <input id="syncPass" type="password" class="en" placeholder="ایک لمبا پاس ورڈ، فون اور کمپیوٹر پر ایک ہی" autocomplete="new-password">
+    <p class="hint">یہ پاس ورڈ آپ کے سارے Sync ڈیٹا کو تالا لگا دیتا ہے: Sync لنک کسی کے ہاتھ لگ بھی جائے تو وہ نہ کچھ پڑھ سکے گا نہ کچھ لکھ سکے گا۔ فون اور کمپیوٹر دونوں پر بالکل ایک ہی پاس ورڈ لکھیں۔ یہ پاس ورڈ کہیں لکھ کر محفوظ رکھیں، بھول گئے تو Sync والا ڈیٹا نہیں کھلے گا (آلے کا اپنا ڈیٹا محفوظ رہے گا)۔</p>
     <p class="hint" id="syncState">یہ لنک فون اور کمپیوٹر دونوں پر ایک ہی لکھیں، تو دونوں کا کام دونوں پر نظر آئے گا۔ یہ لنک کسی کو نہ دیں۔ اب Keys بھی اسی سے دوسرے آلے پر خود پہنچ جاتی ہیں۔</p>
     <div class="btns"><button class="btn2 btn-sm" id="syncNow">ابھی Sync کریں</button></div>
     <label>میرا Personal Link (Keys خود لگانے والا)</label>
@@ -302,15 +305,23 @@ function toast(t){ var el=$("toast"); el.textContent=t; el.classList.add("show")
 function log(t){ $("log").textContent = t; }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
 
+var SYNC_URL_RE = /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/;
+/* only real web links become clickable (a "javascript:" link could run code inside the tool) */
+function safeUrl(u){ u = String(u||"").trim(); return /^https?:\/\//i.test(u) ? u : ""; }
+/* spreadsheet cells that start with = + - @ would run as formulas in Excel: add a leading quote */
+function csvCell(c){ c = String(c==null?"":c); if(/^[=+\-@\t\r]/.test(c)) c = "'" + c; return '"' + c.replace(/"/g,'""') + '"'; }
 /* personal link: finder.html#s=... carries the sync link and keys, fills any that are missing on this device */
 (function(){
   var m = /[#&]s=([A-Za-z0-9_\-]+)/.exec(location.hash || ""); if(!m) return;
   try{
     var b = m[1].replace(/-/g,"+").replace(/_/g,"/"); while(b.length % 4) b += "=";
     var o = JSON.parse(decodeURIComponent(escape(atob(b))));
-    ["syncUrl","apiKey","gemKey","oaiKey"].forEach(function(k){
-      if(o[k] && !store.get("mp_"+k, "")){ try{ localStorage.setItem("mp_"+k, o[k]); }catch(e){} }
-    });
+    try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){}   // don't leave the keys in the address bar
+    if(o.syncUrl && !SYNC_URL_RE.test(String(o.syncUrl))) delete o.syncUrl;   // only a Google Apps Script link is accepted
+    var todo = ["syncUrl","syncPass","apiKey","gemKey","oaiKey"].filter(function(k){ return o[k] && typeof o[k] === "string" && !store.get("mp_"+k, ""); });
+    if(!todo.length) return;
+    if(!confirm("یہ Personal Link کھولا گیا ہے۔\n\nکیا یہ لنک آپ نے خود اپنے ٹول سے بنایا تھا؟\n\nاگر کسی اور نے بھیجا ہے تو Cancel دبائیں، ورنہ آپ کا ڈیٹا اس کے پاس جا سکتا ہے۔")) return;
+    todo.forEach(function(k){ try{ localStorage.setItem("mp_"+k, o[k]); }catch(e){} });
   }catch(e){}
 })();
 
@@ -432,6 +443,11 @@ showHidden();
 $("useSig").checked = store.get("mp_useSig","0") === "1";
 $("saveSet").onclick = function(){ ["apiKey","gemKey","oaiKey","myName","myEmail","myAddr","myWA","myIntroUr"].forEach(function(k){ store.set("mp_"+k, $(k).value.trim()); }); store.set("mp_useSig", $("useSig").checked ? "1" : "0");
   var su = ($("syncUrl").value||"").trim(); var hadSync = store.get("mp_syncUrl","");
+  if(su && !SYNC_URL_RE.test(su)){ toast("یہ Sync لنک درست نہیں، گوگل اسکرپٹ والا لنک لکھیں"); return; }
+  var sp = ($("syncPass").value||"").trim(), hadPass = store.get("mp_syncPass","");
+  if(sp && sp.length < 8){ toast("Sync پاس ورڈ کم از کم آٹھ حروف کا رکھیں"); return; }
+  try{ localStorage.setItem("mp_syncPass", sp); }catch(e){}
+  if(sp !== hadPass){ syncKeyCache = null; if(su === hadSync && su) syncPull(true); }
   try{ localStorage.setItem("mp_syncUrl", su); }catch(e){}
   toast("Save ہو گیا"); if(su && su !== hadSync) syncPull(true); };
 $("clearSeen").onclick = function(){ if(confirm("پہلے دیکھے گئے سب کاروبار دوبارہ نظر آنے لگیں گے۔ صاف کریں؟")){ store.set("mp_seenEpoch", String(Date.now())); store.set("mp_seen","[]"); toast("صاف ہو گیا"); } };
@@ -922,7 +938,7 @@ function render(keepOrder){
       '<div class="stat" style="margin-top:4px"><span class="pill">ریٹنگ <b class="en">'+(L.rating==null?"-":L.rating)+'</b></span>'+
       '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+adTagBadge(L)+mailBadge(L)+speedBadge(L)+riskBadge(L)+lawBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
       '<div class="body"><b>غلطیاں:</b><ul>'+urIssues+'</ul>'+
-      '<div class="en" style="text-align:left;font-size:15px">'+(L.phone?esc(L.phone)+" &middot; ":"")+(L.website?'<a target="_blank" rel="noopener" href="'+esc(L.website)+'">Website</a>':'No website')+'</div>'+
+      '<div class="en" style="text-align:left;font-size:15px">'+(L.phone?esc(L.phone)+" &middot; ":"")+(safeUrl(L.website)?'<a target="_blank" rel="noopener" href="'+esc(safeUrl(L.website))+'">Website</a>':'No website')+'</div>'+
       compLine(L)+aiLine(L)+
       (shots[L.id] ? '<div style="margin-top:8px"><div class="hint" style="margin:0 0 4px">ان کی ویب سائٹ موبائل پر ایسی دکھتی ہے:</div><img alt="" src="'+shots[L.id]+'" style="max-width:150px;border:1px solid #ccd;border-radius:8px"></div>' : '')+
       '<div class="manual"><b>گوگل میپس کھول کر یہ چیزیں دیکھیں:</b>'+
@@ -1547,7 +1563,7 @@ function renderGone(){
     d.innerHTML =
       '<div class="body"><div class="name">'+esc(g.n)+'</div>'+
       '<div class="meta en" style="text-align:left">'+esc(g.a||g.t||"")+'</div>'+
-      '<div class="en" style="text-align:left;font-size:15px">'+(g.p?esc(g.p)+" &middot; ":"")+(g.w?'<a target="_blank" rel="noopener" href="'+esc(g.w)+'">Website</a>':'No website')+'</div>'+
+      '<div class="en" style="text-align:left;font-size:15px">'+(g.p?esc(g.p)+" &middot; ":"")+(safeUrl(g.w)?'<a target="_blank" rel="noopener" href="'+esc(safeUrl(g.w))+'">Website</a>':'No website')+'</div>'+
       '<div class="manual"><b>پہلے یہ دو چیزیں دیکھیں:</b><div>ایک: نیچے والے بٹن سے گوگل نقشے پر نام تلاش کریں۔ اگر کاروبار وہاں مل جائے تو یہ غلط نشان ہے، اسے ہٹا دیں۔</div><div>دو: ویب سائٹ کھولیں۔ اگر ویب سائٹ بند ہے تو شاید کاروبار ہی بند ہو گیا ہے، اسے بھی ہٹا دیں۔</div></div>'+
       '<div class="btns">'+
       '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(mapsSearch(g))+'">گوگل نقشے پر نام تلاش کریں</a>'+
@@ -1744,7 +1760,7 @@ function renderFollow(){
       (isWA(f.c) && waNum(f.phone, f.c) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone, f.c) + '">واٹس ایپ کھولیں</a>' : '') +
       (isEmailLead(f) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(gmailSearch(f)) + '">جی میل میں پہلی ای میل</a>' : '') +
       (/@/.test(f.contact||"") ? '<button class="btn2 btn-sm" data-a="addr">ای میل کا پتہ کاپی کریں</button>' : '') +
-      (f.c !== "PK" && f.w ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.w) + '">Website</a>' : '') +
+      (f.c !== "PK" && safeUrl(f.w) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(safeUrl(f.w)) + '">Website</a>' : '') +
       '<button class="btn2 btn-sm" data-a="copy">Reminder کاپی کریں</button>' +
       '<button class="btn2 btn-sm" data-a="done">Reminder بھیج دی</button>' +
       '<button class="btn2 btn-sm" data-a="reply">جواب آ گیا</button>' +
@@ -1925,7 +1941,7 @@ $("pipeCsv").onclick = function(){
   var rows = [["Name","Stage","Country","Source","Contact","Post link","Amount","Note","First contact","Last update"]];
   var d = function(t){ return t ? new Date(t).toISOString().slice(0,10) : ""; };
   follows.forEach(function(f){ rows.push([f.n, f.state, f.c||"", f.src||"", f.contact||f.phone||f.w||"", f.link||"", f.amt||"", f.note||"", d(f.at), d(f.la||f.at)]); });
-  var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c==null?"":c).replace(/"/g,'""')+'"'; }).join(","); }).join("\r\n");
+  var csv = rows.map(function(r){ return r.map(csvCell).join(","); }).join("\r\n");
   var a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["\ufeff"+csv], {type:"text/csv"}));
   a.download = "mappeak_clients_" + today() + ".csv"; document.body.appendChild(a); a.click(); a.remove();
@@ -2222,7 +2238,7 @@ $("csv").onclick = function(){
   leads.filter(function(L){ return (L.country||"US") === selC(); }).forEach(function(L){ rows.push([L.name, scoreOf(L), L.rating==null?"":L.rating, L.reviews, L.phone, L.website, L.address, L.maps,
     L.mapsRank||"", aiTxt(L.ai), aiTxt(L.aiC), ((L.ai&&L.ai.names)||(L.aiC&&L.aiC.names)||[]).slice(0,5).join(" | "),
     allIssues(L).map(function(k){return CHECKS[k][2];}).join("; ")]); });
-  var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(","); }).join("\r\n");
+  var csv = rows.map(function(r){ return r.map(csvCell).join(","); }).join("\r\n");
   var a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿"+csv], {type:"text/csv"}));
   a.download = "mappeak_leads_" + today() + ".csv"; document.body.appendChild(a); a.click(); a.remove();
@@ -2338,23 +2354,78 @@ function syncApply(remote){
   return merged;
 }
 function syncSay(t){ $("syncState").textContent = t; }
+/* ---------- Sync lock: every value is sealed with AES-GCM before it leaves the device.
+   Anyone holding only the Sync link sees gibberish, and anything they write is rejected (it won't open with the password). ---------- */
+var syncKeyCache = null;
+function b64e(buf){ var b = new Uint8Array(buf), s = ""; for(var i=0;i<b.length;i++) s += String.fromCharCode(b[i]); return btoa(s); }
+function b64d(t){ var s = atob(t), b = new Uint8Array(s.length); for(var i=0;i<s.length;i++) b[i] = s.charCodeAt(i); return b; }
+async function syncKey(){
+  var pass = store.get("mp_syncPass",""), url = store.get("mp_syncUrl","");
+  if(!pass || !(window.crypto && crypto.subtle)) return null;
+  if(syncKeyCache && syncKeyCache.id === pass + "|" + url) return syncKeyCache.key;
+  var enc = new TextEncoder();
+  var base = await crypto.subtle.importKey("raw", enc.encode(pass), "PBKDF2", false, ["deriveKey"]);
+  var key = await crypto.subtle.deriveKey({ name:"PBKDF2", salt: enc.encode("mappeak-sync|" + url), iterations: 150000, hash:"SHA-256" },
+    base, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]);
+  syncKeyCache = { id: pass + "|" + url, key: key };
+  return key;
+}
+async function sealV(key, k, plain){
+  var iv = crypto.getRandomValues(new Uint8Array(12));
+  var ct = await crypto.subtle.encrypt({ name:"AES-GCM", iv: iv, additionalData: new TextEncoder().encode(k) }, key, new TextEncoder().encode(plain));
+  return "enc1:" + b64e(iv) + ":" + b64e(ct);
+}
+async function openV(key, k, sealed){
+  var m = /^enc1:([^:]+):(.+)$/.exec(String(sealed||"")); if(!m) throw new Error("plain");
+  var pt = await crypto.subtle.decrypt({ name:"AES-GCM", iv: b64d(m[1]), additionalData: new TextEncoder().encode(k) }, key, b64d(m[2]));
+  return new TextDecoder().decode(pt);
+}
 async function syncPull(loud){
   var url = store.get("mp_syncUrl","");
   if(!url) return;
   if(syncBusy){ syncAgain = true; return; }   // a change made during a sync goes out right after it
   syncBusy = true; syncAgain = false;
   try{
-    var r = await fetch(url, { cache:"no-store" }); var remote = await r.json();
-    var merged = syncApply(remote && typeof remote === "object" && !remote.err ? remote : {});
-    var body = JSON.stringify(merged);
-    if(body !== JSON.stringify(remote)){
+    var r = await fetch(url, { cache:"no-store" }); var raw = await r.json();
+    if(!raw || typeof raw !== "object" || raw.err) raw = {};
+    var key = await syncKey(), remote = {}, sealedSeen = false, rejected = 0;
+    for(var rk in raw){
+      if(SYNC_KEYS.indexOf(rk) < 0 || !raw[rk] || typeof raw[rk] !== "object") continue;
+      var isSealed = /^enc1:/.test(String(raw[rk].v||""));
+      if(isSealed) sealedSeen = true;
+      if(key){
+        if(!isSealed){ rejected++; continue; }   // with the lock on, unlocked data in the cloud is not trusted
+        try{ remote[rk] = { v: await openV(key, rk, raw[rk].v), t: +raw[rk].t || 0 }; }catch(e){ rejected++; }
+      } else if(!isSealed){ remote[rk] = { v: String(raw[rk].v), t: +raw[rk].t || 0 }; }
+    }
+    if(!key && sealedSeen){   // the cloud is locked but this device has no password: never overwrite it
+      syncSay("Sync پر تالا لگا ہے۔ Settings میں وہی Sync پاس ورڈ لکھ کر Save کریں جو دوسرے آلے پر ہے۔");
+      if(loud) toast("Sync پاس ورڈ چاہیے");
+      try{ localStorage.setItem("mp_syncFail", String(Date.now())); }catch(x){}
+      syncBusy = false; try{ renderToday(); }catch(x){} return;
+    }
+    if(key && sealedSeen && !Object.keys(remote).length && rejected){   // password doesn't open anything: probably a typo, don't overwrite
+      syncSay("Sync پاس ورڈ دوسرے آلے والے پاس ورڈ سے نہیں ملتا۔ Settings میں دوبارہ دیکھیں۔");
+      if(loud) toast("Sync پاس ورڈ غلط ہے");
+      try{ localStorage.setItem("mp_syncFail", String(Date.now())); }catch(x){}
+      syncBusy = false; try{ renderToday(); }catch(x){} return;
+    }
+    var merged = syncApply(remote);
+    var out = {};
+    for(var mk in merged){
+      if(!key){ out[mk] = merged[mk]; continue; }
+      if(remote[mk] && remote[mk].v === merged[mk].v && remote[mk].t === merged[mk].t) out[mk] = raw[mk];   // unchanged: keep the same sealed text
+      else out[mk] = { v: await sealV(key, mk, merged[mk].v), t: merged[mk].t };
+    }
+    var body = JSON.stringify(out);
+    if(body !== JSON.stringify(raw)){
       await fetch(url, { method:"POST", body: body });
       var check = await (await fetch(url, { cache:"no-store" })).json();   // read back: did the script really keep everything?
-      var missing = Object.keys(merged).filter(function(k){ return !check || !check[k] || check[k].v !== merged[k].v; });
+      var missing = Object.keys(out).filter(function(k){ return !check || !check[k] || check[k].v !== out[k].v; });
       if(missing.length) throw new Error("partial:" + missing.join(","));
     }
     try{ localStorage.removeItem("mp_syncFail"); }catch(e){}
-    syncSay("Sync ہو گیا۔ آخری بار: " + new Date().toLocaleTimeString());
+    syncSay((key ? "🔒 " : "⚠️ تالا نہیں لگا (Sync پاس ورڈ لکھیں)۔ ") + "Sync ہو گیا۔ آخری بار: " + new Date().toLocaleTimeString());
     if(loud) toast("Sync ہو گیا");
   }catch(e){
     var partial = e && /^partial:/.test(e.message || "");
@@ -2367,10 +2438,11 @@ async function syncPull(loud){
   if(syncAgain){ syncAgain = false; setTimeout(function(){ syncPull(false); }, 500); }
 }
 $("syncUrl").value = store.get("mp_syncUrl","");
+$("syncPass").value = store.get("mp_syncPass","");
 $("syncNow").onclick = function(){ syncPull(true); };
 $("myLink").onclick = function(){
   var o = {}, any = false;
-  ["syncUrl","apiKey","gemKey","oaiKey"].forEach(function(k){ var v = ($(k).value||"").trim() || store.get("mp_"+k,""); if(v){ o[k] = v; any = true; } });
+  ["syncUrl","syncPass","apiKey","gemKey","oaiKey"].forEach(function(k){ var v = ($(k).value||"").trim() || store.get("mp_"+k,""); if(v){ o[k] = v; any = true; } });
   if(!o.apiKey){ toast("پہلے Google Key لکھیں"); return; }
   var b = btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
   var link = location.origin + location.pathname + "#s=" + b;
