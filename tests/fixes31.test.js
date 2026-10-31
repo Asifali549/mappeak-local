@@ -65,6 +65,13 @@ const { chromium } = require('playwright');
   await p.evaluate(() => { const u = document.getElementById('urgentOnly'); if (u.checked) u.click(); });
   const card = await p.$$eval('#results .lead', ls => (ls.find(l => /Noufal/.test(l.querySelector('.name').textContent)) || {}).textContent || '');
   ok('F7 old saved results: "no new reviews" hidden on busy listing', card && !/تین مہینے سے کوئی نیا ریویو نہیں/.test(card));
+  // reopening the app with UAE saved: boxes show UAE, not the US plumber defaults
+  await p.evaluate(() => localStorage.setItem('mp_country', 'AE')); await p.reload(); await p.waitForTimeout(600);
+  ok('F9 reopened on UAE: no Texas plumber, no "website only"', (await p.inputValue('#country')) === 'AE' && (await p.inputValue('#trade')) !== 'plumber' && !/TX/.test(await p.inputValue('#towns')) && !(await p.isChecked('#needWeb')), (await p.inputValue('#trade')) + ' | ' + (await p.inputValue('#towns')));
+  await p.evaluate(() => { localStorage.setItem('mp_country', 'XX'); localStorage.setItem('mp_otherC', 'Netherlands'); }); await p.reload(); await p.waitForTimeout(600);
+  ok('F9b reopened on another country: no Texas towns', !/TX/.test(await p.inputValue('#towns')) && (await p.isChecked('#needWeb')));
+  await p.evaluate(() => localStorage.setItem('mp_country', 'US')); await p.reload(); await p.waitForTimeout(600);
+  ok('F9c reopened on US: US defaults and "website only"', /TX/.test(await p.inputValue('#towns')) && (await p.isChecked('#needWeb')));
   ok('F8 no page errors', !errs.length, errs.join(' | '));
   console.log(res.join('\n')); await b.close();
 })();

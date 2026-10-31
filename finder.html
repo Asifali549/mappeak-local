@@ -414,6 +414,12 @@ function applyCountry(first){
   $("otherBox").style.display = $("country").value === "XX" ? "block" : "none";
   $("lawHint").textContent = lawText(selC());
   store.set("mp_country", $("country").value);
+  if(first === "load"){   // the search boxes are not saved: on opening, fill them for the saved country (not the US plumber defaults)
+    var wa0 = isWA(selC());
+    $("needWeb").checked = !wa0;
+    $("trade").value = TRADES[selC()] || "plumber";
+    $("towns").value = TOWNS[selC()] || (selC() === "US" ? $("towns").value : "");
+  }
   if(!first){
     var wa = isWA(selC());
     $("needWeb").checked = !wa;
@@ -424,7 +430,7 @@ function applyCountry(first){
   }
 }
 $("country").onchange = function(){ applyCountry(false); render(true); };
-applyCountry(true);
+applyCountry("load");
 if(!store.get("mp_apiKey","")) $("setBox").open = true;
 function hiddenNames(){ try{ return JSON.parse(store.get("mp_hideNames","[]")); }catch(e){ return []; } }
 function normName(s){ return String(s||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,""); }
