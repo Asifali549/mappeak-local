@@ -259,6 +259,7 @@ San Angelo, TX</textarea>
         <div class="btns"><button class="btn btn-sm" id="cgApply" style="width:auto">جواب لگائیں</button></div>
       </details>
       <button class="btn2 btn-sm" id="aiCheck">AI جانچ Key سے (مفت حد جلد ختم ہو جاتی ہے)</button>
+      <button class="btn btn-sm" id="copyAll" style="width:auto">سب کاروبار Claude کے لیے کاپی کریں</button>
       <button class="btn2 btn-sm" id="csv">فہرست ڈاؤن لوڈ کریں</button>
       <button class="btn2 btn-sm" id="adsAll">اس کام کے فیس بک اشتہار دیکھیں</button>
     </div>
@@ -826,6 +827,81 @@ function adTagBadge(L){
   if(a.cmp) return '<span class="pill" style="color:var(--warn)">کوکی خانہ ہے، اشتہار نیچے کے بٹن سے خود دیکھیں</span>';
   return "";
 }
+/* ---------- "big company?" hint: chains and group sites rarely buy from a one-person service ---------- */
+var BIGWORD_RE = /(group|holding|franchis|brands|hospitality|corporat|enterprises)/i;
+var CHAINPATH_RE = /\/(locations?|branches|branch|stores?|store-locator|outlets?)\/[^\/?#]+/i;
+var NAME_GENERIC = /^(the|and|of|restaurant|restaurants|cafe|cafeteria|grill|kitchen|food|foods|sweets|bakery|shop|store|stores|mart|market|supermarket|grocery|center|centre|services?|company|co|llc|inc|ltd|fzco|fze|est|trading|plumbing|plumber|plumbers|roofing|roofers?|electric|electrical|electrician|hvac|heating|cooling|air|locksmith|garage|door|doors|towing|tow|auto|repair|repairs|workshop|car|cars|pest|control|water|damage|cargo|tailor|tailors|tailoring|barber|barbershop|salon|mobile|phones?|building|materials|solar|energy|best|new|royal|golden|star|city|super|al|el|bin|khan|ali|ahmed|ahmad|muhammad|mohammed|mohammad|malik|pakistani|pakistan|lahori|karachi|desi|american|national|united|premier|quick|pro|express|smith|johnson)$/;
+function nameKey(L){
+  var addr = String(L.address||"").toLowerCase();
+  var t = String(L.name||"").toLowerCase().split(/\s[-|–(]\s?|\(|\|/)[0].split(/[^a-z0-9؀-ۿ]+/).filter(function(w){
+    return w.length >= 4 && !NAME_GENERIC.test(w) && addr.indexOf(w) < 0; });
+  return t[0] || "";
+}
+function bigOf(L){
+  var why = [], d = domainOf(L.website);
+  if(d && !FREEHOST.test(hostOf(L.website))){
+    var same = leads.filter(function(o){ return o.id !== L.id && domainOf(o.website) === d; }).length;
+    if(same) why.push("same website as " + same + " other result" + (same > 1 ? "s" : ""));
+    var label = d.split(".")[0];
+    if(BIGWORD_RE.test(label) && !BIGWORD_RE.test(L.name||"")) why.push("website is a company/group site (" + d + ")");
+    if(CHAINPATH_RE.test(L.website)) why.push("website link is one branch page of a bigger site");
+  }
+  var k = nameKey(L);
+  if(k){ var twin = leads.filter(function(o){ return o.id !== L.id && nameKey(o) === k; }).length;
+    if(twin) why.push("same name as " + twin + " other result" + (twin > 1 ? "s" : "") + " (branches?)"); }
+  return why;
+}
+function bigBadge(L){
+  var w = bigOf(L); if(!w.length) return "";
+  return '<span class="pill" style="background:#fde68a;color:#7a4b00" title="' + esc(w.join("; ")) + '">بڑی کمپنی؟</span>';
+}
+/* ---------- mobile or landline (Gulf + Pakistan), from the international number ---------- */
+var MOBILE_RE = { PK:/^923/, AE:/^9715/, SA:/^9665/, QA:/^974[3567]/, KW:/^965[569]/, BH:/^9733/, OM:/^968[79]/ };
+function phoneKind(L){
+  if(!L.phone && !L.intl) return "no phone";
+  var re = MOBILE_RE[L.country]; if(!re) return "";
+  var n = waNum(L.phone, L.country, L.intl); if(!n) return "";
+  return re.test(n) ? "mobile" : "landline";
+}
+/* ---------- all shown leads as one plain-text block to paste to Claude ---------- */
+function clip(s, n){ return String(s == null ? "" : s).replace(/[\r\n\t\u2028\u2029]+/g, " ").replace(/\s{2,}/g, " ").trim().slice(0, n || 120); }
+function shownLeads(){
+  var c = selC(), only = $("urgentOnly").checked;
+  return leads.filter(function(L){ return (L.country||"US") === c && !L.sent && (!only || urgentOf(L).length); });
+}
+function claudeText(){
+  var list = shownLeads(), MAX = 30, out = [];
+  var cn = ({US:"USA",PK:"Pakistan",GB:"UK",IE:"Ireland",AU:"Australia",AE:"UAE",SA:"Saudi Arabia"})[selC()] || (WORLD[selC()] && WORLD[selC()][0]) || selC();
+  out.push("MapPeak Lead Finder: " + Math.min(list.length, MAX) + " businesses (" + clip(cn, 40) + ", " + today() + (list.length > MAX ? ", first " + MAX + " of " + list.length : "") + ").");
+  out.push("Claude: sort each into SEND / CHECK FIRST / SKIP, and write the message for the SEND ones.");
+  list.slice(0, MAX).forEach(function(L, i){
+    var urg = urgentOf(L), a = L.adTags || {}, m = L.manual || {}, pk = phoneKind(L);
+    var flags = [];
+    if(urg.length) flags.push("URGENT");
+    if(L.auto) flags.push("auto search");
+    if(L.urd) flags.push("maybe Urdu-speaking");
+    if(a.g) flags.push("Google Ads tag"); if(a.m) flags.push("Meta pixel"); if(!a.g && !a.m && a.gtm) flags.push("maybe ads (Tag Manager)"); if(!a.g && !a.m && !a.gtm && a.cmp) flags.push("cookie banner (ads unknown)");
+    if(m.ads === "yes") flags.push("Facebook ads running (checked by hand)");
+    var big = bigOf(L); if(big.length) flags.push("BIG COMPANY? " + big.join("; "));
+    var man = [];
+    if(m.unclaimed) man.push("claim button visible: " + m.unclaimed);
+    if(m.replies) man.push("owner replies to reviews: " + m.replies);
+    if(m.posts) man.push("post in last month: " + m.posts);
+    if(m.phone) man.push("website phone differs: " + m.phone);
+    if(m.fb) man.push("Facebook post in 3 months: " + m.fb);
+    out.push("");
+    out.push("#" + (i + 1) + " " + clip(L.name, 80) + " | " + clip(cityOf(L), 40));
+    out.push("Type: " + clip(L.cat || "-", 50) + " | Rating " + (L.rating == null ? "none" : L.rating) + " (" + L.reviews + " reviews) | Strength " + scoreOf(L));
+    out.push("Phone: " + (L.intl || L.phone ? clip(L.intl || L.phone, 30) + (pk ? " (" + pk + ")" : "") : "none") + " | Website: " + (L.website ? clip(hostOf(L.website) + (CHAINPATH_RE.test(L.website) ? " (branch page)" : ""), 60) : "none"));
+    out.push("Address: " + clip(L.address, 140));
+    if(flags.length) out.push("Flags: " + flags.join(", "));
+    out.push("Issues: " + (allIssues(L).map(function(k){ return (URGENT.indexOf(k) >= 0 ? "*" : "") + CHECKS[k][2]; }).join("; ") || "none found"));
+    if(L.comp) out.push("Competitor: " + clip(L.comp.n, 60) + ", " + L.comp.r + " reviews" + (L.comp.rt ? ", " + L.comp.rt + " stars" : "") + (L.comp.above ? " (ranks above them)" : ""));
+    if(man.length) out.push("Checked by hand: " + man.join("; "));
+    if(/^https:\/\//.test(L.maps || "")) out.push("Maps: " + clip(L.maps, 200));
+  });
+  return out.join("\n");
+}
 function gAdsUrl(L){
   var d = domainOf(L.website), rc = /^[A-Z]{2}$/.test(L.country||"") && L.country !== "XX" ? L.country : "anywhere";
   return d ? "https://adstransparency.google.com/?region=" + rc + "&domain=" + encodeURIComponent(d) : "";
@@ -953,7 +1029,7 @@ function render(keepOrder){
       '<div style="flex:1;min-width:0"><div class="name">'+esc(L.name)+'</div>'+
       '<div class="meta en" style="text-align:left">'+esc(L.address)+'</div>'+
       '<div class="stat" style="margin-top:4px"><span class="pill">ریٹنگ <b class="en">'+(L.rating==null?"-":L.rating)+'</b></span>'+
-      '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+(L.auto ? '<span class="pill">خودکار</span>' : '')+adTagBadge(L)+mailBadge(L)+speedBadge(L)+riskBadge(L)+lawBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
+      '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+(L.auto ? '<span class="pill">خودکار</span>' : '')+bigBadge(L)+adTagBadge(L)+mailBadge(L)+speedBadge(L)+riskBadge(L)+lawBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
       '<div class="body"><b>غلطیاں:</b><ul>'+urIssues+'</ul>'+
       '<div class="en" style="text-align:left;font-size:15px">'+(L.phone?esc(L.phone)+" &middot; ":"")+(safeUrl(L.website)?'<a target="_blank" rel="noopener" href="'+esc(safeUrl(L.website))+'">Website</a>':'No website')+'</div>'+
       compLine(L)+aiLine(L)+
@@ -2356,6 +2432,11 @@ $("adsAll").onclick = function(){
   var trade = ($("trade").value||"").trim(), town = (($("towns").value||"").split("\n")[0]||"").replace(/,.*$/,"").trim();
   var c = selC();
   window.open("https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=" + c + "&search_type=keyword_unordered&q=" + encodeURIComponent((trade + " " + town).trim()), "_blank");
+};
+$("copyAll").onclick = function(){
+  if(!leads.length){ toast("پہلے تلاش کریں"); return; }
+  if(!shownLeads().length){ toast("سکرین پر کوئی کاروبار نہیں، فوری والا نشان ہٹا کر دیکھیں"); return; }
+  copy(claudeText());
 };
 $("csv").onclick = function(){
   if(!leads.length){ toast("پہلے تلاش کریں"); return; }
