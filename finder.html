@@ -197,6 +197,13 @@ a{color:var(--brand)}
       <datalist id="worldList"></datalist>
     </div>
     <p class="hint" id="lawHint" style="background:#fff8e6;border:1px solid #f1d79a;border-radius:10px;padding:8px 10px"></p>
+    <div id="autoBox" style="background:#ecfdf3;border:1px solid #a6e3c3;border-radius:12px;padding:10px 12px;margin:10px 0">
+    <label style="margin-top:0">خودکار تلاش: ملک چنیں، ٹول خود شہر اور کام چن کر ڈھونڈے گا</label>
+    <select id="autoC"></select>
+    <div class="btns"><button class="btn" id="autoGo">خودکار تلاش شروع کریں</button></div>
+    <p class="hint" id="autoHint">ہر بار زیادہ سے زیادہ آٹھ تلاشیں، روزانہ والی حد کے اندر۔ ٹول یاد رکھتا ہے کہ کہاں تک پہنچا، اگلی بار وہیں سے آگے۔ ویب سائٹ کی جانچ میں دس بیس منٹ لگ سکتے ہیں، اتنی دیر ایپ کھلی رکھیں۔ ہاتھ والی تلاش نیچے ویسی ہی ہے۔</p>
+    <p class="hint" id="autoLog"></p>
+    </div>
     <div style="background:#eef4ff;border:1px solid #c9dafc;border-radius:12px;padding:10px 12px;margin:10px 0">
     <label style="margin-top:0">نام سے تلاش: جیسے گوگل پر لکھتے ہیں، دکان کا نام اور شہر لکھیں</label>
     <input id="byName" class="en" placeholder="Alhamdulillah Solar Jampur">
@@ -797,18 +804,27 @@ async function speedCheck(L){
    show that the owner has paid for ads (not proof that ads are running today). No extra search, no extra credit. */
 var GADS_RE = /googleadservices\.com\/pagead\/conversion|googleads\.g\.doubleclick\.net\/pagead\/(viewthroughconversion|conversion)|google\.com\/pagead\/1p-(conversion|user-list)|[?&](id|tid)=AW-\d|fls\.doubleclick\.net|ad\.doubleclick\.net\/activity/i;
 var META_RE = /connect\.facebook\.net\/[^?#]*fbevents\.js|facebook\.com\/tr[\/?]/i;
+/* Google Tag Manager container: the owner runs marketing/ads through it (in Europe it often loads even before cookie consent) */
+var GTM_RE = /googletagmanager\.com\/gtm\.js\?id=GTM-/i;
+/* cookie-consent tools: ad codes wait for "accept", so the speed test can't see them */
+var CMP_RE = /cookiebot\.com|cookielaw\.org|onetrust\.com|didomi\.io|usercentrics\.eu|iubenda\.com|cookieyes\.com|cmp\.quantcast\.com|consensu\.org|trustarc\.com|axeptio\.(eu|com)|privacy-mgmt\.com|sp-prod\.net|consentmanager\.net|termly\.io|cookie-script\.com|cookiefirst\.com/i;
 function adTagsOf(lr){
   var nr = lr && lr.audits && lr.audits["network-requests"];
   var items = (nr && nr.details && nr.details.items) || [];
   if(!items.length) return undefined;   // the test gave no file list: unknown, not "no ads"
-  var g = false, m = false;
-  items.forEach(function(it){ var u = String(it.url||""); if(GADS_RE.test(u)) g = true; if(META_RE.test(u)) m = true; });
-  return { g:g, m:m };
+  var g = false, m = false, gtm = false, cmp = false;
+  items.forEach(function(it){ var u = String(it.url||""); if(GADS_RE.test(u)) g = true; if(META_RE.test(u)) m = true; if(GTM_RE.test(u)) gtm = true; if(CMP_RE.test(u)) cmp = true; });
+  return { g:g, m:m, gtm:gtm, cmp:cmp };
 }
+/* Europe, Turkey and the UK: public ad libraries there must list every ad, so the two "see ads" buttons are the surest check */
+var ADLIB_STRONG = ["GB","IE","NL","BE","FR","ES","PT","IT","SE","NO","DK","FI","PL","GR","CZ","RO","HU","AT","DE","CH","TR"];
 function adTagBadge(L){
-  if(!L.adTags) return "";
-  return (L.adTags.g ? '<span class="pill" style="background:var(--good);color:#fff">💰 گوگل اشتہار کا کوڈ</span>' : '') +
-    (L.adTags.m ? '<span class="pill" style="background:var(--good);color:#fff">💰 فیس بک اشتہار کا کوڈ</span>' : '');
+  var a = L.adTags; if(!a) return "";
+  if(a.g || a.m) return (a.g ? '<span class="pill" style="background:var(--good);color:#fff">💰 گوگل اشتہار کا کوڈ</span>' : '') +
+    (a.m ? '<span class="pill" style="background:var(--good);color:#fff">💰 فیس بک اشتہار کا کوڈ</span>' : '');
+  if(a.gtm) return '<span class="pill" style="background:#fde68a;color:#7a4b00">🟡 شاید اشتہار (مارکیٹنگ کوڈ)</span>';
+  if(a.cmp) return '<span class="pill" style="color:var(--warn)">کوکی خانہ ہے، اشتہار نیچے کے بٹن سے خود دیکھیں</span>';
+  return "";
 }
 function gAdsUrl(L){
   var d = domainOf(L.website), rc = /^[A-Z]{2}$/.test(L.country||"") && L.country !== "XX" ? L.country : "anywhere";
@@ -918,6 +934,7 @@ function render(keepOrder){
     if(L.manual && L.manual.ads === "yes") return -1000;
     if(L.adTags && L.adTags.g) return -900;
     if(L.adTags && L.adTags.m) return -700;
+    if(L.adTags && L.adTags.gtm) return -400;   // "maybe ads" (marketing code)
     return 0;
   };
   var urg = function(L){ return urgentOf(L).length ? -500 : 0; };
@@ -936,7 +953,7 @@ function render(keepOrder){
       '<div style="flex:1;min-width:0"><div class="name">'+esc(L.name)+'</div>'+
       '<div class="meta en" style="text-align:left">'+esc(L.address)+'</div>'+
       '<div class="stat" style="margin-top:4px"><span class="pill">ریٹنگ <b class="en">'+(L.rating==null?"-":L.rating)+'</b></span>'+
-      '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+adTagBadge(L)+mailBadge(L)+speedBadge(L)+riskBadge(L)+lawBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
+      '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+(L.auto ? '<span class="pill">خودکار</span>' : '')+adTagBadge(L)+mailBadge(L)+speedBadge(L)+riskBadge(L)+lawBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
       '<div class="body"><b>غلطیاں:</b><ul>'+urIssues+'</ul>'+
       '<div class="en" style="text-align:left;font-size:15px">'+(L.phone?esc(L.phone)+" &middot; ":"")+(safeUrl(L.website)?'<a target="_blank" rel="noopener" href="'+esc(safeUrl(L.website))+'">Website</a>':'No website')+'</div>'+
       compLine(L)+aiLine(L)+
@@ -957,8 +974,8 @@ function render(keepOrder){
       (L.maps?'<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(L.maps)+'">گوگل میپس پر کھولیں</a>':'')+
       '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(gUrl(L))+'">گوگل پر تلاش</a>'+
       '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(fbUrl(L))+'">فیس بک پر تلاش</a>'+
-      '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(adsUrl(L))+'">فیس بک اشتہار دیکھیں</a>'+
-      (gAdsUrl(L) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(gAdsUrl(L))+'">گوگل اشتہار دیکھیں</a>' : '')+
+      '<a class="'+(ADLIB_STRONG.indexOf(L.country) >= 0 ? 'btn' : 'btn2')+' btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(adsUrl(L))+'">فیس بک اشتہار دیکھیں</a>'+
+      (gAdsUrl(L) ? '<a class="'+(ADLIB_STRONG.indexOf(L.country) >= 0 ? 'btn' : 'btn2')+' btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(gAdsUrl(L))+'">گوگل اشتہار دیکھیں</a>' : '')+
       (isWA(L.country)
         ? (waNum(L.phone, L.country, L.intl) ? '<a class="btn btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
           (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="arab">عربی پیغام کاپی کریں</button>' : '')+
@@ -1235,7 +1252,7 @@ async function search(text, key, token){
 
 var running = false;
 $("go").onclick = async function(){
-  if(running) return;
+  if(running){ toast("پہلے والی تلاش ختم ہونے دیں"); return; }
   var key = ($("apiKey").value||"").trim();
   if(!key){ $("setBox").open = true; log("پہلے Settings میں Google Key لکھ کر Save کریں۔"); return; }
   var f = { maxRating: parseFloat($("maxRating").value)||5, maxReviews: parseInt($("maxReviews").value,10)||0,
@@ -1286,9 +1303,112 @@ $("go").onclick = async function(){
   running = false; $("go").textContent = "تلاش شروع کریں";
 };
 
+/* ---------- auto search: the tool picks the next city and trade itself (mid-size cities, trades where a missed call costs money).
+   Uses the same daily limit, the same "already seen" memory and the same checks as the manual search; it never sends anything. ---------- */
+var TR_WEST = ["plumber","roofing contractor","HVAC contractor","locksmith","garage door repair","towing service","auto repair shop","electrician","water damage restoration","pest control"];
+var TR_GULF = ["Pakistani restaurant","Pakistani grocery store","car repair workshop","cargo services","tailor shop","barber shop","mobile phone shop","building materials shop"];
+var AUTO = {
+  US:{ g:1, t:TR_WEST, c:["Abilene, TX","San Angelo, TX","Waco, TX","Tyler, TX","Midland, TX","Odessa, TX","Lubbock, TX","Amarillo, TX","Killeen, TX","Beaumont, TX","McAllen, TX","Wichita Falls, TX","Shreveport, LA","Lafayette, LA","Lake Charles, LA","Jackson, MS","Gulfport, MS","Mobile, AL","Montgomery, AL","Huntsville, AL","Tuscaloosa, AL","Chattanooga, TN","Knoxville, TN","Clarksville, TN","Macon, GA","Augusta, GA","Columbus, GA","Savannah, GA","Tallahassee, FL","Pensacola, FL","Gainesville, FL","Ocala, FL","Lakeland, FL","Port St. Lucie, FL","Fort Myers, FL","Charleston, SC","Columbia, SC","Greenville, SC","Wilmington, NC","Fayetteville, NC","Greensboro, NC","Asheville, NC","Roanoke, VA","Lynchburg, VA","Lexington, KY","Bowling Green, KY","Evansville, IN","Fort Wayne, IN","South Bend, IN","Dayton, OH","Toledo, OH","Akron, OH","Canton, OH","Youngstown, OH","Erie, PA","Allentown, PA","Reading, PA","Scranton, PA","Lancaster, PA","Syracuse, NY","Rochester, NY","Albany, NY","Springfield, MA","Worcester, MA","Manchester, NH","Portland, ME","Grand Rapids, MI","Lansing, MI","Kalamazoo, MI","Flint, MI","Peoria, IL","Rockford, IL","Springfield, IL","Madison, WI","Green Bay, WI","Cedar Rapids, IA","Davenport, IA","Des Moines, IA","Sioux Falls, SD","Fargo, ND","Lincoln, NE","Topeka, KS","Wichita, KS","Springfield, MO","Columbia, MO","Joplin, MO","Fayetteville, AR","Fort Smith, AR","Tulsa, OK","Lawton, OK","Pueblo, CO","Colorado Springs, CO","Fort Collins, CO","Boise, ID","Billings, MT","Casper, WY","Ogden, UT","Provo, UT","Albuquerque, NM","Las Cruces, NM","Tucson, AZ","Yuma, AZ","Prescott, AZ","Bakersfield, CA","Fresno, CA","Modesto, CA","Stockton, CA","Visalia, CA","Redding, CA","Santa Rosa, CA","Reno, NV","Medford, OR","Eugene, OR","Salem, OR","Spokane, WA","Yakima, WA","Kennewick, WA","Bellingham, WA"] },
+  CA:{ g:1, t:TR_WEST, c:["Hamilton, ON","London, ON","Kitchener, ON","Windsor, ON","Barrie, ON","Oshawa, ON","Kingston, ON","Guelph, ON","Sudbury, ON","Thunder Bay, ON","Saskatoon, SK","Regina, SK","Kelowna, BC","Kamloops, BC","Nanaimo, BC","Abbotsford, BC","Red Deer, AB","Lethbridge, AB","Moncton, NB","Halifax, NS"] },
+  GB:{ g:1, t:TR_WEST, c:["Leicester","Coventry","Derby","Nottingham","Stoke-on-Trent","Wolverhampton","Northampton","Peterborough","Norwich","Ipswich","Swindon","Reading","Oxford","Cambridge","Milton Keynes","Luton","Southampton","Portsmouth","Bournemouth","Exeter","Plymouth","Gloucester","Cheltenham","Worcester","Shrewsbury","Telford","Chester","Warrington","Preston","Blackpool","Bolton","Wigan","Stockport","Huddersfield","Bradford","Wakefield","Doncaster","Rotherham","Hull","York","Middlesbrough","Sunderland","Carlisle","Lincoln","Cardiff","Swansea","Newport","Aberdeen","Dundee","Inverness"] },
+  IE:{ g:1, t:TR_WEST, c:["Cork","Limerick","Galway","Waterford","Drogheda","Dundalk","Kilkenny","Athlone","Sligo","Tralee","Ennis","Carlow","Navan","Wexford","Letterkenny"] },
+  AU:{ g:1, t:TR_WEST, c:["Geelong","Toowoomba","Ballarat","Bendigo","Townsville","Cairns","Mackay","Rockhampton","Bundaberg","Wollongong","Newcastle","Albury","Wagga Wagga","Launceston","Hobart","Darwin","Mandurah","Bunbury","Sunshine Coast","Gold Coast","Shepparton","Mildura","Orange","Dubbo","Tamworth"] },
+  NZ:{ g:1, t:TR_WEST, c:["Hamilton","Tauranga","Napier","Palmerston North","Nelson","Rotorua","New Plymouth","Whangarei","Invercargill","Dunedin","Whanganui","Gisborne"] },
+  AE:{ g:2, t:TR_GULF, c:["Sharjah","Ajman","Al Ain","Ras Al Khaimah","Fujairah","Umm Al Quwain","Deira, Dubai","Al Quoz, Dubai","Mussafah, Abu Dhabi","Khor Fakkan"] },
+  SA:{ g:2, t:TR_GULF, c:["Riyadh","Jeddah","Dammam","Al Khobar","Mecca","Medina","Taif","Jubail","Yanbu","Abha","Khamis Mushait","Tabuk","Buraidah","Hail","Al Ahsa"] },
+  QA:{ g:2, t:TR_GULF, c:["Doha","Al Wakrah","Al Khor","Al Rayyan"] },
+  KW:{ g:2, t:TR_GULF, c:["Kuwait City","Farwaniya","Hawalli","Salmiya","Jahra","Fahaheel"] },
+  BH:{ g:2, t:TR_GULF, c:["Manama","Muharraq","Riffa","Hamad Town"] },
+  OM:{ g:2, t:TR_GULF, c:["Muscat","Ruwi","Sohar","Salalah","Nizwa","Sur","Barka"] },
+  NL:{ g:3, t:TR_WEST, c:["Eindhoven","Tilburg","Breda","Nijmegen","Arnhem","Apeldoorn","Enschede","Zwolle","Groningen","Leeuwarden","Amersfoort","'s-Hertogenbosch","Maastricht","Dordrecht","Leiden","Haarlem","Almere","Zaandam"] },
+  BE:{ g:3, t:TR_WEST, c:["Antwerp","Ghent","Bruges","Leuven","Mechelen","Hasselt","Kortrijk","Aalst","Namur","Liege","Charleroi","Mons"] },
+  SE:{ g:3, t:TR_WEST, c:["Uppsala","Vasteras","Orebro","Linkoping","Helsingborg","Jonkoping","Norrkoping","Lund","Umea","Gavle","Boras","Sundsvall"] },
+  NO:{ g:3, t:TR_WEST, c:["Bergen","Trondheim","Stavanger","Drammen","Fredrikstad","Kristiansand","Sandnes","Tromso","Sarpsborg","Skien","Alesund","Bodo"] },
+  DK:{ g:3, t:TR_WEST, c:["Aarhus","Odense","Aalborg","Esbjerg","Randers","Kolding","Horsens","Vejle","Roskilde","Herning"] },
+  FI:{ g:3, t:TR_WEST, c:["Tampere","Turku","Oulu","Jyvaskyla","Lahti","Kuopio","Pori","Joensuu","Lappeenranta","Vaasa"] },
+  FR:{ g:3, t:TR_WEST, c:["Lyon","Toulouse","Nantes","Montpellier","Bordeaux","Lille","Rennes","Reims","Le Havre","Toulon","Grenoble","Dijon","Angers","Nimes","Clermont-Ferrand","Le Mans","Tours","Limoges","Amiens","Metz"] },
+  IT:{ g:3, t:TR_WEST, c:["Verona","Padua","Brescia","Parma","Modena","Bergamo","Vicenza","Trento","Bolzano","Perugia","Ancona","Pescara","Bari","Lecce"] },
+  ES:{ g:3, t:TR_WEST, c:["Valencia","Zaragoza","Malaga","Murcia","Alicante","Valladolid","Vigo","Gijon","Cordoba","Granada","Bilbao","Pamplona","Santander","Castellon"] },
+  PT:{ g:3, t:TR_WEST, c:["Porto","Braga","Coimbra","Aveiro","Faro","Leiria","Setubal","Viseu","Funchal","Evora"] },
+  SG:{ g:4, t:TR_WEST, c:["Jurong","Tampines","Woodlands","Ang Mo Kio","Bedok","Yishun","Toa Payoh","Geylang","Hougang","Bukit Batok"] },
+  MY:{ g:4, t:TR_WEST, c:["Johor Bahru","Ipoh","George Town, Penang","Kuching","Kota Kinabalu","Seremban","Malacca","Shah Alam","Petaling Jaya","Kuantan"] },
+  JP:{ g:4, t:TR_WEST, c:["Sapporo","Sendai","Hiroshima","Fukuoka","Kumamoto","Okayama","Niigata","Shizuoka","Kanazawa","Nagasaki"] },
+  KR:{ g:4, t:TR_WEST, c:["Busan","Daegu","Daejeon","Gwangju","Ulsan","Suwon","Changwon","Cheongju","Jeonju","Pohang"] },
+  ID:{ g:5, t:TR_WEST, c:["Bandung","Surabaya","Semarang","Medan","Makassar","Yogyakarta","Denpasar","Malang"] },
+  PH:{ g:5, t:TR_WEST, c:["Cebu City","Davao City","Iloilo City","Bacolod","Cagayan de Oro","Baguio","Angeles City","Batangas City"] },
+  TR:{ g:5, t:TR_WEST, c:["Bursa","Antalya","Konya","Gaziantep","Kayseri","Eskisehir","Mersin","Samsun","Denizli","Trabzon","Izmir","Adana"] }
+};
+var AUTO_GROUPS = { 1:"سب سے زیادہ کمائی، انگریزی", 2:"خلیج، واٹس ایپ", 3:"یورپ، ای میل ان کی زبان میں", 4:"ایشیا", 5:"کم ترجیح" };
+var AUTO_UR = { US:"امریکہ", GB:"برطانیہ", IE:"آئرلینڈ", AU:"آسٹریلیا", AE:"امارات", SA:"سعودی عرب" };
+var AUTO_PER_RUN = 8;
+function autoName(c){ return AUTO_UR[c] || (WORLD[c] ? WORLD[c][1] : c); }
+(function(){   // fill the country list, grouped best first (Germany, Austria, Switzerland are left out: cold sales email is not allowed there)
+  var sel = $("autoC");
+  [1,2,3,4,5].forEach(function(g){
+    var og = document.createElement("optgroup"); og.label = AUTO_GROUPS[g];
+    Object.keys(AUTO).filter(function(c){ return AUTO[c].g === g; }).forEach(function(c){ var o = document.createElement("option"); o.value = c; o.textContent = autoName(c); og.appendChild(o); });
+    sel.appendChild(og);
+  });
+  sel.value = store.get("mp_autoC", "US") in AUTO ? store.get("mp_autoC", "US") : "US";
+  sel.onchange = function(){ store.set("mp_autoC", sel.value); };
+})();
+function autoPos(){ try{ return JSON.parse(store.get("mp_autoPos","{}")) || {}; }catch(e){ return {}; } }
+function autoSay(t){ $("autoLog").textContent = t; }
+/* show this country in the results (the main country box drives which leads are shown) */
+function setMainCountry(code){
+  var sel = $("country"), has = [].some.call(sel.options, function(o){ return o.value === code; });
+  if(has) sel.value = code; else { sel.value = "XX"; $("otherC").value = WORLD[code] ? WORLD[code][0] : code; store.set("mp_otherC", $("otherC").value); }
+  applyCountry(true);
+}
+$("autoGo").onclick = async function(){
+  if(running){ toast("پہلے والی تلاش ختم ہونے دیں"); return; }
+  var key = ($("apiKey").value||"").trim();
+  if(!key){ $("setBox").open = true; autoSay("پہلے Settings میں Google Key لکھ کر Save کریں۔"); return; }
+  var code = $("autoC").value, plan = AUTO[code]; if(!plan) return;
+  var left = (parseInt($("dayLimit").value,10) || 1) - getCount();
+  if(left <= 0){ autoSay("آج کی روزانہ حد پوری ہو گئی۔ کل دوبارہ چلائیں، ٹول وہیں سے آگے چلے گا۔"); return; }
+  setMainCountry(code);
+  var wa = isWA(code), f = { maxRating:4.6, maxReviews:150, minReviews: wa ? 3 : 5, needWeb: !wa };
+  $("urgentOnly").checked = !wa; store.set("mp_urgentOnly", wa ? "0" : "1");   // email countries: only urgent ones; WhatsApp countries: all (few urgent signs without a website)
+  var n = Math.min(left, AUTO_PER_RUN), pos = autoPos(), p = +pos[code] || 0;
+  var C = plan.c.length, T = plan.t.length, seen = seenIds(), ids = {}, added = 0, done = 0, places = [];
+  leads.forEach(function(L){ ids[L.id] = 1; });
+  running = true; $("autoGo").textContent = "خودکار تلاش جاری ہے...";
+  try{
+    for(var i=0; i<n; i++){
+      var city = plan.c[p % C], trade = plan.t[Math.floor(p / C) % T];
+      autoSay("تلاش ہو رہی ہے (" + (i+1) + "/" + n + "): " + trade + " · " + city);
+      var data = await search(trade + " in " + city + townSuffix(code, city), key, null);
+      addCount(); done++; p++;
+      pos = autoPos(); pos[code] = Math.max(+pos[code] || 0, p); store.set("mp_autoPos", JSON.stringify(pos));
+      lastTrade = trade; places.push(city);
+      (data.places||[]).forEach(function(pl, pi){
+        addWatch(pl, city);
+        if(!pl.businessStatus || pl.businessStatus === "OPERATIONAL"){
+          (pool[city] = pool[city] || []).push({ id:pl.id, n:(pl.displayName&&pl.displayName.text)||"", r:pl.userRatingCount||0, rt:pl.rating||null,
+            t:pl.primaryType||"", c:(pl.primaryTypeDisplayName&&pl.primaryTypeDisplayName.text)||"" });
+        }
+        if(ids[pl.id] || seen.indexOf(pl.id) >= 0) return;
+        ids[pl.id] = 1;
+        if(wa && !(pl.internationalPhoneNumber || pl.nationalPhoneNumber)) return;   // WhatsApp countries need a phone number
+        if(!passes(pl, f)) return;
+        var L = toLead(pl, city, code); L.auto = true; L.mapsRank = pi + 1; L.mapsQ = trade + " in " + city;
+        leads.push(L); added++;
+      });
+      render(true);
+    }
+    autoSay("خودکار تلاش مکمل: " + done + " تلاشیں، " + added + " نئے کاروبار۔ اب ویب سائٹ کی جانچ چل رہی ہے" + (wa ? "۔" : "، فوری مسئلے والے خود اوپر آ جائیں گے۔ ایپ کھلی رکھیں۔") +
+      " اگلی بار " + autoName(code) + " میں آگے کے شہر ہوں گے۔");
+  }catch(e){
+    autoSay((e && e.message && /[؀-ۿ]/.test(e.message)) ? e.message : "انٹرنیٹ یا گوگل سے رابطہ نہیں ہو سکا۔ دوبارہ کوشش کریں۔");
+  }
+  running = false; $("autoGo").textContent = "خودکار تلاش شروع کریں";
+  if(done){ assignComps(); saveWatch(); showWatch(); render(); checkMailAll(); }
+};
+
 /* look up one business by name: ignores filters and the already-contacted list */
 $("goName").onclick = async function(){
-  if(running) return;
+  if(running){ toast("پہلے والی تلاش ختم ہونے دیں"); return; }
   var key = ($("apiKey").value||"").trim();
   if(!key){ $("setBox").open = true; log("پہلے Settings میں Google Key لکھ کر Save کریں۔"); return; }
   var q = ($("byName").value||"").trim();
@@ -2253,7 +2373,7 @@ $("csv").onclick = function(){
 /* ---------- phone + computer sync through the user's own Google Apps Script ---------- */
 var SECRET_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey"];
 var mergeEpoch = 0;   // "forget seen businesses" time, so an old list on another device doesn't bring them back
-var SYNC_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey","mp_watch","mp_gone","mp_goneDel","mp_leads","mp_seenEpoch","mp_seen","mp_days","mp_follow","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myWA","mp_myIntroUr","mp_useSig"];
+var SYNC_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey","mp_watch","mp_gone","mp_goneDel","mp_leads","mp_seenEpoch","mp_seen","mp_days","mp_autoPos","mp_follow","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myWA","mp_myIntroUr","mp_useSig"];
 var syncApplying = false, syncTimer = null, syncBusy = false, syncAgain = false;
 function syncTouched(k){
   if(!SYNC_KEYS || syncApplying || SYNC_KEYS.indexOf(k) < 0) return;
@@ -2274,6 +2394,11 @@ function mergeKey(k, a, b){   // a = local, b = remote; returns the merged entry
     var u = a.t >= mergeEpoch ? arr(a.v) : [];
     (b.t >= mergeEpoch ? arr(b.v) : []).forEach(function(x){ if(u.indexOf(x) < 0) u.push(x); });
     return { v: JSON.stringify(u.slice(-3000)), t: Math.max(a.t, b.t) };
+  }
+  if(k === "mp_autoPos"){   // how far auto search got in each country: the furthest point wins, so no city is searched twice
+    var pa = {}, pb = {}; try{ pa = JSON.parse(a.v) || {}; }catch(e){} try{ pb = JSON.parse(b.v) || {}; }catch(e){}
+    Object.keys(pb).forEach(function(c){ pa[c] = Math.max(+pa[c] || 0, +pb[c] || 0); });
+    return { v: JSON.stringify(pa), t: Math.max(a.t, b.t) };
   }
   if(k === "mp_days"){   // per device, per day: keep the higher count
     var da = {}, db = {}; try{ da = JSON.parse(a.v) || {}; }catch(e){} try{ db = JSON.parse(b.v) || {}; }catch(e){}
