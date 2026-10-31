@@ -159,9 +159,9 @@ a{color:var(--brand)}
         <div><label>ملک</label><select id="mCountry"><option value="US">امریکہ</option><option value="GB">برطانیہ</option><option value="AU">آسٹریلیا</option><option value="IE">آئرلینڈ</option><option value="AE">امارات</option><option value="SA">سعودی عرب</option><option value="PK">پاکستان</option><option value="XX">کوئی اور</option></select></div>
         <div><label>کہاں سے ملا</label><select id="mSource"><option>Google Community</option><option>Google Maps Community</option><option>Reddit</option><option>Local Search Forum</option><option>Shopify Community</option><option>WhatsApp</option><option>Lead Finder</option><option>Referral</option><option>Other</option></select></div>
       </div>
-      <label>پہلا رابطہ کس دن کیا (ای میل یا پیغام)</label>
+      <label>پہلا رابطہ کس دن (ای میل یا پیغام)</label>
       <input id="mDate" type="date" class="en">
-      <p class="hint">آج کیا ہے تو ایسے ہی رہنے دیں۔ پہلے کیا تھا تو وہ دن چنیں، تاکہ Reminder صحیح دن آئے۔</p>
+      <p class="hint">آج کیا ہے تو ایسے ہی رہنے دیں۔ پہلے کیا تھا تو وہ دن چنیں۔ ای میل Schedule send سے آگے کے دن جائے گی تو وہ دن چنیں (اگلے سات دن تک)، تاکہ Reminder صحیح دن آئے۔</p>
       <label>پوسٹ کا لنک (اختیاری)</label>
       <input id="mLink" class="en" placeholder="https://www.reddit.com/r/GoogleMyBusiness/...">
       <label>رابطہ (فون، ای میل یا ریڈٹ کا نام)</label>
@@ -1646,16 +1646,35 @@ function renderFollow(){
     d.innerHTML = '<div class="body"><div class="name">' + esc(f.n) + '</div>' +
       '<div class="meta en" style="text-align:left">' + esc(f.town||"") + '</div>' +
       (isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج Reminder بھیجیں</span>'
-             : '<span class="pill">پہلا پیغام بھیجے ہوئے <b class="en">' + days + '</b> دن، Reminder <b class="en">' + left + '</b> دن بعد</span>') +
+             : (f.at > now
+                 ? '<span class="pill">ای میل Schedule ہے، <b class="en">' + Math.max(1, Math.round((new Date(f.at).setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0)) / 864e5)) + '</b> دن بعد جائے گی۔ Reminder <b class="en">' + left + '</b> دن بعد</span>'
+                 : '<span class="pill">پہلا پیغام بھیجے ہوئے <b class="en">' + days + '</b> دن، Reminder <b class="en">' + left + '</b> دن بعد</span>')) +
       '<div class="btns">' +
       (isWA(f.c) && waNum(f.phone, f.c) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone, f.c) + '">واٹس ایپ کھولیں</a>' : '') +
       (f.c !== "PK" && f.w ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.w) + '">Website</a>' : '') +
       '<button class="btn2 btn-sm" data-a="copy">Reminder کاپی کریں</button>' +
       '<button class="btn2 btn-sm" data-a="done">Reminder بھیج دی</button>' +
-      '<button class="btn2 btn-sm" data-a="reply">جواب آ گیا</button></div></div>';
+      '<button class="btn2 btn-sm" data-a="reply">جواب آ گیا</button>' +
+      '<button class="btn2 btn-sm" data-a="date">تاریخ بدلیں</button></div>' +
+      '<div data-a="datebox" style="display:none;margin-top:8px"><label style="margin-top:0">پہلا رابطہ کس دن</label>' +
+      '<input type="date" class="en"><div class="btns"><button class="btn btn-sm" style="width:auto" data-a="datesave">Save کریں</button></div></div></div>';
     d.querySelector('[data-a="copy"]').onclick = function(){ copy(followText(f)); };
     d.querySelector('[data-a="done"]').onclick = function(){ f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); renderFollow(); toast("نشان لگ گیا، اب اسے دوبارہ پیغام نہیں بھیجنا"); };
     d.querySelector('[data-a="reply"]').onclick = function(){ setStage(f, "replied"); toast("بہت اچھا! اب یہ گاہکوں کے سفر میں ہے"); };
+    (function(){   // change the first-contact day (for example an email scheduled for Monday)
+      var box = d.querySelector('[data-a="datebox"]'), inp = box.querySelector("input");
+      d.querySelector('[data-a="date"]').onclick = function(){
+        inp.value = localDay(f.at); inp.max = localDay(Date.now() + 7*864e5);
+        box.style.display = box.style.display === "none" ? "block" : "none";
+      };
+      d.querySelector('[data-a="datesave"]').onclick = function(){
+        var v = inp.value; if(!v) return;
+        var p = v.split("-"), t = new Date(+p[0], +p[1]-1, +p[2], 12, 0, 0).getTime();
+        if(!(t > 0)) return;
+        f.at = Math.min(t, Date.now() + 8*864e5); f.la = Date.now();
+        saveFollow(); renderFollow(); toast("تاریخ بدل گئی");
+      };
+    })();
     box.appendChild(d);
   });
   if(!list.length) box.innerHTML = '<p class="hint">ابھی کوئی Reminder نہیں۔ جب آپ کسی کاروبار پر "ای میل بھیج دی" یا "پیغام بھیج دیا" دبائیں گے، وہ یہاں آ جائے گا۔</p>';
@@ -1769,7 +1788,7 @@ function showDup(){
 }
 $("mName").oninput = showDup; $("mContact").oninput = showDup;
 function localDay(t){ var d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
-function resetMDate(){ $("mDate").value = localDay(Date.now()); $("mDate").max = localDay(Date.now()); }
+function resetMDate(){ $("mDate").value = localDay(Date.now()); $("mDate").max = localDay(Date.now() + 7*864e5); }   // scheduled emails go out on a later day
 resetMDate();
 /* country list in the manual form: the main countries plus every country the tool knows (so Gulf countries get WhatsApp + Arabic) */
 (function(){
@@ -1785,7 +1804,7 @@ $("mAdd").onclick = function(){
   if(dup && !confirm(dupText(dup) + "\n\nکیا پھر بھی نیا شامل کریں؟")) return;
   var st = $("mState").value, now = Date.now();
   var dv = $("mDate").value, at = now;
-  if(dv && dv !== localDay(now)){ var p = dv.split("-"); at = new Date(+p[0], +p[1]-1, +p[2], 12, 0, 0).getTime(); if(!(at < now)) at = now; }
+  if(dv && dv !== localDay(now)){ var p = dv.split("-"); at = new Date(+p[0], +p[1]-1, +p[2], 12, 0, 0).getTime(); if(!(at > 0)) at = now; at = Math.min(at, now + 8*864e5); }
   var f = { id: "m_" + now, n: n, c: $("mCountry").value, src: $("mSource").value, contact: ($("mContact").value||"").trim(),
     note: ($("mNote").value||"").trim(), link: ($("mLink").value||"").trim(), town: "", at: at, la: now, state: st, manual: true };
   if(/^\+?[\d\s\-]{7,}$/.test(f.contact)) f.phone = f.contact;
