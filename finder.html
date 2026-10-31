@@ -374,7 +374,7 @@ var LAW = {
   GB:"برطانیہ: صرف کمپنیوں کو ای میل کریں (نام میں Ltd یا Limited ہو تو بہتر)، اکیلے کام کرنے والے شخص کو نہیں۔ ہر ای میل میں بند کرنے کا طریقہ ضروری۔ وہاں صبح نو بجے پاکستان میں {GB} ہوتے ہیں۔",
   IE:"آئرلینڈ: صرف کمپنیوں کو، کم تعداد میں، اور بند کرنے کے طریقے کے ساتھ۔ وہاں صبح نو بجے پاکستان میں {IE} ہوتے ہیں۔",
   AU:"آسٹریلیا: صرف وہ ای میل استعمال کریں جو ان کی اپنی ویب سائٹ یا گوگل پروفائل پر کھلے عام لکھی ہو، اور وہاں 'مارکیٹنگ ای میل نہ بھیجیں' نہ لکھا ہو۔ بات صرف ان کی گوگل پروفائل کی ہو۔ آپ کا نام اور بند کرنے کا طریقہ ضروری۔ وہاں صبح نو بجے پاکستان میں {AU} ہوتے ہیں (سڈنی اور میلبورن کے حساب سے)، اس لیے جی میل کا Schedule send استعمال کریں۔",
-  AE:"امارات: ایک ایک کر کے، ہاتھ سے، دن میں زیادہ سے زیادہ دس پیغام۔ کوئی لنک نہ بھیجیں۔ کوئی 'نہیں' کہے تو دوبارہ نہ لکھیں۔ وہاں چھٹی ہفتہ اور اتوار کو ہوتی ہے۔ بہترین وقت پاکستان کے وقت صبح گیارہ سے دوپہر تین بجے۔",
+  AE:"امارات: ایک ایک کر کے، ہاتھ سے، دن میں زیادہ سے زیادہ دس پیغام۔ کوئی لنک نہ بھیجیں۔ کوئی 'نہیں' کہے تو دوبارہ نہ لکھیں۔ وہاں چھٹی ہفتہ اور اتوار کو ہوتی ہے۔ بہترین وقت پاکستان کے وقت صبح گیارہ سے دوپہر تین بجے۔ ریسٹورنٹ کو شام پانچ بجے بھیجیں، وہاں دوپہر اور رات کے رش کے بیچ کا وقت ہوتا ہے۔",
   SA:"سعودی عرب: صرف کاروبار کے اپنے واٹس ایپ پر، ایک ایک کر کے، ہاتھ سے۔ عربی پیغام بہتر ہے۔ کوئی لنک نہ بھیجیں، کوئی 'نہیں' کہے تو دوبارہ نہ لکھیں۔ وہاں چھٹی جمعہ اور ہفتہ کو ہوتی ہے۔ بہترین وقت پاکستان کے وقت دوپہر بارہ سے شام سات بجے۔",
   PK:"پاکستان: پیغام میں کوئی لنک نہ بھیجیں، اور ایک ہی کاروبار کو دو سے زیادہ پیغام نہیں۔"
 };
@@ -544,7 +544,7 @@ function evaluate(p){
   if(!p.nationalPhoneNumber) issues.push("noPhone");
   if(!p.regularOpeningHours) issues.push("noHours");
   if(!p.photos || p.photos.length < 5) issues.push("fewPhotos");
-  if(p.reviews && p.reviews.length){
+  if(p.reviews && p.reviews.length && n <= p.reviews.length){   // Google sends at most 5 "most relevant" reviews, not the newest: only judge age when we have them all
     var latest = 0;
     p.reviews.forEach(function(rv){ var t = Date.parse(rv.publishTime||""); if(t>latest) latest=t; });
     if(latest && (Date.now()-latest) > 90*864e5) issues.push("stale");
@@ -560,7 +560,7 @@ function evaluate(p){
 }
 function allIssues(L){
   var m = L.manual || {};
-  var a = L.issues.slice();
+  var a = L.issues.filter(function(k){ return k !== "stale" || (L.reviews||0) <= 5; });   // older saved results: drop the unreliable "no new reviews" on busy listings
   if(L.parked){   // the domain is up for sale: website and email checks measured the sale page, so leave them out
     a.push("siteParked");
   }
@@ -736,7 +736,9 @@ async function expiryCheck(L){
       var ev = (j.events||[]).filter(function(e){ return /expiration/i.test(e.eventAction||""); })[0];
       if(ev){
         var t = Date.parse(ev.eventDate);
-        if(t && t - Date.now() < 60*864e5 && t > Date.now() - 30*864e5){ L.expiring = new Date(t).toISOString().slice(0,10); }
+        var ch = (j.events||[]).filter(function(e){ return /last changed|reregistration|renew/i.test(e.eventAction||""); }).map(function(e){ return Date.parse(e.eventDate); });
+        var renewed = ch.some(function(c){ return c && c > t - 400*864e5 && c < t - 330*864e5; });   // changed about a year before this expiry: renewed on time last year (auto-renew)
+        if(t && t - Date.now() < 60*864e5 && t > Date.now() - 30*864e5 && !renewed){ L.expiring = new Date(t).toISOString().slice(0,10); }
       }
       return;
     }catch(e){}
@@ -830,24 +832,31 @@ function adTagBadge(L){
 /* ---------- "big company?" hint: chains and group sites rarely buy from a one-person service ---------- */
 var BIGWORD_RE = /(group|holding|franchis|brands|hospitality|corporat|enterprises)/i;
 var CHAINPATH_RE = /\/(locations?|branches|branch|stores?|store-locator|outlets?)\/[^\/?#]+/i;
-var NAME_GENERIC = /^(the|and|of|restaurant|restaurants|cafe|cafeteria|grill|kitchen|food|foods|sweets|bakery|shop|store|stores|mart|market|supermarket|grocery|center|centre|services?|company|co|llc|inc|ltd|fzco|fze|est|trading|plumbing|plumber|plumbers|roofing|roofers?|electric|electrical|electrician|hvac|heating|cooling|air|locksmith|garage|door|doors|towing|tow|auto|repair|repairs|workshop|car|cars|pest|control|water|damage|cargo|tailor|tailors|tailoring|barber|barbershop|salon|mobile|phones?|building|materials|solar|energy|best|new|royal|golden|star|city|super|al|el|bin|khan|ali|ahmed|ahmad|muhammad|mohammed|mohammad|malik|pakistani|pakistan|lahori|karachi|desi|american|national|united|premier|quick|pro|express|smith|johnson)$/;
+var NAME_GENERIC = /^(the|and|of|restaurant|restaurants|cafe|cafeteria|grill|kitchen|food|foods|sweets|bakery|shop|store|stores|mart|market|supermarket|grocery|center|centre|services?|company|co|llc|inc|ltd|fzco|fze|est|trading|plumbing|plumber|plumbers|roofing|roofers?|electric|electrical|electrician|hvac|heating|cooling|air|locksmith|garage|door|doors|towing|tow|auto|repair|repairs|workshop|car|cars|pest|control|water|damage|cargo|tailor|tailors|tailoring|barber|barbershop|salon|mobile|phones?|building|materials|solar|energy|best|new|royal|golden|star|city|super|al|el|bin|khan|ali|ahmed|ahmad|muhammad|mohammed|mohammad|malik|pakistani|pakistan|lahore|lahori|karachi|peshawar|peshawari|quetta|multan|multani|islamabad|punjab|punjabi|sindh|sindhi|kashmir|kashmiri|khyber|hazara|hazarah|pathan|swat|hyderabadi|desi|darbar|palace|house|corner|hotel|cafe|cafeteria|biryani|karahi|tikka|kabab|kebab|kababs|tandoor|dhaba|nihari|sajji|haleem|chaudhary|chaudhry|madina|madinah|makkah|haram|noor|original|famous|special|public|family|darbaar|cuisine|cousine|restaurent|branch|first|second|third|مطعم|كافتيريا|مطاعم|american|national|united|premier|quick|pro|express|smith|johnson)$/;
 function nameKey(L){
   var addr = String(L.address||"").toLowerCase();
   var t = String(L.name||"").toLowerCase().split(/\s[-|–(]\s?|\(|\|/)[0].split(/[^a-z0-9؀-ۿ]+/).filter(function(w){
     return w.length >= 4 && !NAME_GENERIC.test(w) && addr.indexOf(w) < 0; });
   return t[0] || "";
 }
+var BIGIDX = null;   // counts of websites and name words across all results; rebuilt on every render / copy
+function bigIdx(){
+  if(BIGIDX) return BIGIDX;
+  var dc = {}, kc = {};
+  leads.forEach(function(o){ var d = domainOf(o.website), k = nameKey(o); if(d) dc[d] = (dc[d]||0) + 1; if(k) kc[k] = (kc[k]||0) + 1; });
+  return (BIGIDX = { d:dc, k:kc });
+}
 function bigOf(L){
-  var why = [], d = domainOf(L.website);
+  var why = [], d = domainOf(L.website), ix = bigIdx();
   if(d && !FREEHOST.test(hostOf(L.website))){
-    var same = leads.filter(function(o){ return o.id !== L.id && domainOf(o.website) === d; }).length;
+    var same = (ix.d[d]||1) - 1;
     if(same) why.push("same website as " + same + " other result" + (same > 1 ? "s" : ""));
     var label = d.split(".")[0];
     if(BIGWORD_RE.test(label) && !BIGWORD_RE.test(L.name||"")) why.push("website is a company/group site (" + d + ")");
     if(CHAINPATH_RE.test(L.website)) why.push("website link is one branch page of a bigger site");
   }
   var k = nameKey(L);
-  if(k){ var twin = leads.filter(function(o){ return o.id !== L.id && nameKey(o) === k; }).length;
+  if(k){ var twin = (ix.k[k]||1) - 1;
     if(twin) why.push("same name as " + twin + " other result" + (twin > 1 ? "s" : "") + " (branches?)"); }
   return why;
 }
@@ -1014,7 +1023,8 @@ function render(keepOrder){
     return 0;
   };
   var urg = function(L){ return urgentOf(L).length ? -500 : 0; };
-  if(!keepOrder) leads.sort(function(a,b){ return (adsFirst(a) + urg(a) + a.score) - (adsFirst(b) + urg(b) + b.score); });
+  BIGIDX = null; var bigM = {}; leads.forEach(function(L){ bigM[L.id] = bigOf(L).length ? 2000 : 0; });   // chains / group sites: shown last, they have their own marketing people
+  if(!keepOrder) leads.sort(function(a,b){ return (bigM[a.id] + adsFirst(a) + urg(a) + a.score) - (bigM[b.id] + adsFirst(b) + urg(b) + b.score); });
   var curC = selC();
   $("foundCount").textContent = leads.filter(function(L){ return (L.country||"US") === curC; }).length;
   var box = $("results"); box.innerHTML = "";
@@ -1433,8 +1443,9 @@ function autoSay(t){ $("autoLog").textContent = t; }
 /* show this country in the results (the main country box drives which leads are shown) */
 function setMainCountry(code){
   var sel = $("country"), has = [].some.call(sel.options, function(o){ return o.value === code; });
+  var before = selC();
   if(has) sel.value = code; else { sel.value = "XX"; $("otherC").value = WORLD[code] ? WORLD[code][0] : code; store.set("mp_otherC", $("otherC").value); }
-  applyCountry(true);
+  applyCountry(selC() === before);   // a new country gets its own filters (e.g. no "website only" for WhatsApp countries); same country keeps what he typed
 }
 $("autoGo").onclick = async function(){
   if(running){ toast("پہلے والی تلاش ختم ہونے دیں"); return; }
@@ -2435,6 +2446,7 @@ $("adsAll").onclick = function(){
 };
 $("copyAll").onclick = function(){
   if(!leads.length){ toast("پہلے تلاش کریں"); return; }
+  BIGIDX = null;
   if(!shownLeads().length){ toast("سکرین پر کوئی کاروبار نہیں، فوری والا نشان ہٹا کر دیکھیں"); return; }
   copy(claudeText());
 };
