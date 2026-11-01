@@ -888,9 +888,24 @@ function phoneKind(L){
 }
 /* ---------- all shown leads as one plain-text block to paste to Claude ---------- */
 function clip(s, n){ return String(s == null ? "" : s).replace(/[\r\n\t\u2028\u2029]+/g, " ").replace(/\s{2,}/g, " ").trim().slice(0, n || 120); }
-function shownLeads(){
+/* the screen shows "today's best 10": already sorted best first, messaged ones left out; the rest one tap away */
+var TOP_N = 10, showAllLeads = false;
+function visibleLeads(){
   var c = selC(), only = $("urgentOnly").checked;
-  return leads.filter(function(L){ return (L.country||"US") === c && !L.sent && (!only || urgentOf(L).length); });
+  var vis = leads.filter(function(L){ return (L.country||"US") === c && (!only || urgentOf(L).length); });
+  if(showAllLeads) return { list: vis, hidden: 0 };
+  var top = vis.filter(function(L){ return !L.sent; }).slice(0, TOP_N);
+  return { list: top, hidden: vis.length - top.length };
+}
+function shownLeads(){ return visibleLeads().list.filter(function(L){ return !L.sent; }); }
+/* how well a lead fits a one-person service: mobile number, one shop, Urdu, a clear gap to fix (lower = better) */
+function fitOf(L){
+  var f = 0, pk = phoneKind(L);
+  if(isWA(L.country) && (pk === "landline" || pk === "no phone")) f += 1500;
+  if(isGulf(L.country) && !L.urd) f += 300;
+  var gap = (L.rating != null && L.rating < 4) || (L.comp && L.comp.r >= 5 * Math.max(L.reviews, 1) && L.reviews < 50);
+  if(gap) f -= 300;
+  return f;
 }
 function claudeText(){
   var list = shownLeads(), MAX = 30, out = [];
@@ -1038,14 +1053,14 @@ function render(keepOrder){
   };
   var urg = function(L){ return urgentOf(L).length ? -500 : 0; };
   BIGIDX = null; var bigM = {}; leads.forEach(function(L){ bigM[L.id] = bigOf(L).length ? 2000 : 0; });   // chains / group sites: shown last, they have their own marketing people
-  if(!keepOrder) leads.sort(function(a,b){ return (bigM[a.id] + adsFirst(a) + urg(a) + a.score) - (bigM[b.id] + adsFirst(b) + urg(b) + b.score); });
+  if(!keepOrder) leads.sort(function(a,b){ return (bigM[a.id] + fitOf(a) + adsFirst(a) + urg(a) + a.score) - (bigM[b.id] + fitOf(b) + adsFirst(b) + urg(b) + b.score); });
   var curC = selC();
   $("foundCount").textContent = leads.filter(function(L){ return (L.country||"US") === curC; }).length;
   var box = $("results"); box.innerHTML = "";
   var onlyUrgent = $("urgentOnly").checked;
+  BIGIDX = null; var VIS = visibleLeads(), visSet = {}; VIS.list.forEach(function(L){ visSet[L.id] = 1; });
   leads.forEach(function(L, idx){
-    if((L.country||"US") !== curC) return;
-    if(onlyUrgent && !urgentOf(L).length) return;
+    if(!visSet[L.id]) return;
     var d = document.createElement("div"); d.className = "lead";
     var urIssues = allIssues(L).map(function(k){ return "<li>"+CHECKS[k][1]+"</li>"; }).join("") || "<li>کوئی بڑی غلطی نہیں ملی</li>";
     d.innerHTML =
@@ -1104,6 +1119,13 @@ function render(keepOrder){
     if(L.sent){ var sb = d.querySelector('[data-a="sent"]'); sb.textContent = isWA(L.country) ? "پیغام جا چکا" : "ای میل بھیجی جا چکی"; sb.style.background = "var(--good)"; sb.style.color = "#fff"; }
     box.appendChild(d);
   });
+  if(VIS.hidden > 0 || showAllLeads){
+    var more = document.createElement("div"); more.className = "btns"; more.style.justifyContent = "center";
+    more.innerHTML = showAllLeads ? '<button class="btn2 btn-sm" id="showTop">صرف بہترین دس دکھائیں</button>'
+      : '<p class="hint" style="width:100%;text-align:center;margin:0">یہ آج کے بہترین <b class="en">' + VIS.list.length + '</b> ہیں۔ پیغام بھیجتے جائیں، کل اگلے آ جائیں گے۔</p><button class="btn2 btn-sm" id="showAll">باقی بھی دکھائیں (<span class="en">' + VIS.hidden + '</span>)</button>';
+    box.appendChild(more);
+    var sb = more.querySelector("button"); sb.onclick = function(){ showAllLeads = !showAllLeads; render(true); };
+  }
   var pending = leads.filter(function(L){ return L.website && (L.speed == null || L.risk == null || !L.exp); }).length;
   if(onlyUrgent && leads.length && !box.children.length && pending){
     box.innerHTML = '<p class="hint">ویب سائٹ کی جانچیں ابھی جاری ہیں، <b class="en">' + pending + '</b> کاروبار باقی ہیں۔ دو تین منٹ رکیں، فوری مسئلے والے خود یہاں آ جائیں گے۔</p>';
@@ -1362,7 +1384,7 @@ $("go").onclick = async function(){
   lastTowns = ($("towns").value||"").split("\n").map(function(s){return s.trim();}).filter(Boolean);
   if(!lastTrade || !lastTowns.length){ log("کام کی قسم اور کم از کم ایک شہر لکھیں۔"); return; }
   var ctry = selC();
-  running = true; $("go").textContent = "تلاش جاری ہے...";
+  running = true; showAllLeads = false; $("go").textContent = "تلاش جاری ہے...";
   var tset = lastTowns.map(function(x){ return x.toLowerCase(); });   // replace only the towns searched now; other towns and countries stay
   leads = leads.filter(function(L){ return L.country !== ctry || L.byName || tset.indexOf(String(L.town||"").toLowerCase()) < 0; }); pool = {}; render();
   var kept = leads.length, seen = seenIds(), ids = {}, runCount = 0, stopWhy = "";
@@ -1440,7 +1462,7 @@ var AUTO = {
 };
 var AUTO_GROUPS = { 1:"سب سے زیادہ کمائی، انگریزی", 2:"خلیج، واٹس ایپ", 3:"یورپ، ای میل ان کی زبان میں", 4:"ایشیا", 5:"کم ترجیح" };
 var AUTO_UR = { US:"امریکہ", GB:"برطانیہ", IE:"آئرلینڈ", AU:"آسٹریلیا", AE:"امارات", SA:"سعودی عرب" };
-var AUTO_PER_RUN = 8;
+var AUTO_PER_RUN = 3;   // 3 searches already give 40 to 60 businesses; only the best 10 are shown
 function autoName(c){ return AUTO_UR[c] || (WORLD[c] ? WORLD[c][1] : c); }
 (function(){   // fill the country list, grouped best first (Germany, Austria, Switzerland are left out: cold sales email is not allowed there)
   var sel = $("autoC");
@@ -1474,7 +1496,7 @@ $("autoGo").onclick = async function(){
   var n = Math.min(left, AUTO_PER_RUN), pos = autoPos(), p = +pos[code] || 0;
   var C = plan.c.length, T = plan.t.length, seen = seenIds(), ids = {}, added = 0, done = 0, places = [];
   leads.forEach(function(L){ ids[L.id] = 1; });
-  running = true; $("autoGo").textContent = "خودکار تلاش جاری ہے...";
+  running = true; showAllLeads = false; $("autoGo").textContent = "خودکار تلاش جاری ہے...";
   try{
     for(var i=0; i<n; i++){
       var city = plan.c[p % C], trade = plan.t[Math.floor(p / C) % T];
@@ -1879,7 +1901,22 @@ if($("urgentOnly").checked && leads.length) render();
 $("urgentOnly").onchange = function(){ store.set("mp_urgentOnly", $("urgentOnly").checked ? "1" : "0"); render(); };
 /* ---------- follow-ups: one polite reminder 4 days after the first message ---------- */
 var follows = []; try{ follows = JSON.parse(store.get("mp_follow","[]")) || []; }catch(e){ follows = []; }
-function saveFollow(){ store.set("mp_follow", JSON.stringify(follows.slice(-500))); }
+function saveFollow(){ follows = dedupeFollows(follows); store.set("mp_follow", JSON.stringify(follows.slice(-500))); }
+/* one client = one card: the same phone or email (or the same name with no contact) added twice, e.g. on two devices */
+var STAGE_RANK = { waiting:0, followed:1, lost:1, replied:2, quoted:3, won:4 };
+function dedupeFollows(arr){
+  var keep = [], byKey = {};
+  (arr||[]).forEach(function(f){
+    var ck = contactKey(f.contact) || contactKey(f.phone), k = ck ? "c:" + ck : (normName(f.n).length >= 4 ? "n:" + normName(f.n) + "|" + (f.c||"") : "");
+    if(!k){ keep.push(f); return; }
+    var o = byKey[k];
+    if(!o){ byKey[k] = f; keep.push(f); return; }
+    var better = (STAGE_RANK[f.state]||0) > (STAGE_RANK[o.state]||0) || ((STAGE_RANK[f.state]||0) === (STAGE_RANK[o.state]||0) && (f.la||f.at||0) > (o.la||o.at||0));
+    if(better){ keep[keep.indexOf(o)] = f; byKey[k] = f; }
+  });
+  return keep;
+}
+follows = dedupeFollows(follows);
 function addFollow(L){
   if(follows.some(function(f){ return f.id === L.id; })) return;
   var dup = findDup(L.name, L.phone); if(dup) toast("خبردار: " + dup.n + " پہلے سے کلائنٹ لسٹ میں ہے");
@@ -2667,7 +2704,7 @@ function syncApply(remote){
   });
   if(changed){
     try{ var sv = JSON.parse(store.get("mp_leads","null")); if(sv && sv.leads){ leads = sv.leads; lastTrade = sv.trade || lastTrade; } }catch(e){}
-    follows = arr(store.get("mp_follow","[]"));
+    follows = dedupeFollows(arr(store.get("mp_follow","[]")));
     try{ watch = JSON.parse(store.get("mp_watch","{}")) || {}; }catch(e){}
     var del = arr(store.get("mp_goneDel","[]"));
     gone = arr(store.get("mp_gone","[]")).filter(function(g){ return del.indexOf(g.id) < 0; });

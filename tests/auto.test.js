@@ -41,18 +41,18 @@ const SYNC = 'https://script.google.com/macros/s/TEST/exec';
   await A.waitForTimeout(250); const before = queries.length; await A.click('#go'); await A.waitForTimeout(200);
   ok('A7 manual search waits while auto runs', /پہلے والی تلاش ختم ہونے دیں/.test(await A.textContent('#toast')));
   await A.waitForFunction(() => !/جاری/.test(document.getElementById('autoGo').textContent), null, { timeout: 30000 });
-  const run1 = queries.slice(0, 8);
-  ok('A1 auto made 8 searches by itself, no city typed', queries.length === 8 && run1.every(q => / in .*, [A-Z]{2}$/.test(q)), queries.length + ' | ' + run1[0]);
-  ok('A1b progress remembered', JSON.parse(await A.evaluate(() => localStorage.getItem('mp_autoPos'))).US === 8);
+  const run1 = queries.slice(0, 3);
+  ok('A1 auto made 3 searches by itself, no city typed', queries.length === 3 && run1.every(q => / in .*, [A-Z]{2}$/.test(q)), queries.length + ' | ' + run1[0]);
+  ok('A1b progress remembered', JSON.parse(await A.evaluate(() => localStorage.getItem('mp_autoPos'))).US === 3);
   ok('A6 auto leads carry the "auto" mark', /خودکار/.test(await A.evaluate(() => { document.getElementById('urgentOnly').checked = false; document.getElementById('urgentOnly').onchange(); return document.getElementById('results').textContent; })));
   // 2. next run continues with new cities; 3. shared daily limit
-  await A.fill('#dayLimit', '10'); await A.dispatchEvent('#dayLimit', 'change');
+  await A.fill('#dayLimit', '4'); await A.dispatchEvent('#dayLimit', 'change');
   await A.click('#autoGo'); await A.waitForFunction(() => !/جاری/.test(document.getElementById('autoGo').textContent), null, { timeout: 30000 });
-  const run2 = queries.slice(8);
+  const run2 = queries.slice(3);
   ok('A2 second run continues with new cities (no repeats)', run2.length > 0 && run2.every(q => run1.indexOf(q) < 0), run2.join(' ; '));
-  ok('A3 manual + auto share one daily limit (8 + 2 = 10)', run2.length === 2 && (await A.textContent('#todayCount')).trim() === '10');
+  ok('A3 manual + auto share one daily limit (3 + 1 = 4)', run2.length === 1 && (await A.textContent('#todayCount')).trim() === '4');
   await A.click('#autoGo'); await A.waitForTimeout(300);
-  ok('A3b at the limit auto stops and says so', /حد پوری/.test(await A.textContent('#autoLog')) && queries.length === 10);
+  ok('A3b at the limit auto stops and says so', /حد پوری/.test(await A.textContent('#autoLog')) && queries.length === 4);
   // 4. manual search still works exactly as before (raise the limit for it)
   await A.fill('#dayLimit', '25'); await A.dispatchEvent('#dayLimit', 'change');
   await A.selectOption('#country', 'US'); await A.fill('#trade', 'plumber'); await A.fill('#towns', 'Abilene, TX'); await A.fill('#runLimit', '1');
@@ -64,7 +64,7 @@ const SYNC = 'https://script.google.com/macros/s/TEST/exec';
   ok('A5 no business twice', new Set(leadsAfter.map(L => L.id)).size === leadsAfter.length);
   // 8. progress synced: the laptop continues where the phone stopped
   await A.waitForTimeout(3000); const B = await mk(); await B.waitForTimeout(500);
-  ok('A8 auto progress reaches the other device', JSON.parse(await B.evaluate(() => localStorage.getItem('mp_autoPos') || '{}')).US === 10);
+  ok('A8 auto progress reaches the other device', JSON.parse(await B.evaluate(() => localStorage.getItem('mp_autoPos') || '{}')).US === 4);
   // 9. Gulf: WhatsApp country -> phone needed, shows all (not only urgent), main country switched to UAE
   await B.selectOption('#autoC', 'AE'); await B.click('#autoGo'); await B.waitForFunction(() => !/جاری/.test(document.getElementById('autoGo').textContent), null, { timeout: 30000 });
   ok('A9 Gulf auto: UAE shown, all leads (not only urgent)', (await B.inputValue('#country')) === 'AE' && !(await B.isChecked('#urgentOnly')) && (await B.$$('#results .lead')).length > 0);
@@ -72,7 +72,7 @@ const SYNC = 'https://script.google.com/macros/s/TEST/exec';
   await B.selectOption('#autoC', 'NL'); await B.click('#autoGo'); await B.waitForFunction(() => !/جاری/.test(document.getElementById('autoGo').textContent), null, { timeout: 30000 });
   ok('A11 Netherlands shown through "other country"', (await B.inputValue('#country')) === 'XX' && (await B.inputValue('#otherC')) === 'Netherlands');
   await B.evaluate(() => { document.getElementById('urgentOnly').checked = false; document.getElementById('urgentOnly').onchange(); });
-  await B.waitForFunction(() => /شاید اشتہار/.test(document.getElementById('results').textContent), null, { timeout: 60000 }).catch(() => {});
+  await B.waitForFunction(() => /شاید اشتہار/.test(document.getElementById('results').textContent) && /کوکی خانہ ہے/.test(document.getElementById('results').textContent), null, { timeout: 60000 }).catch(() => {});
   const txt = await B.textContent('#results');
   ok('A10 "maybe ads" badge from the Tag Manager container', /شاید اشتہار/.test(txt));
   ok('A10b cookie-banner notice when nothing else is visible', /کوکی خانہ ہے/.test(txt));

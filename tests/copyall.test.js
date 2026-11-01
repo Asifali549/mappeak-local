@@ -67,6 +67,7 @@ const { chromium } = require('playwright');
   if ((await p.inputValue('#country')) !== 'AE') await p.selectOption('#country', 'AE');
   await p.evaluate(() => { const u = document.getElementById('urgentOnly'); if (u.checked) u.click(); });
   await p.waitForTimeout(300);
+  await p.click('#showAll'); await p.waitForTimeout(200);
   const t3 = await copyNow();
   ok('C9 capped at 30 with a note', (t3.match(/^#\d+ /gm) || []).length === 30 && /first 30 of 42/.test(t3));
   ok('C10 no page errors', !errs.length, errs.join(' | '));

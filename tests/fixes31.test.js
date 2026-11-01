@@ -46,6 +46,7 @@ const { chromium } = require('playwright');
   ok('F1 auto search to UAE clears "website only" and the Texas plumber fields', !(await p.isChecked('#needWeb')) && (await p.inputValue('#trade')) !== 'plumber' && !/Abilene/.test(await p.inputValue('#towns')));
   ok('F2 UAE hint gives the restaurant time', /ریسٹورنٹ کو شام پانچ بجے/.test(await p.textContent('#lawHint')));
   await p.waitForTimeout(2500);
+  if (await p.$('#showAll')) { await p.click('#showAll'); await p.waitForTimeout(200); }
   await p.click('#copyAll'); await p.waitForTimeout(300);
   const t = await p.evaluate(() => navigator.clipboard.readText());
   const block = name => { const i = t.indexOf(name); const j = t.indexOf('\n#', i); return i < 0 ? '' : t.slice(i, j < 0 ? undefined : j); };
