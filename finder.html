@@ -76,6 +76,8 @@ a{color:var(--brand)}
 .task .tx{flex:1;min-width:0}
 .task .ok{color:var(--good);font-weight:700}
 .task input[type=checkbox]{width:22px;height:22px;flex:none}
+.bookpre{white-space:pre-wrap;word-break:break-word;background:var(--chip);border-radius:10px;padding:10px 12px;margin:6px 0;font-size:15px;line-height:1.9}
+.bookpre.en{direction:ltr;text-align:left;line-height:1.6}
 .stage{display:inline-block;border-radius:999px;padding:2px 10px;font-size:14px;font-weight:700;color:#fff}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:10px}
 .ov img{max-width:100%;max-height:68vh;border-radius:10px;background:#fff}
@@ -269,6 +271,12 @@ San Angelo, TX</textarea>
   <div class="warnbox">ہر تلاش پر گوگل کا تھوڑا کریڈٹ لگتا ہے۔ ٹول مطلوبہ تعداد پوری ہوتے ہی خود رک جاتا ہے۔ نیچے دیے گئے بٹن سے گوگل میپس کھول کر دیکھنا مفت ہے۔</div>
 
   <div id="results"></div>
+
+  <details class="card" id="bookBox">
+    <summary>جواب کی کتاب</summary>
+    <p class="hint">گاہک جواب دے تو یہاں اس کی بات ڈھونڈیں اور تیار جواب کاپی کریں۔ کسی خاص گاہک کے لیے Client Follow-up میں اس کے کارڈ پر "جواب کی کتاب" دبائیں، وہاں نام، قیمت اور زبان خود بھری ہوتی ہے۔ یہاں [نام] اور [قیمت] خود لکھیں۔</p>
+    <div id="bookAll"></div>
+  </details>
 
   <details class="card" id="watchBox">
     <summary>Suspended Listing Monitor</summary>
@@ -1902,7 +1910,7 @@ function followText(f){
 /* "InfoTank (Avery Sellers)" -> greet "Hi Avery," and business "InfoTank" */
 function bizOf(f){ return String(f.n||"").replace(/\s*\([^)]*\)\s*/g, " ").trim() || f.n; }
 function greetOf(f){
-  var m = /\(([^)]+)\)/.exec(f.n||""), p = m ? m[1].trim().split(/[\s,]+/) : [];
+  var m = String(f.n||"").match(/\(([^)]+)\)/g), p = m ? m[m.length-1].slice(1,-1).trim().split(/[\s,]+/) : [];   // the person is in the last brackets
   if(p[0] && /^(dr|mr|mrs|ms|eng)\.?$/i.test(p[0]) && p[1]) p = p.slice(1);
   if(p[0] && /^[A-Za-z][A-Za-z'.-]+$/.test(p[0]) && !/team|owner|support|ltd|llc|inc/i.test(p[0])) return "Hi " + p[0] + ",";
   return f.manual ? "Hi there," : "Hi " + bizOf(f) + " team,";
@@ -2029,6 +2037,93 @@ function setStage(f, st, extra){
 function isDueF(f){ return !!(f.next && NEXT_DAYS[f.state] && Date.now() >= f.next); }
 function dayTxt(t){ var d = Math.ceil((t - Date.now())/864e5); return d <= 0 ? "آج" : (d === 1 ? "کل" : '<b class="en">' + d + '</b> دن بعد'); }
 function monthKey(t){ var d = new Date(t); return d.getFullYear() + "-" + (d.getMonth()+1); }
+/* ---------- reply book: ready answers for every common client reply, filled with the client's name, price and language ---------- */
+var BOOK = [
+ {k:"yes", t:"ہاں، رپورٹ بھیجیں", how:"ٹول میں اس کاروبار کی تصویری رپورٹ بنائیں۔ پہلے تصویر بھیجیں، پھر یہ پیغام، اسی دن۔",
+  ur:"شکریہ {N}۔\nیہ آپ کے گوگل پیج کی رپورٹ ہے۔ سب سے اوپر والی تین چیزیں سب سے پہلے ٹھیک ہونی چاہئیں، کیونکہ انہی کی وجہ سے گاہک ساتھ والے کے پاس جا رہا ہے۔\nیہ سب میں تین سے پانچ دن میں ٹھیک کر دیتا ہوں۔ کوئی پاس ورڈ نہیں چاہیے، اور پیسے کام کے بعد۔\nکوئی سوال ہو تو پوچھ لیں۔",
+  en:"{G}\n\nThanks for getting back to me. I've attached a one-page report on your Google Business Profile. The three items at the top are the ones costing you the most customers right now.\n\nI can fix all of it within 3 to 5 days. I never need your password, and you pay after the work is done.\n\nHappy to answer any questions."},
+ {k:"price", t:"کتنے پیسے؟", how:"قیمت سیدھی بتائیں۔ بھیجنے کے بعد نیچے \"Price بتا دی\" دبائیں۔", act:"quoted",
+  ur:"{N}، پورا پروفائل ٹھیک کرنے کا خرچ {P} ہے۔\nاس میں یہ سب شامل ہے: پیج کی پوری معلومات، سروسز اور تصویریں، پرانے ریویو کے جواب، دو تین نئی پوسٹیں، اور ریویو لینے کا کیو آر کارڈ جو آپ کاؤنٹر پر رکھیں گے۔\nپیسے کام مکمل ہونے کے بعد، جب آپ خود دیکھ لیں۔ شروع کر دوں؟",
+  en:"{G}\n\nThe full profile fix is {P} (the usual price is double). It covers the complete profile (categories, description, services, hours and photos), replies to your existing reviews, your first 2 to 3 posts, and a review QR card for your counter.\n\nYou pay after the work is done and you've checked it yourself. Shall I go ahead?"},
+ {k:"trust", t:"بھروسہ کیسے کریں؟", how:"بحث نہ کریں۔ تین باتیں: پاس ورڈ نہیں، پیسے بعد میں، جب چاہیں ہٹا سکتے ہیں۔",
+  ur:"{N}، آپ کا ڈر بالکل ٹھیک ہے، آج کل بہت دھوکے ہوتے ہیں۔ اس لیے میرا طریقہ یہ ہے:\n1۔ میں آپ سے کبھی پاس ورڈ نہیں مانگتا۔ آپ گوگل میں خود مجھے مینیجر بناتے ہیں، اور جب چاہیں ایک بٹن سے ہٹا سکتے ہیں۔ مالک ہمیشہ آپ ہی رہتے ہیں۔\n2۔ پیسے کام کے بعد۔ پسند نہ آئے تو کچھ نہ دیں۔\n3۔ چاہیں تو پہلے ایک چھوٹی چیز مفت ٹھیک کر کے دکھا دیتا ہوں۔",
+  en:"{G}\n\nThat's a fair question. Here's how I work so you're never at risk:\n\n1. I never ask for your password. You add me as a Manager on your Business Profile, and you can remove me with one click at any time. You always stay the owner.\n2. You pay only after the work is done and you're happy with it.\n3. If you like, I can fix one small item first for free so you can see the result.\n\nYou can also see my site: https://asifali549.github.io/mappeak-local/"},
+ {k:"start", t:"شروع کرو (مینیجر کا طریقہ)", how:"گاہک مان گیا۔ یہ بھیجیں، اور رسائی ملتے ہی Claude کو بتائیں۔",
+  ur:"بہت شکریہ {N}، ان شاء اللہ آج سے کام شروع۔\nمجھے مینیجر بنانے کا طریقہ (دو منٹ کا کام):\n1۔ اپنے فون پر اسی جی میل سے لاگ اِن ہو کر گوگل میں اپنی دکان کا نام تلاش کریں\n2۔ آپ کا پروفائل کھلے تو تین نقطوں والا بٹن دبائیں، پھر Business Profile settings\n3۔ People and access دبائیں، پھر Add\n4۔ یہ ای میل لکھیں: mappeak.local@gmail.com\n5۔ Manager چنیں اور Invite دبا دیں\nبس۔ پاس ورڈ کی ضرورت نہیں۔",
+  en:"{G}\n\nThank you, I'll start today.\n\nTo give me access (about two minutes):\n1. While signed in to the Google account that manages your business, search your business name on Google.\n2. On your profile, tap the three-dot menu, then Business Profile settings.\n3. Tap People and access, then Add.\n4. Enter: mappeak.local@gmail.com\n5. Choose Manager and tap Invite.\n\nNo password needed. I'll confirm as soon as the invite arrives."},
+ {k:"fake", t:"ریویو ڈلوا دو گے؟", how:"جعلی ریویو سے صاف انکار، مگر بات ختم نہ کریں۔ یہ ہماری سب سے اہم حد ہے۔",
+  ur:"{N}، جعلی ریویو میں نہیں ڈالتا۔ گوگل انہیں پکڑ لیتا ہے، اور پھر پورا پیج بند بھی ہو سکتا ہے۔\nاصلی طریقہ یہ ہے: میں آپ کو ایک کیو آر کارڈ بنا کر دیتا ہوں۔ ہر گاہک کو کہیں «اچھا لگا تو گوگل پر بتا دیں»۔ اصلی ریویو آہستہ آہستہ آتے ہیں، مگر کبھی نہیں ہٹتے۔",
+  en:"{G}\n\nI don't post fake or paid reviews. Google detects them, removes them, and can suspend the whole profile.\n\nWhat works is a steady flow of genuine reviews: I'll set you up with a review QR card and a simple routine for asking every customer. Real reviews build up over time, and they never get removed."},
+ {k:"later", t:"بعد میں بات کرتے ہیں", how:"زور نہ دیں۔ نیچے والا بٹن ایک ہفتے بعد یاد دلائے گا۔", act:"week",
+  ur:"کوئی بات نہیں {N}، جب آپ کو وقت ملے۔\nرپورٹ آپ کے پاس محفوظ ہے۔ میں اگلے ہفتے ایک بار پوچھ لوں گا، اگر آپ کو برا نہ لگے۔",
+  en:"{G}\n\nNo problem at all. The report is yours to keep. Would it be all right if I checked back with you next week?"},
+ {k:"cheap", t:"کچھ کم کر دیں", how:"قیمت نہ گرائیں، کام کم کریں۔ ابھی کی قیمت پہلے ہی آدھی ہے۔", act:"quoted",
+  ur:"{N}، یہ پہلے ہی شروع والی رعایتی قیمت ہے، عام قیمت اس سے دگنی ہے۔\nاگر بجٹ کم ہے تو ایک کام کر لیتے ہیں: صرف ریویو والا حصہ (پرانے ریویو کے جواب اور کیو آر کارڈ) {R} میں۔ باقی بعد میں جب آپ چاہیں۔",
+  en:"{G}\n\nThis is already our launch price, about half the usual rate. If the budget is tight, we can start smaller: just the review part (replies to your existing reviews plus the review QR card) for {R}, and do the rest later."},
+ {k:"no", t:"ہمارا بندہ پہلے سے ہے", how:"شکریہ کہہ کر دروازہ کھلا چھوڑیں۔ دوبارہ نہ لکھیں۔", act:"lost",
+  ur:"کوئی بات نہیں {N}، جواب دینے کا شکریہ۔\nرپورٹ رکھ لیں، آپ کے بندے کے کام آئے گی۔ کبھی ضرورت ہو تو یہی نمبر ہے۔ اللہ آپ کے کاروبار میں برکت دے۔",
+  en:"{G}\n\nThanks for letting me know. Feel free to keep the report and share it with whoever handles your profile. If you ever need a hand, you know where to find me."},
+ {k:"done", t:"کام مکمل، پیسے اور رائے", how:"پہلے سارا کام Claude کو دکھائیں۔ رائے مانگنا ٹھیک ہے، مگر اس کے بدلے کچھ نہ دیں۔", act:"won",
+  ur:"{N}، الحمدللہ کام مکمل ہو گیا۔ ایک بار اپنا گوگل پیج کھول کر دیکھ لیں:\n- معلومات، سروسز اور تصویریں پوری ہیں\n- پرانے ریویو کے جواب دے دیے ہیں\n- نئی پوسٹیں لگ گئی ہیں\n- کیو آر کارڈ کی تصویر ساتھ بھیج رہا ہوں، اسے پرنٹ کر کے کاؤنٹر پر رکھیں\nپسند آئے تو طے شدہ {P} بھیج دیں، طریقہ میں بتا دیتا ہوں۔ اور اگر آپ دو لائن میں بتا دیں کہ کام کیسا لگا، تو میرے لیے بڑی بات ہو گی۔",
+  en:"{G}\n\nAll done. Please take a look at your profile:\n- Complete details, services and photos\n- Replies to your existing reviews\n- Your first new posts\n- The review QR card is attached, ready to print for your counter\n\nIf you're happy with it, the agreed {P} can be paid now; I'll send the payment details. And if you have a moment, a line or two about how the work went would mean a lot to me."}
+];
+function bookPrice(c, review){
+  if(c === "PK") return review ? "3,000 روپے" : "5,000 روپے";
+  if(c === "AE") return review ? "149 AED" : "199 AED";
+  if(c === "SA") return review ? "149 SAR" : "199 SAR";
+  return review ? "$39" : "$49";
+}
+function bookUrdu(f){ return f.c === "PK" || (isGulf(f.c) && !!f.urd); }
+function bookPerson(f){ var m = String(f.n||"").match(/\(([^)]+)\)/g); return m ? m[m.length-1].slice(1,-1).trim().split(/[\s,]+/).filter(function(w){ return !/^(dr|mr|mrs|ms|eng)\.?$/i.test(w); })[0] || "" : ""; }
+function bookText(e, f, lang){
+  var t = e[lang];
+  if(!f) return t.replace(/\{N\}/g, "[نام] بھائی").replace(/\{G\}/g, "Hi [Name],").replace(/\{P\}/g, lang === "ur" ? "[قیمت]" : "[price]").replace(/\{R\}/g, lang === "ur" ? "[کم قیمت]" : "[lower price]");
+  var who = bookPerson(f), urName = who ? who + " بھائی" : "بھائی";
+  t = t.replace(/\{N\}/g, urName).replace(/\{G\}/g, greetOf(f)).replace(/\{P\}/g, bookPrice(f.c, false)).replace(/\{R\}/g, bookPrice(f.c, true));
+  if(lang === "en" && !$("useSig").checked) t += "\n\nBest regards,\n" + (($("myName").value||"").trim() || "Asif") + "\nMapPeak Local";   // a reply to someone who answered: short sign-off, no opt-out footer
+  return t;
+}
+function bookPanel(f){   // f = a client from Client Follow-up, or null for the general book
+  var wrap = document.createElement("div"); wrap.style.marginTop = "8px";
+  var tabs = document.createElement("div"); tabs.className = "btns"; wrap.appendChild(tabs);
+  var out = document.createElement("div"); wrap.appendChild(out);
+  BOOK.forEach(function(e){
+    var b = document.createElement("button"); b.className = "btn2 btn-sm"; b.textContent = e.t; b.setAttribute("data-k", e.k);
+    b.onclick = function(){
+      [].forEach.call(tabs.children, function(x){ x.classList.toggle("on", x === b); });
+      out.innerHTML = "";
+      var how = document.createElement("p"); how.className = "hint"; how.style.margin = "6px 0"; how.textContent = e.how; out.appendChild(how);
+      var langs = f ? [bookUrdu(f) ? "ur" : "en"] : ["ur", "en"];
+      if(f) langs.push(langs[0] === "ur" ? "en" : "ur");
+      langs.forEach(function(lang, i){
+        var box = document.createElement("div"); if(f && i) box.style.display = "none";
+        var pre = document.createElement("div"); pre.className = "bookpre" + (lang === "en" ? " en" : ""); pre.textContent = bookText(e, f, lang);
+        var row = document.createElement("div"); row.className = "btns";
+        var cp = document.createElement("button"); cp.className = "btn btn-sm"; cp.style.width = "auto"; cp.textContent = lang === "ur" ? "اردو کاپی کریں" : "English کاپی کریں";
+        cp.onclick = function(){ copy(pre.textContent); };
+        row.appendChild(cp); box.appendChild(pre); box.appendChild(row); out.appendChild(box);
+        if(f && i){ var sw = document.createElement("button"); sw.className = "btn2 btn-sm"; sw.textContent = lang === "ur" ? "اردو میں دیکھیں" : "English میں دیکھیں";
+          sw.onclick = function(){ box.style.display = ""; sw.remove(); }; out.insertBefore(sw, box); }
+      });
+      if(f && e.act){
+        var lbl = { quoted:"Price بتا دی", week:"ایک ہفتے بعد یاد دلائیں", lost:"بات ختم", won:"Payment مل گئی" }[e.act];
+        var ab = document.createElement("button"); ab.className = "btn2 btn-sm"; ab.textContent = lbl; ab.setAttribute("data-act", e.act);
+        ab.onclick = function(){
+          if(e.act === "week"){ if(f.state !== "replied" && f.state !== "quoted") f.state = "replied"; f.la = Date.now(); f.next = Date.now() + 7*864e5; saveFollow(); renderFollow(); toast("ایک ہفتے بعد ٹول یاد دلائے گا"); }
+          else if(e.act === "quoted") { setStage(f, "quoted"); toast("تین دن بعد ٹول یاد دلائے گا"); }
+          else if(e.act === "lost") setStage(f, "lost", { prev: f.state });
+          else { var a = prompt("کتنے پیسے ملے؟ رقم اور کرنسی لکھیں، مثلاً 50 USD", f.amt || bookPrice(f.c, false)); if(a === null) return; setStage(f, "won", { amt: a.trim(), wat: Date.now() }); toast("مبارک ہو! 🎉"); }
+        };
+        var r2 = document.createElement("div"); r2.className = "btns"; r2.appendChild(ab); out.appendChild(r2);
+      }
+    };
+    tabs.appendChild(b);
+  });
+  return wrap;
+}
+function renderBookAll(){ var b = $("bookAll"); if(b && !b.children.length) b.appendChild(bookPanel(null)); }
+$("bookBox").addEventListener("toggle", renderBookAll);
+
 function renderPipe(){
   var box = $("pipeList"); if(!box) return; box.innerHTML = "";
   var show = follows.filter(function(f){ return ["replied","quoted","won","followed"].indexOf(f.state) >= 0; });
@@ -2053,10 +2148,12 @@ function renderPipe(){
       (f.state === "followed" ? '<button class="btn2 btn-sm" data-a="rep">جواب آ گیا</button>' : '') +
       (f.state === "replied" ? '<button class="btn2 btn-sm" data-a="quote">Price بتا دی</button>' : '') +
       (f.state === "replied" || f.state === "quoted" ? '<button class="btn2 btn-sm" data-a="touch">آج رابطہ کر لیا</button><button class="btn2 btn-sm" data-a="won">Payment مل گئی</button>' : '') +
+      '<button class="btn btn-sm" style="width:auto" data-a="book">جواب کی کتاب</button>' +
       '<button class="btn2 btn-sm" data-a="note">نوٹ</button>' +
-      (f.state !== "won" ? '<button class="btn2 btn-sm" data-a="lost">بات ختم</button>' : '') + '</div></div>';
+      (f.state !== "won" ? '<button class="btn2 btn-sm" data-a="lost">بات ختم</button>' : '') + '</div><div data-a="bookbox"></div></div>';
     var on = function(a, fn){ var b = d.querySelector('[data-a="' + a + '"]'); if(b) b.onclick = fn; };
     on("rep", function(){ setStage(f, "replied"); });
+    on("book", function(){ var bb = d.querySelector('[data-a="bookbox"]'); if(bb.children.length) bb.innerHTML = ""; else bb.appendChild(bookPanel(f)); });
     on("quote", function(){ setStage(f, "quoted"); toast("تین دن بعد ٹول یاد دلائے گا"); });
     on("touch", function(){ f.la = Date.now(); f.next = Date.now() + (NEXT_DAYS[f.state]||2)*864e5; saveFollow(); renderFollow(); toast("اگلی Reminder لگ گئی"); });
     on("won", function(){
