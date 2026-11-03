@@ -703,6 +703,7 @@ function fullSignature(){ var u = $("useSig").checked; $("useSig").checked = fal
 function signature(){
   var s = function(id){ return ($(id).value||"").trim(); };
   var optOut = "If you'd prefer not to hear from me, just reply \"no\" and I won't contact you again.";
+  if(!$("useSig").checked && (!s("myName") || !s("myAddr"))) return "";   // name or address not filled on this device: never send "[Your name]"; Gmail's signature covers it
   return $("useSig").checked ? "" : "\n\n" +   // Gmail's own signature already has the name, address and opt-out line
     "Best regards,\n" + (s("myName")||"[Your name]") + "\nMapPeak Local | Google Business Profile Support\n" + (s("myEmail")||"[Your email]") + "\nhttps://asifali549.github.io/mappeak-local/\n\n" +
     (s("myAddr")||"[Your mailing address]") + "\n\n" + optOut;
@@ -2030,7 +2031,8 @@ function reminderMail(f){
   var to = String(f.contact||"").trim();
   if(!MAIL_RE.test(to)) return "";
   var subj = f.subj ? "Re: " + f.subj : "Following up: " + bizOf(f);
-  var body = followText(f); if(!/\n\nBest regards,/.test(body)) body += fullSignature();
+  var sig = signature(), body = followText(f);
+  if(sig && body.slice(-sig.length) === sig) body = body.slice(0, -sig.length);   // Gmail adds his own signature (with address and opt-out) to every message
   return "mailto:" + to + "?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(body);
 }
 /* open Gmail as its own app on Android (the tool stays open behind it); elsewhere the Gmail website in a new tab */

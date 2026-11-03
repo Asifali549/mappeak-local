@@ -10,6 +10,7 @@ const { chromium } = require('playwright');
     { id: 'm3', n: 'Sneaky Co', c: 'US', contact: 'x@y.com?bcc=evil@z.com', manual: true, at: now - 8 * 864e5, state: 'waiting' },
   ];
   const ctx = await b.newContext({ viewport: { width: 400, height: 900 } });
+  await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: BASE });
   await ctx.addInitScript(f => { if (!localStorage.getItem('mp_follow')) localStorage.setItem('mp_follow', f); localStorage.setItem('mp_useSig', '1'); localStorage.setItem('mp_myName', 'Asif'); localStorage.setItem('mp_myAddr', 'Jampur, Pakistan'); }, JSON.stringify(seed));
   await ctx.route(/^https?:\/\/(?!localhost)/, r => r.abort());
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
@@ -19,7 +20,17 @@ const { chromium } = require('playwright');
   const href = await card('InfoTank').locator('[data-a="mail"]').getAttribute('href');
   const u = new URL(href), body = u.searchParams.get('body') || '';
   ok('M1 one button holds the whole reminder', u.protocol === 'mailto:' && u.pathname === 'avery@example.com' && u.searchParams.get('subject') === 'Following up: InfoTank' && /^Hi Avery,/.test(body), href.slice(0, 80));
-  ok('M2 signature with address and opt-out is inside (Gmail app adds none)', /Best regards,\nAsif/.test(body) && /Jampur, Pakistan/.test(body) && /prefer not to hear from me/.test(body));
+  ok('M2 no second signature in the text (Gmail adds his own)', !/Best regards/.test(body) && !/\[Your/.test(body) && /no problem at all\.$/.test(body), JSON.stringify(body.slice(-60)));
+  // like his phone: Gmail-signature box unticked, name and address empty
+  await p.evaluate(() => { document.getElementById('useSig').checked = false; document.getElementById('myName').value = ''; document.getElementById('myAddr').value = ''; document.getElementById('fuBox').open = false; document.getElementById('fuBox').open = true; });
+  await p.evaluate(() => document.getElementById('useSig').dispatchEvent(new Event('change')));
+  await p.reload(); await p.waitForTimeout(500);
+  await p.evaluate(() => { document.getElementById('useSig').checked = false; document.getElementById('myName').value = ''; document.getElementById('myAddr').value = ''; });
+  await p.evaluate(() => { document.getElementById('fuBox').open = true; document.addEventListener('click', e => { if (e.target.closest('a[href^="mailto:"]')) e.preventDefault(); }); });
+  await p.locator('#fuList .lead').filter({ hasText: 'Plain Lead' }).locator('[data-a="copy"]').click(); await p.waitForTimeout(300);
+  const copied = await p.evaluate(() => navigator.clipboard.readText().catch(() => ''));
+  ok('M2b never "[Your name]" or "[Your mailing address]" in a reminder', !/\[Your/.test(copied || 'x') || copied === '', (copied || '').slice(-80));
+  await p.click('#undoBtn').catch(() => {}); await p.waitForTimeout(300);
   ok('M3 no address on file: no button, the old Gmail search stays', (await card('Plain Lead').locator('[data-a="mail"]').count()) === 0 && (await card('Plain Lead').locator('[data-a="gmail"]').count()) === 1);
   ok('M4 an address with tricks gets no mail button', (await card('Sneaky').locator('[data-a="mail"]').count()) === 0);
   await card('InfoTank').locator('[data-a="mail"]').click(); await p.waitForTimeout(600);
