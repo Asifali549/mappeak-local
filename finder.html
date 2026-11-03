@@ -699,6 +699,7 @@ function emailFor(L){
     intro + "\n\n" + (lines || "1. Your listing could use a few updates.") + "\n\n" +
     offer + signature();
 }
+function fullSignature(){ var u = $("useSig").checked; $("useSig").checked = false; var t = signature(); $("useSig").checked = u; return t; }
 function signature(){
   var s = function(id){ return ($(id).value||"").trim(); };
   var optOut = "If you'd prefer not to hear from me, just reply \"no\" and I won't contact you again.";
@@ -2023,6 +2024,15 @@ function sendTimeText(c, when){
   return CTZ[c] ? "وقت: " + pk9(CTZ[c], when) : "";
 }
 function isEmailLead(f){ return !isWA(f.c) && (!f.manual || /@/.test(f.contact||"")); }
+/* the reminder ready in a new Gmail message (to, subject, text, signature): one tap, nothing to copy or search */
+var MAIL_RE = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;   // a plain address only: nothing that could add cc/bcc or change the message
+function reminderMail(f){
+  var to = String(f.contact||"").trim();
+  if(!MAIL_RE.test(to)) return "";
+  var subj = f.subj ? "Re: " + f.subj : "Following up: " + bizOf(f);
+  var body = followText(f); if(!/\n\nBest regards,/.test(body)) body += fullSignature();
+  return "mailto:" + to + "?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(body);
+}
 /* open Gmail as its own app on Android (the tool stays open behind it); elsewhere the Gmail website in a new tab */
 function openGmail(f){
   var web = gmailSearch(f);
@@ -2076,6 +2086,7 @@ function renderFollow(){
       ((isDue || doneToday) && isEmailLead(f) ? '<p class="hint" style="margin-top:6px">جی میل میں اپنی پہلی ای میل کھولیں، Reply دبائیں، اور Reminder وہیں پیسٹ کریں۔ اس طرح گاہک کو پوری بات ایک جگہ نظر آتی ہے۔</p>' : '') +
       '<div class="btns">' +
       (isWA(f.c) && waNum(f.phone, f.c) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone, f.c) + '">واٹس ایپ کھولیں</a>' : '') +
+      (reminderMail(f) && !doneToday ? '<a class="btn btn-sm" data-a="mail" style="text-decoration:none;border-radius:10px;width:auto" href="' + esc(reminderMail(f)) + '">جی میل میں Reminder تیار کھولیں</a>' : '') +
       (isEmailLead(f) ? '<button class="btn2 btn-sm" data-a="gmail">جی میل میں پہلی ای میل</button>' : '') +
       (/@/.test(f.contact||"") ? '<button class="btn2 btn-sm" data-a="addr">ای میل کا پتہ کاپی کریں</button>' : '') +
       (f.c !== "PK" && safeUrl(f.w) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(safeUrl(f.w)) + '">Website</a>' : '') +
@@ -2086,6 +2097,11 @@ function renderFollow(){
       '<div data-a="datebox" style="display:none;margin-top:8px"><label style="margin-top:0">پہلا رابطہ کس دن</label>' +
       '<input type="date" class="en"><div class="btns"><button class="btn btn-sm" style="width:auto" data-a="datesave">Save کریں</button></div></div></div>';
     var gb = d.querySelector('[data-a="gmail"]'); if(gb) gb.onclick = function(){ openGmail(f); };
+    var mb = d.querySelector('[data-a="mail"]'); if(mb) mb.addEventListener("click", function(){   // the mailto link still opens Gmail
+      var prev = { state: f.state, fat: f.fat };
+      f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); setTimeout(renderFollow, 400);
+      offerUndo(f.n + ": Reminder جی میل میں کھل گئی، بھیجنے یا Schedule کرنے کے بعد کچھ نہیں دبانا ✓", function(){ f.state = prev.state; f.fat = prev.fat; f.la = Date.now(); if(prev.fat == null) delete f.fat; saveFollow(); renderFollow(); });
+    });
     d.querySelector('[data-a="copy"]').onclick = function(){
       copy(followText(f));
       if(doneToday){ toast("Reminder کاپی ہو گئی"); return; }   // already marked: just copy again
