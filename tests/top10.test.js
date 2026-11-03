@@ -47,7 +47,7 @@ const { chromium } = require('playwright');
   await p.waitForFunction(() => !/جاری/.test(document.getElementById('autoGo').textContent), null, { timeout: 30000 });
   await p.waitForTimeout(1500);
   ok('T1 auto search makes only 3 searches', qn === 3, qn);
-  const names = async () => p.$$eval('#results .lead .name', ns => ns.map(n => n.textContent));
+  const names = async () => p.$$eval('#results .lead .name', ns => ns.map(n => n.textContent.replace(/^#\d+/, '')));
   let shown = await names();
   ok('T2 only the best 10 are shown', shown.length === 10, shown.length);
   ok('T3 clear gaps come first', shown.slice(0, 2).sort().join('|') === ['Faizan Karahi', 'Wadi Lahore Restaurant'].join('|'), shown.slice(0, 3).join(' / '));
@@ -57,7 +57,7 @@ const { chromium } = require('playwright');
   const t = await p.evaluate(() => navigator.clipboard.readText());
   ok('T6 the copy has the same 10', (t.match(/^#\d+ /gm) || []).length === 10 && /Faizan Karahi/.test(t) && !/Pathan/.test(t), t.slice(0, 120));
   // messaging one brings the next one in
-  await p.$$eval('#results .lead', ls => { const l = ls.find(x => /Faizan/.test(x.querySelector('.name').textContent)); l.querySelector('[data-a="sent"]').click(); });
+  await p.$$eval('#results .lead', ls => { const l = ls.find(x => /Faizan/.test(x.querySelector('.name').textContent.replace(/^#\d+/, ''))); l.querySelector('[data-a="sent"]').click(); });
   await p.waitForTimeout(400); shown = await names();
   ok('T7 after messaging one, the list refills to 10 without it', shown.length === 10 && !shown.includes('Faizan Karahi'));
   await p.click('#showAll'); await p.waitForTimeout(200);

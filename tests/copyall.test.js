@@ -47,7 +47,7 @@ const { chromium } = require('playwright');
   const block = name => { const i = clip.indexOf(name); const j = clip.indexOf('\n#', i); return i < 0 ? '' : clip.slice(i, j < 0 ? undefined : j); };
   const dA = block('Dumpukht Restaurant Al Ain');
   ok('C3 group website + chain flagged as big company', /BIG COMPANY\?/.test(dA) && /group site \(duchingroup\.com\)/.test(dA) && /same website as 1/.test(dA) && /same name as 1/.test(dA), dA.split('\n').find(l => /Flags/.test(l)));
-  ok('C3b badge on the card', (await p.$$eval('#results .lead', ls => ls.filter(l => /بڑی کمپنی؟/.test(l.textContent)).map(l => l.querySelector('.name').textContent))).sort().join('|') === ['Dumpukht Restaurant Al Ain', 'Dumpukht Restaurant Dubai Marina', 'Spice Hut'].sort().join('|'));
+  ok('C3b badge on the card', (await p.$$eval('#results .lead', ls => ls.filter(l => /بڑی کمپنی؟/.test(l.textContent)).map(l => l.querySelector('.name').textContent.replace(/^#\d+/, '')))).sort().join('|') === ['Dumpukht Restaurant Al Ain', 'Dumpukht Restaurant Dubai Marina', 'Spice Hut'].sort().join('|'));
   ok('C4 one-shop businesses not flagged (incl. Khan Karahi vs Khan Tailors)', !/BIG COMPANY/.test(block('Bhai Jan')) && !/BIG COMPANY/.test(block('Lahori Tikka')) && !/BIG COMPANY/.test(block('Khan Karahi')) && !/BIG COMPANY/.test(block('Khan Tailors')));
   ok('C5 branch page of a bigger site flagged', /branch page/.test(block('Spice Hut')) && /BIG COMPANY/.test(block('Spice Hut')));
   ok('C6 mobile / landline labels', /\+971 54 397 8178 \(mobile\)/.test(dA) && /\(landline\)/.test(block('Bhai Jan')));

@@ -69,6 +69,9 @@ details summary{cursor:pointer;font-weight:700;font-size:18px}
 .yn button.on{background:var(--brand);color:var(--brand-ink)}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;opacity:0;transition:.3s;pointer-events:none}
 .toast.show{opacity:1}
+.undo{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--ink);color:var(--bg);padding:10px max(16px,env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px));font-size:15px}
+.undo button{background:var(--bg);color:var(--ink);border:0;border-radius:8px;padding:6px 14px;font-size:15px;font-family:inherit}
+.leadno{display:inline-block;background:var(--ink);color:var(--bg);border-radius:8px;padding:0 8px;margin-inline-end:6px;font-size:15px}
 .warnbox{border-inline-start:4px solid var(--warn);padding:8px 12px;background:var(--chip);border-radius:8px;font-size:15px}
 a{color:var(--brand)}
 .task{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
@@ -270,6 +273,7 @@ San Angelo, TX</textarea>
 
   <div class="warnbox">ہر تلاش پر گوگل کا تھوڑا کریڈٹ لگتا ہے۔ ٹول مطلوبہ تعداد پوری ہوتے ہی خود رک جاتا ہے۔ نیچے دیے گئے بٹن سے گوگل میپس کھول کر دیکھنا مفت ہے۔</div>
 
+  <input id="leadFind" placeholder="نمبر یا نام سے ڈھونڈیں، جیسے 17 یا Chaska" autocomplete="off" style="margin-bottom:8px">
   <div id="results"></div>
 
   <details class="card" id="bookBox">
@@ -293,6 +297,7 @@ San Angelo, TX</textarea>
   </details>
 </div>
 <div class="toast" id="toast"></div>
+<div class="undo" id="undoBar" hidden><span id="undoTx"></span><span><button id="undoBtn">واپس لیں</button> <button id="undoX" aria-label="بند کریں">✕</button></span></div>
 
 <script>
 (function(){
@@ -317,6 +322,11 @@ function getCount(){ return parseInt(store.get("mp_cnt_"+today(), "0"), 10) || 0
 function addCount(){ var c = getCount()+1; store.set("mp_cnt_"+today(), String(c)); $("todayCount").textContent = c; return c; }
 function seenIds(){ try{ return JSON.parse(store.get("mp_seen","[]")); }catch(e){ return []; } }
 function addSeen(id){ var s = seenIds(); if(s.indexOf(id)<0){ s.push(id); store.set("mp_seen", JSON.stringify(s.slice(-3000))); } }
+var undoFn = null, undoTimer = null;
+function offerUndo(text, fn){   // the tool marks the step done by itself; one tap takes it back
+  undoFn = fn; $("undoTx").textContent = text; $("undoBar").hidden = false;
+  clearTimeout(undoTimer); undoTimer = setTimeout(function(){ $("undoBar").hidden = true; undoFn = null; }, 10*60*1000);
+}
 function toast(t){ var el=$("toast"); el.textContent=t; el.classList.add("show"); setTimeout(function(){el.classList.remove("show");},1800); }
 function log(t){ $("log").textContent = t; }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
@@ -889,9 +899,27 @@ function phoneKind(L){
 /* ---------- all shown leads as one plain-text block to paste to Claude ---------- */
 function clip(s, n){ return String(s == null ? "" : s).replace(/[\r\n\t\u2028\u2029]+/g, " ").replace(/\s{2,}/g, " ").trim().slice(0, n || 120); }
 /* the screen shows "today's best 10": already sorted best first, messaged ones left out; the rest one tap away */
-var TOP_N = 10, showAllLeads = false;
+var TOP_N = 10, showAllLeads = false, findQ = "";
+/* every business keeps one number for life (#17), the same on phone and laptop: missing or clashing numbers are filled in a fixed order */
+function normalizeNos(){
+  var used = {}, max = 0;
+  leads.forEach(function(L){ if(L.no > max) max = L.no; });
+  var pos = {}; leads.forEach(function(L, i){ pos[L.id] = i; });
+  leads.slice().sort(function(a, b){
+    if(a.no && b.no) return a.no - b.no || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);   // a clash: the same rule on both devices
+    if(a.no || b.no) return a.no ? -1 : 1;
+    return pos[a.id] - pos[b.id];   // new ones: in the order they were found
+  }).forEach(function(L){
+    if(!L.no || used[L.no]) L.no = ++max;
+    used[L.no] = 1;
+  });
+}
 function visibleLeads(){
   var c = selC(), only = $("urgentOnly").checked;
+  if(findQ){   // looking for one business: show every match in this country, sent ones too
+    var q = findQ.toLowerCase().replace(/^#/, "");
+    return { list: leads.filter(function(L){ return (L.country||"US") === c && (String(L.no) === q || String(L.name||"").toLowerCase().indexOf(q) >= 0); }), hidden: 0, find: true };
+  }
   var vis = leads.filter(function(L){ return (L.country||"US") === c && (!only || urgentOf(L).length); });
   if(showAllLeads) return { list: vis, hidden: 0 };
   var top = vis.filter(function(L){ return !L.sent; }).slice(0, TOP_N);
@@ -908,6 +936,7 @@ function fitOf(L){
   return f;
 }
 function claudeText(){
+  normalizeNos();
   var list = shownLeads(), MAX = 30, out = [];
   var cn = ({US:"USA",PK:"Pakistan",GB:"UK",IE:"Ireland",AU:"Australia",AE:"UAE",SA:"Saudi Arabia"})[selC()] || (WORLD[selC()] && WORLD[selC()][0]) || selC();
   out.push("MapPeak Lead Finder: " + Math.min(list.length, MAX) + " businesses (" + clip(cn, 40) + ", " + today() + (list.length > MAX ? ", first " + MAX + " of " + list.length : "") + ").");
@@ -928,7 +957,7 @@ function claudeText(){
     if(m.phone) man.push("website phone differs: " + m.phone);
     if(m.fb) man.push("Facebook post in 3 months: " + m.fb);
     out.push("");
-    out.push("#" + (i + 1) + " " + clip(L.name, 80) + " | " + clip(cityOf(L), 40));
+    out.push("#" + L.no + " " + clip(L.name, 80) + " | " + clip(cityOf(L), 40));
     out.push("Type: " + clip(L.cat || "-", 50) + " | Rating " + (L.rating == null ? "none" : L.rating) + " (" + L.reviews + " reviews) | Strength " + scoreOf(L));
     out.push("Phone: " + (L.intl || L.phone ? clip(L.intl || L.phone, 30) + (pk ? " (" + pk + ")" : "") : "none") + " | Website: " + (L.website ? clip(hostOf(L.website) + (CHAINPATH_RE.test(L.website) ? " (branch page)" : ""), 60) : "none"));
     out.push("Address: " + clip(L.address, 140));
@@ -1041,8 +1070,24 @@ function fbUrl(L){ return "https://www.facebook.com/search/pages/?q=" + encodeUR
 function q(text, key){
   return '<div>'+text+'</div><div class="yn" data-k="'+key+'"><button class="btn2" data-v="yes">ہاں</button><button class="btn2" data-v="no">نہیں</button></div>';
 }
+function markSent(L){
+  var hadFollow = follows.some(function(f){ return f.id === L.id; }), wasSeen = seenIds().indexOf(L.id) >= 0;
+  addSent(); addFollow(L); addSeen(L.id); L.sent = true; L.sentAt = Date.now();
+  return function(){   // undo
+    L.sent = false; delete L.sentAt; addSent(-1);
+    if(!hadFollow){ follows = follows.filter(function(f){ return f.id !== L.id; }); saveFollow(); renderFollow(); }
+    if(!wasSeen){ var sn = seenIds().filter(function(x){ return x !== L.id; }); store.set("mp_seen", JSON.stringify(sn)); }
+    render(true);
+  };
+}
+function autoSent(L, what){
+  if(L.sent) return;
+  var undo = markSent(L);
+  setTimeout(function(){ render(true); }, 400);   // after the WhatsApp link has opened
+  offerUndo("#" + L.no + " " + L.name + ": " + what + " بھیج دیا، نشان لگ گیا ✓", undo);
+}
 function render(keepOrder){
-  saveLeads();
+  normalizeNos(); saveLeads();
   leads.forEach(function(L){ L.score = scoreOf(L); });
   var adsFirst = function(L){   // businesses that pay for ads come first: they already spend on getting customers
     if(L.manual && L.manual.ads === "yes") return -1000;
@@ -1065,7 +1110,7 @@ function render(keepOrder){
     var urIssues = allIssues(L).map(function(k){ return "<li>"+CHECKS[k][1]+"</li>"; }).join("") || "<li>کوئی بڑی غلطی نہیں ملی</li>";
     d.innerHTML =
       '<div class="top"><div class="score" style="background:'+color(L.score)+'">'+L.score+'</div>'+
-      '<div style="flex:1;min-width:0"><div class="name">'+esc(L.name)+'</div>'+
+      '<div style="flex:1;min-width:0"><div class="name"><span class="leadno en">#'+L.no+'</span>'+esc(L.name)+'</div>'+
       '<div class="meta en" style="text-align:left">'+esc(L.address)+'</div>'+
       '<div class="stat" style="margin-top:4px"><span class="pill">ریٹنگ <b class="en">'+(L.rating==null?"-":L.rating)+'</b></span>'+
       '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+(L.auto ? '<span class="pill">خودکار</span>' : '')+bigBadge(L)+adTagBadge(L)+mailBadge(L)+speedBadge(L)+riskBadge(L)+lawBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
@@ -1092,7 +1137,7 @@ function render(keepOrder){
       '<a class="'+(ADLIB_STRONG.indexOf(L.country) >= 0 ? 'btn' : 'btn2')+' btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(adsUrl(L))+'">فیس بک اشتہار دیکھیں</a>'+
       (gAdsUrl(L) ? '<a class="'+(ADLIB_STRONG.indexOf(L.country) >= 0 ? 'btn' : 'btn2')+' btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(gAdsUrl(L))+'">گوگل اشتہار دیکھیں</a>' : '')+
       (isWA(L.country)
-        ? (waNum(L.phone, L.country, L.intl) ? '<a class="btn btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
+        ? (waNum(L.phone, L.country, L.intl) ? '<a class="btn btn-sm" data-a="wa" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
           (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="arab">عربی پیغام کاپی کریں</button>' : '')+
           '<button class="btn2 btn-sm" data-a="urdu">'+(isGulf(L.country) ? (L.urd ? "اردو پیغام کاپی کریں" : "انگریزی پیغام کاپی کریں") : "بنیادی پیغام کاپی کریں")+'</button>'+
           (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="email">ای میل کاپی کریں</button>' : '')
@@ -1109,12 +1154,13 @@ function render(keepOrder){
         b.onclick = function(){ L.manual[k] = b.getAttribute("data-v"); render(true); };   // keep cards in place while answering
       });
     });
-    var eb = d.querySelector('[data-a="email"]'); if(eb) eb.onclick = function(){ copy(emailFor(L)); };
+    var eb = d.querySelector('[data-a="email"]'); if(eb) eb.onclick = function(){ copy(emailFor(L)); autoSent(L, "ای میل"); };
+    var wb = d.querySelector('[data-a="wa"]'); if(wb) wb.addEventListener("click", function(){ autoSent(L, "پیغام"); });   // the link still opens WhatsApp
     var rb = d.querySelector('[data-a="report"]'); if(rb) rb.onclick = function(){ copy(reportFor(L)); };
     var ub = d.querySelector('[data-a="urdu"]'); if(ub) ub.onclick = function(){ copy(isGulf(L.country) ? aeMsg(L) : urduMsg(L)); };
     var abt = d.querySelector('[data-a="arab"]'); if(abt) abt.onclick = function(){ copy(arMsg(L)); };
     d.querySelector('[data-a="img"]').onclick = function(){ showReportImage(L); };
-    d.querySelector('[data-a="sent"]').onclick = function(){ if(!L.sent){ addSent(); addFollow(L); } addSeen(L.id); L.sent = true; render(true); toast("نشان لگ گیا، یہ دوبارہ تلاش میں نہیں آئے گا"); };
+    d.querySelector('[data-a="sent"]').onclick = function(){ if(L.sent) return; markSent(L); render(true); toast("نشان لگ گیا، یہ دوبارہ تلاش میں نہیں آئے گا"); };
     d.querySelector('[data-a="skip"]').onclick = function(){ if(confirm("اس کاروبار کو فہرست سے ہٹا دیں؟")){ addSeen(L.id); removeLead(L.id); toast("ہٹا دیا"); } };
     if(L.sent){ var sb = d.querySelector('[data-a="sent"]'); sb.textContent = isWA(L.country) ? "پیغام جا چکا" : "ای میل بھیجی جا چکی"; sb.style.background = "var(--good)"; sb.style.color = "#fff"; }
     box.appendChild(d);
@@ -1898,6 +1944,9 @@ $("demo").onclick = function(){
 
 $("urgentOnly").checked = store.get("mp_urgentOnly", $("country").value === "PK" ? "0" : "1") === "1";
 if($("urgentOnly").checked && leads.length) render();
+$("undoBtn").onclick = function(){ var f = undoFn; undoFn = null; $("undoBar").hidden = true; if(f){ f(); toast("واپس لے لیا"); } };
+$("undoX").onclick = function(){ undoFn = null; $("undoBar").hidden = true; };
+$("leadFind").oninput = function(){ findQ = ($("leadFind").value||"").trim(); render(true); };
 $("urgentOnly").onchange = function(){ store.set("mp_urgentOnly", $("urgentOnly").checked ? "1" : "0"); render(); };
 /* ---------- follow-ups: one polite reminder 4 days after the first message ---------- */
 var follows = []; try{ follows = JSON.parse(store.get("mp_follow","[]")) || []; }catch(e){ follows = []; }
@@ -2025,7 +2074,12 @@ function renderFollow(){
       '<button class="btn2 btn-sm" data-a="date">تاریخ بدلیں</button></div>' +
       '<div data-a="datebox" style="display:none;margin-top:8px"><label style="margin-top:0">پہلا رابطہ کس دن</label>' +
       '<input type="date" class="en"><div class="btns"><button class="btn btn-sm" style="width:auto" data-a="datesave">Save کریں</button></div></div></div>';
-    d.querySelector('[data-a="copy"]').onclick = function(){ copy(followText(f)); };
+    d.querySelector('[data-a="copy"]').onclick = function(){
+      copy(followText(f));
+      var prev = { state: f.state, fat: f.fat, la: f.la };
+      f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); setTimeout(renderFollow, 400);
+      offerUndo(f.n + ": Reminder کاپی ہو گئی اور نشان لگ گیا ✓", function(){ f.state = prev.state; f.fat = prev.fat; f.la = Date.now(); if(prev.fat == null) delete f.fat; saveFollow(); renderFollow(); });
+    };
     var ab = d.querySelector('[data-a="addr"]'); if(ab) ab.onclick = function(){ copy(f.contact); };
     d.querySelector('[data-a="done"]').onclick = function(){ f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); renderFollow(); toast("نشان لگ گیا، اب اسے دوبارہ پیغام نہیں بھیجنا"); };
     d.querySelector('[data-a="reply"]').onclick = function(){ setStage(f, "replied"); toast("بہت اچھا! اب یہ گاہکوں کے سفر میں ہے"); };
@@ -2685,7 +2739,8 @@ function mergeLeads(a, b, seenV){
   try{ pn = JSON.parse(nw.v); po = JSON.parse(od.v); }catch(e){ return nw; }
   if(!pn || !pn.leads || !po || !po.leads) return nw;
   var seen = arr(seenV), ids = {};
-  pn.leads.forEach(function(L){ ids[L.id] = 1; });
+  var oldNo = {}; po.leads.forEach(function(L){ if(L && L.id && L.no) oldNo[L.id] = L.no; });
+  pn.leads.forEach(function(L){ ids[L.id] = 1; if(oldNo[L.id] && (!L.no || oldNo[L.id] < L.no)) L.no = oldNo[L.id]; });   // one business, one number on both devices
   po.leads.forEach(function(L){ if(L && L.id && !ids[L.id] && (L.sent || seen.indexOf(L.id) < 0)){ pn.leads.push(L); ids[L.id] = 1; } });
   pn.leads = pn.leads.slice(-300);
   return { v: JSON.stringify(pn), t: nw.t };

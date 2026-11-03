@@ -35,7 +35,7 @@ async function mock(ctx){
   await phone.selectOption('#country','US'); await phone.uncheck('#urgentOnly'); await phone.uncheck('#needWeb');
   await phone.fill('#trade','plumber'); await phone.fill('#towns','Abilene, TX'); await phone.fill('#target','30'); await phone.fill('#minReviews','0');
   await phone.click('#go'); await phone.waitForTimeout(6000);
-  const names = await phone.$$eval('.lead .name', e=>e.map(x=>x.textContent));
+  const names = await phone.$$eval('.lead .name', e=>e.map(x=>x.textContent.replace(/^#\d+/, '')));
   ok('2 Places search -> leads shown', names.length>=2, names.join(', '));
   const firstCard = await phone.textContent('.lead');
   ok('3 PageSpeed -> ad-tag badges on the right lead', /گوگل اشتہار کا کوڈ/.test(firstCard) && /فیس بک اشتہار کا کوڈ/.test(firstCard) && /Lone Star/.test(firstCard));

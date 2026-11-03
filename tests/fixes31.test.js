@@ -64,7 +64,7 @@ const { chromium } = require('playwright');
   await p.reload(); await p.waitForTimeout(800);
   if ((await p.inputValue('#country')) !== 'AE') await p.selectOption('#country', 'AE');
   await p.evaluate(() => { const u = document.getElementById('urgentOnly'); if (u.checked) u.click(); });
-  const card = await p.$$eval('#results .lead', ls => (ls.find(l => /Noufal/.test(l.querySelector('.name').textContent)) || {}).textContent || '');
+  const card = await p.$$eval('#results .lead', ls => (ls.find(l => /Noufal/.test(l.querySelector('.name').textContent.replace(/^#\d+/, ''))) || {}).textContent || '');
   ok('F7 old saved results: "no new reviews" hidden on busy listing', card && !/تین مہینے سے کوئی نیا ریویو نہیں/.test(card));
   // reopening the app with UAE saved: boxes show UAE, not the US plumber defaults
   await p.evaluate(() => localStorage.setItem('mp_country', 'AE')); await p.reload(); await p.waitForTimeout(600);
