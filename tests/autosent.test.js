@@ -28,7 +28,9 @@ const SYNC = 'https://script.google.com/macros/s/TEST/exec';
       return r.abort();   // wa.me and everything else
     });
     const p = await ctx.newPage();
-    ctx.on('page', pg => pg.close().catch(() => {}));   // WhatsApp tabs p.errs = []; p.on('pageerror', e => p.errs.push(e.message)); p.on('dialog', d => d.accept());
+    ctx.on('page', pg => setTimeout(() => pg.close().catch(() => {}), 300));   // WhatsApp / Gmail tabs
+    p.errs = []; p.on('pageerror', e => p.errs.push(e.message)); p.on('dialog', d => d.accept());
+    p.reqs = []; ctx.on('request', r => p.reqs.push(r.url()));
     await p.goto(BASE + '/finder.html'); await p.waitForTimeout(500);
     await p.evaluate(s => { document.getElementById('setBox').open = true; document.getElementById('apiKey').value = 'AIzaTEST'; document.getElementById('syncUrl').value = s; }, SYNC);
     await p.click('#saveSet'); await p.waitForTimeout(1200);
@@ -83,9 +85,21 @@ const SYNC = 'https://script.google.com/macros/s/TEST/exec';
   await card.locator('[data-a="copy"]').click(); await A.waitForTimeout(700);
   let st = await A.evaluate(() => JSON.parse(localStorage.getItem('mp_follow')).find(f => f.id === 'r1').state);
   ok('S4 copying a reminder marks it sent', st === 'followed' && /Reminder کاپی ہو گئی/.test(await A.textContent('#undoTx')));
+  const kept = A.locator('#fuList .lead').filter({ hasText: 'InfoTank' });
+  ok('S5 the copied reminder stays on screen with a tick and the Gmail button', (await kept.count()) === 1 && /✓ Reminder کاپی ہو گئی/.test(await kept.textContent()) && (await kept.locator('[data-a="gmail"]').count()) === 1 && (await kept.locator('[data-a="done"]').count()) === 0);
+  await kept.locator('[data-a="gmail"]').click(); await A.waitForTimeout(600);
+  const gu = A.reqs.filter(u => /mail\.google\.com/.test(u)).pop() || '';
+  ok('S6 Gmail button opens Gmail (website outside Android)', /mail\.google\.com\/mail\//.test(gu), gu);
   await A.click('#undoBtn'); await A.waitForTimeout(400);
   st = await A.evaluate(() => JSON.parse(localStorage.getItem('mp_follow')).find(f => f.id === 'r1').state);
-  ok('S4b undo puts the reminder back', st === 'waiting' && (await A.locator('#fuList .lead').filter({ hasText: 'InfoTank' }).count()) === 1);
+  // copied yesterday -> gone today
+  await card.locator('[data-a="copy"]').click(); await A.waitForTimeout(500);
+  await A.evaluate(() => { const a = JSON.parse(localStorage.getItem('mp_follow')); const f = a.find(x => x.id === 'r1'); f.fat = Date.now() - 864e5 * 1.2; f.la = Date.now(); localStorage.setItem('mp_follow', JSON.stringify(a)); });
+  await A.reload(); await A.waitForTimeout(700); await A.evaluate(() => { document.getElementById('fuBox').open = true; });
+  ok('S7 next day the sent reminder leaves the list', (await A.locator('#fuList .lead').filter({ hasText: 'InfoTank' }).count()) === 0);
+  await A.evaluate(() => { const a = JSON.parse(localStorage.getItem('mp_follow')); const f = a.find(x => x.id === 'r1'); f.state = 'waiting'; delete f.fat; f.la = Date.now(); localStorage.setItem('mp_follow', JSON.stringify(a)); });
+  await A.reload(); await A.waitForTimeout(700);
+  ok('S4b undo puts the reminder back', st === 'waiting' && (await A.locator('#fuList .lead').filter({ hasText: 'InfoTank' }).count()) === 1, st + ' ' + (await A.locator('#fuList .lead').filter({ hasText: 'InfoTank' }).count()));
   // second device gets the same numbers
   await A.waitForTimeout(3000);
   const aNos = await A.evaluate(() => JSON.parse(localStorage.getItem('mp_leads')).leads.map(L => L.id + '=' + L.no).sort().join(','));

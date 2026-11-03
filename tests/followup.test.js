@@ -17,7 +17,7 @@ const SYNC='https://script.google.com/macros/s/TEST/exec'; let cloud={};
   const info = p.locator('#fuList .lead',{hasText:'InfoTank'}), blue = p.locator('#fuList .lead',{hasText:'Blue Sky'});
   const it = await info.textContent();
   ok('1 reminder card shows email address', /sales@infotank\.example/.test(it));
-  ok('2 Gmail "first email" button', !!(await info.locator('a[href*="mail.google.com"][href*="infotank"]').count()));
+  ok('2 Gmail "first email" button', (await info.locator('[data-a="gmail"]').count()) === 1);
   ok('3 Reply hint shown when due', /Reply دبائیں/.test(it));
   await info.locator('[data-a="copy"]').click(); await p.waitForTimeout(200);
   const txt = await p.evaluate(()=>navigator.clipboard.readText());

@@ -2023,6 +2023,14 @@ function sendTimeText(c, when){
   return CTZ[c] ? "وقت: " + pk9(CTZ[c], when) : "";
 }
 function isEmailLead(f){ return !isWA(f.c) && (!f.manual || /@/.test(f.contact||"")); }
+/* open Gmail as its own app on Android (the tool stays open behind it); elsewhere the Gmail website in a new tab */
+function openGmail(f){
+  var web = gmailSearch(f);
+  if(/Android/i.test(navigator.userAgent || "")){
+    toast("جی میل کھل رہا ہے۔ اوپر تلاش میں نام لکھیں: " + bizOf(f));
+    location.href = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.google.android.gm;S.browser_fallback_url=" + encodeURIComponent(web) + ";end";
+  } else window.open(web, "_blank", "noopener");
+}
 function gmailSearch(f){
   var who = /@/.test(f.contact||"") ? "to:" + f.contact : '"' + bizOf(f) + '"';
   var acct = ($("myEmail").value||"").trim();
@@ -2039,7 +2047,8 @@ function remindAt(f){
 function renderFollow(){
   var box = $("fuList"); box.innerHTML = "";
   var now = Date.now(), due = 0;
-  var list = follows.filter(function(f){ return f.state === "waiting"; });
+  var today0 = localDay(now);
+  var list = follows.filter(function(f){ return f.state === "waiting" || (f.state === "followed" && f.fat && localDay(f.fat) === today0); });   // a reminder copied today stays on screen until tomorrow, so the Gmail button is still there
   list.sort(function(a,b){ return (hasContact(b)?1:0) - (hasContact(a)?1:0) || a.at - b.at; });   // forum-only leads go to the end
   list.forEach(function(f){
     var d = document.createElement("div"); d.className = "lead";
@@ -2052,38 +2061,42 @@ function renderFollow(){
       d.querySelector('[data-a="lost"]').onclick = function(){ if(confirm("اس سے بات ختم سمجھیں؟ بعد میں واپس بھی لا سکتے ہیں۔")) setStage(f, "lost", { prev: "waiting" }); };
       box.appendChild(d); return;
     }
-    var days = Math.floor((now - f.at) / 864e5), ra = remindAt(f), isDue = dueNow(f), held = now >= ra && !isDue, left = Math.max(1, Math.ceil((ra - now) / 864e5)), tt = sendTimeText(f.c, held ? nextWorkDate(f) : null);
+    var doneToday = f.state === "followed";
+    var days = Math.floor((now - f.at) / 864e5), ra = remindAt(f), isDue = !doneToday && dueNow(f), held = now >= ra && !isDue, left = Math.max(1, Math.ceil((ra - now) / 864e5)), tt = sendTimeText(f.c, held ? nextWorkDate(f) : null);
     if(isDue) due++;
     var who = [f.town, f.contact || f.phone].filter(Boolean).join(" · ");
     d.innerHTML = '<div class="body"><div class="name">' + esc(f.n) + '</div>' +
       (who ? '<div class="meta en" style="text-align:left">' + esc(who) + '</div>' : '') +
-      (isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج Reminder بھیجیں</span>' + (tt ? '<span class="pill">' + tt + '</span>' : '')
+      (doneToday ? '<span class="pill" style="background:var(--good);color:#fff">✓ Reminder کاپی ہو گئی، اب جی میل میں Reply کر کے بھیج دیں</span>'
+     : isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج Reminder بھیجیں</span>' + (tt ? '<span class="pill">' + tt + '</span>' : '')
      : held ? '<span class="pill" style="color:var(--warn)">وہاں آج چھٹی ہے، Reminder ' + nextWorkDay(f) + ' کو بھیجیں</span>' + (tt ? '<span class="pill">' + tt + '</span>' : '')
              : (f.at > now
                  ? '<span class="pill">ای میل Schedule ہے، <b class="en">' + Math.max(1, Math.round((new Date(f.at).setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0)) / 864e5)) + '</b> دن بعد جائے گی۔ Reminder <b class="en">' + left + '</b> دن بعد</span>'
                  : '<span class="pill">پہلا پیغام بھیجے ہوئے <b class="en">' + days + '</b> دن، Reminder <b class="en">' + left + '</b> دن بعد</span>')) +
-      (isDue && isEmailLead(f) ? '<p class="hint" style="margin-top:6px">جی میل میں اپنی پہلی ای میل کھولیں، Reply دبائیں، اور Reminder وہیں پیسٹ کریں۔ اس طرح گاہک کو پوری بات ایک جگہ نظر آتی ہے۔</p>' : '') +
+      ((isDue || doneToday) && isEmailLead(f) ? '<p class="hint" style="margin-top:6px">جی میل میں اپنی پہلی ای میل کھولیں، Reply دبائیں، اور Reminder وہیں پیسٹ کریں۔ اس طرح گاہک کو پوری بات ایک جگہ نظر آتی ہے۔</p>' : '') +
       '<div class="btns">' +
       (isWA(f.c) && waNum(f.phone, f.c) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="https://wa.me/' + waNum(f.phone, f.c) + '">واٹس ایپ کھولیں</a>' : '') +
-      (isEmailLead(f) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(gmailSearch(f)) + '">جی میل میں پہلی ای میل</a>' : '') +
+      (isEmailLead(f) ? '<button class="btn2 btn-sm" data-a="gmail">جی میل میں پہلی ای میل</button>' : '') +
       (/@/.test(f.contact||"") ? '<button class="btn2 btn-sm" data-a="addr">ای میل کا پتہ کاپی کریں</button>' : '') +
       (f.c !== "PK" && safeUrl(f.w) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(safeUrl(f.w)) + '">Website</a>' : '') +
-      '<button class="btn2 btn-sm" data-a="copy">Reminder کاپی کریں</button>' +
-      '<button class="btn2 btn-sm" data-a="done">Reminder بھیج دی</button>' +
+      '<button class="btn2 btn-sm" data-a="copy">' + (doneToday ? 'Reminder دوبارہ کاپی کریں' : 'Reminder کاپی کریں') + '</button>' +
+      (doneToday ? '' : '<button class="btn2 btn-sm" data-a="done">Reminder بھیج دی</button>') +
       '<button class="btn2 btn-sm" data-a="reply">جواب آ گیا</button>' +
-      '<button class="btn2 btn-sm" data-a="date">تاریخ بدلیں</button></div>' +
+      (doneToday ? '' : '<button class="btn2 btn-sm" data-a="date">تاریخ بدلیں</button>') + '</div>' +
       '<div data-a="datebox" style="display:none;margin-top:8px"><label style="margin-top:0">پہلا رابطہ کس دن</label>' +
       '<input type="date" class="en"><div class="btns"><button class="btn btn-sm" style="width:auto" data-a="datesave">Save کریں</button></div></div></div>';
+    var gb = d.querySelector('[data-a="gmail"]'); if(gb) gb.onclick = function(){ openGmail(f); };
     d.querySelector('[data-a="copy"]').onclick = function(){
       copy(followText(f));
+      if(doneToday){ toast("Reminder کاپی ہو گئی"); return; }   // already marked: just copy again
       var prev = { state: f.state, fat: f.fat, la: f.la };
       f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); setTimeout(renderFollow, 400);
       offerUndo(f.n + ": Reminder کاپی ہو گئی اور نشان لگ گیا ✓", function(){ f.state = prev.state; f.fat = prev.fat; f.la = Date.now(); if(prev.fat == null) delete f.fat; saveFollow(); renderFollow(); });
     };
     var ab = d.querySelector('[data-a="addr"]'); if(ab) ab.onclick = function(){ copy(f.contact); };
-    d.querySelector('[data-a="done"]').onclick = function(){ f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); renderFollow(); toast("نشان لگ گیا، اب اسے دوبارہ پیغام نہیں بھیجنا"); };
+    var db0 = d.querySelector('[data-a="done"]'); if(db0) db0.onclick = function(){ f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); renderFollow(); toast("نشان لگ گیا، اب اسے دوبارہ پیغام نہیں بھیجنا"); };
     d.querySelector('[data-a="reply"]').onclick = function(){ setStage(f, "replied"); toast("بہت اچھا! اب یہ گاہکوں کے سفر میں ہے"); };
-    (function(){   // change the first-contact day (for example an email scheduled for Monday)
+    if(!doneToday) (function(){   // change the first-contact day (for example an email scheduled for Monday)
       var box = d.querySelector('[data-a="datebox"]'), inp = box.querySelector("input");
       d.querySelector('[data-a="date"]').onclick = function(){
         inp.value = localDay(f.at); inp.max = localDay(Date.now() + 7*864e5);
