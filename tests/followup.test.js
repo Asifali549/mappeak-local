@@ -9,7 +9,7 @@ const SYNC='https://script.google.com/macros/s/TEST/exec'; let cloud={};
       if(/places:searchText/.test(u)) return j({places}); return r.abort(); });
     if(seed) await ctx.addInitScript(s=>{ if(!localStorage.getItem('seeded')){ for(const k in s) localStorage.setItem(k,s[k]); localStorage.setItem('seeded','1'); } }, seed);
     const p = await ctx.newPage(); p.errs=[]; p.on('pageerror',e=>p.errs.push(e.message)); p.on('dialog',d=>d.accept()); await p.goto((process.env.BASE||'http://localhost:8765')+'/finder.html'); await p.waitForTimeout(800); return p; };
-  const old = Date.now()-6*864e5;
+  const old = new Date('2026-11-04T05:00:00Z').getTime()-6*864e5;   // relative to the fixed clock (was real time: went stale after a few days)
   const seed = { mp_follow: JSON.stringify([
     {id:'m1',n:'InfoTank (Avery Sellers)',c:'US',contact:'sales@infotank.example',at:old,la:old,state:'waiting',manual:true,src:'Google Community'},
     {id:'m2',n:'Blue Sky Childcare Bellevue',c:'US',contact:'',at:old,la:old,state:'waiting',manual:true}]), mp_myEmail:'mappeak.local@gmail.com' };

@@ -1157,7 +1157,7 @@ function render(keepOrder){
       });
     });
     var eb = d.querySelector('[data-a="email"]'); if(eb) eb.onclick = function(){ copy(emailFor(L)); autoSent(L, "ای میل"); };
-    var wb = d.querySelector('[data-a="wa"]'); if(wb) wb.addEventListener("click", function(){ autoSent(L, "پیغام"); });   // the link still opens WhatsApp
+    var wb = d.querySelector('[data-a="wa"]'); if(wb) wb.addEventListener("click", function(){ wb.href = waUrl(L); autoSent(L, "پیغام"); });   // fresh text (name may have changed), the link still opens WhatsApp
     var rb = d.querySelector('[data-a="report"]'); if(rb) rb.onclick = function(){ copy(reportFor(L)); };
     var ub = d.querySelector('[data-a="urdu"]'); if(ub) ub.onclick = function(){ copy(isGulf(L.country) ? aeMsg(L) : urduMsg(L)); };
     var abt = d.querySelector('[data-a="arab"]'); if(abt) abt.onclick = function(){ copy(arMsg(L)); };
@@ -1327,7 +1327,8 @@ function aeMsg(L){
     "اگر آپ اردو میں بات کرنا چاہیں تو بتائیں، میں پاکستان سے ہوں۔\n\n" +
     "If you'd rather not hear from me, just say so and I won't message again.";
 }
-function waUrl(L){ return "https://wa.me/" + waNum(L.phone, L.country, L.intl); }   // opens an empty chat: each business gets its own written message
+function waText(L){ return isGulf(L.country) ? aeMsg(L) : urduMsg(L); }   // same text as the card's main copy button (Urdu / English by the business)
+function waUrl(L){ return "https://wa.me/" + waNum(L.phone, L.country, L.intl) + "?text=" + encodeURIComponent(waText(L)); }   // opens the chat with this business's message already typed (9 Nov, owner asked)
 function passes(p, f){
   if(p.businessStatus && p.businessStatus !== "OPERATIONAL") return false;
   var nm = normName(p.displayName && p.displayName.text);
