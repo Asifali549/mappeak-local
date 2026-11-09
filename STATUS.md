@@ -1,8 +1,25 @@
 # MapPeak Local: lead status (update at the end of each working day)
 
-Last updated: 31 October 2026, evening (Pakistan time).
+Last updated: 9 November 2026, evening (Pakistan time). Older sections below are history.
 
 **This repo is public. Never write emails, phone numbers or other contact details here.** Contacts live only in the tool's Client Follow-up list.
+
+## 7-9 Nov (leads now come inside the main chat, 9:40 and 17:40 PKT; see LEADS_ROUTINE.md)
+| Lead | Country | What was done | Next step |
+|---|---|---|---|
+| Charlies Comic Con Events (Charles) | USA, Florida | 2 forum replies (duplicate listing + 11 reviews on "Duplicate" profile); thread trending; email scheduled Mon 9 Nov 7:00 PM PKT | Wait; reminder after 4 working days |
+| VaultGuard Locksmith (Oleksandr), San Diego | USA, California | Forum reply 8 Nov (Silver PE KV 95 later gave recommended answer: write nothing more there); email scheduled Mon 9 Nov 10:00 PM PKT. Hook if he replies: website address National City vs profile Mira Mesa | Wait |
+| Revyn Auto Care, Burlington ON | Canada | Forum reply 8 Nov (fake 1-star, appeal closed); email scheduled Mon 9 Nov 7:10 PM PKT | Wait |
+| AML Locksmith, Houston TX | USA, Texas | Forum reply 9 Nov (ours first; Silver PE R. Ahmed replied 2 h later, now talking with owner: write nothing more); email scheduled Mon 9 Nov 8:00 PM PKT | Wait |
+| The Finishing Touch Remodeling (Ali), Virginia | USA | Forum reply 8 Nov only (no email found) | Wait for forum reply |
+| The Key Man (Andy), NW Arkansas | USA | Forum reply 8 Nov only (no website) | Wait for forum reply |
+| Attock Gravel Plant | Pakistan | Reddit comment 8 Nov; Urdu WhatsApp 9 Nov (two Maps profiles, same number, one with only a plus code) | If reply: offer 5,000 PKR fix (duplicate profiles, address, photo with another firm's card) |
+| Aqmar Taiba Trading | Saudi Arabia | Arabic forum reply 5 Nov (abusive review); Arabic WhatsApp 8 Nov | If reply: help with report/appeal, 149 SAR; never promise removal |
+| Traiteur Espagnol a Paris (Bruno) | France | Forum reply 9 Nov only. NO email on purpose: the review they fight was about an unsolicited commercial email | Forum only |
+| UAE batch 2 (Aflatoon, Lahore Waly, Israh, Lahore Palace, Zaharaa) | UAE | WhatsApp sent 9 Nov | Reminders from the tool |
+- Payoneer: documents uploaded 9 Nov, "reviewing, 2 business days".
+- Tool 9 Nov: "واٹس ایپ کھولیں" now opens the chat with the message typed (owner asked). Tests 167/167.
+- Crypto (other repo): weekly paper report checked 9 Nov; Dip bot matches backtest 15/15 (bad October period, no bug).
 
 ## Waiting for replies
 | Lead | Country | What was done | Next step |
