@@ -2087,6 +2087,8 @@ var CTZ = { GB:"Europe/London", IE:"Europe/Dublin", AU:"Australia/Sydney", NL:"E
 function sendTimeText(c, when){
   if(c === "PK") return "";
   if(c === "US" || !c) return "وقت: مشرقی امریکہ " + pk9("America/New_York", when) + "، کیلیفورنیا " + pk9("America/Los_Angeles", when);
+  if(c === "CA") return "وقت: مشرقی کینیڈا " + pk9("America/Toronto", when) + "، برٹش کولمبیا " + pk9("America/Vancouver", when);   // 10 Nov: a BC business got the Toronto time
+  if(c === "AU") return "وقت: مشرقی آسٹریلیا " + pk9("Australia/Sydney", when) + "، مغربی آسٹریلیا " + pk9("Australia/Perth", when);
   return CTZ[c] ? "وقت: " + pk9(CTZ[c], when) : "";
 }
 function isEmailLead(f){ return !isWA(f.c) && (!f.manual || /@/.test(f.contact||"")); }
