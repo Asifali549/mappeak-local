@@ -1392,11 +1392,12 @@ function urduMsg(L){   // 11 Nov (owner approved, growth plan): lead with a free
   var me = ($("myIntroUr").value||"").trim() || "محمد آصف رضا";
   var gap = L.comp && L.comp.r > (L.reviews||0);
   return "السلام علیکم۔ میں " + me + (L.country === "PK" || /پاکستان/.test(me) ? "" : "، پاکستان") + " سے بات کر رہا ہوں۔\n" +
+    "میں دکانوں اور ریسٹورنٹس کا گوگل بزنس پروفائل (گوگل نقشے والی لسٹنگ) ٹھیک کرنے کا کام کرتا ہوں۔\n\n" +   // who we are first (11 Nov, owner asked)
     "گوگل نقشے پر آپ کی دکان " + L.name + " دیکھی۔ " +
     (gap ? "آپ کے " + (L.reviews||0) + " ریویو ہیں، اور قریب والی " + L.comp.n + " کے " + L.comp.r + "۔ اس لیے گاہک پہلے انہیں دیکھتا ہے۔"
          : (top ? UR_ISSUE[top] + "، اس لیے کئی گاہک آپ تک نہیں پہنچ پاتے۔" : "")) + "\n\n" +
-    "میں آپ کی دکان کے نام کا ریویو والا کیو آر کارڈ مفت بنا کر بھیج دیتا ہوں۔ کاؤنٹر پر رکھ لیں، گاہک فون سے اسکین کر کے گوگل پر اپنی رائے لکھ دیتا ہے۔\n" +
-    "نہ کوئی پیسے، نہ کوئی پاس ورڈ۔ بھیج دوں؟";
+    "تحفے کے طور پر میں آپ کی دکان کے نام کا ریویو والا کیو آر کارڈ مفت بنا کر بھیج دیتا ہوں۔ کاؤنٹر پر رکھ لیں، گاہک فون سے اسکین کر کے گوگل پر اپنی رائے لکھ دیتا ہے۔ نہ کوئی پیسے، نہ کوئی پاس ورڈ۔\n\n" +
+    "کام پسند آئے تو پروفائل کا باقی کام بھی کر سکتا ہوں، وہ آپ کی مرضی۔ کارڈ بھیج دوں؟";
 }
 var PAKRE = /pakistan|lahor|karach|punjab|peshawar|multan|quetta|islamabad|rawalpindi|faisalabad|sialkot|gujranwala|sindh|desi|karahi|nihari|haleem|sajji|pathan|kashmir/i;
 var EN_ISSUE = {
@@ -1415,12 +1416,12 @@ function aeMsg(L){
   var top = allIssues(L).filter(function(k){ return EN_ISSUE[k]; })[0];
   var nm = ($("myName").value||"").trim() || "Asif";
   var gap = L.comp && L.comp.r > (L.reviews||0);
-  return "Hello, this is " + nm + " from MapPeak Local.\n\n" +
+  return "Hello, this is " + nm + " from MapPeak Local. I help shops and restaurants fix their Google Business Profile (their Google Maps listing).\n\n" +
     "I saw " + L.name + " on Google Maps. " +
     (gap ? "You have " + (L.reviews||0) + " reviews, while " + L.comp.n + " nearby has " + L.comp.r + ", so customers see them first."
          : (top ? "I noticed " + EN_ISSUE[top] + "." : "")) + "\n\n" +
-    "I'd like to make you a free review QR card with your shop's name. Put it on the counter: customers scan it with their phone and leave a Google review.\n" +
-    "No cost, no password. Shall I send it?\n\n" +
+    "As a gift, I'd like to make you a free review QR card with your shop's name. Put it on the counter: customers scan it with their phone and leave a Google review. No cost, no password.\n\n" +
+    "If you like it, I can help with the rest of your profile too, only if you want. Shall I send the card?\n\n" +
     "اگر آپ اردو میں بات کرنا چاہیں تو بتائیں، میں پاکستان سے ہوں۔\n\n" +
     "If you'd rather not hear from me, just say so and I won't message again.";
 }
