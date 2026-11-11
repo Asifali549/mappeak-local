@@ -1191,6 +1191,7 @@ function render(keepOrder){
           (langOf(L.country) !== "en" ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(trUrl(emailFor(L), langOf(L.country)))+'">'+WORLD[L.country][3]+' میں ترجمہ</a>' : '')+
           '<button class="btn2 btn-sm" data-a="report">رپورٹ کاپی کریں</button>')+
       '<button class="btn2 btn-sm" data-a="img">تصویری رپورٹ</button>'+
+      (reviewUrl(L) ? '<button class="btn2 btn-sm" data-a="qr">ریویو کیو آر کارڈ</button>' : '')+
       '<button class="btn2 btn-sm" data-a="sent">'+(isWA(L.country) ? "پیغام بھیج دیا" : "ای میل بھیج دی")+'</button>'+
       '<button class="btn2 btn-sm" data-a="skip">چھوڑ دیں</button></div></div>';
     d.querySelectorAll(".yn").forEach(function(g){
@@ -1206,6 +1207,7 @@ function render(keepOrder){
     var ub = d.querySelector('[data-a="urdu"]'); if(ub) ub.onclick = function(){ copy(isGulf(L.country) ? aeMsg(L) : urduMsg(L)); };
     var abt = d.querySelector('[data-a="arab"]'); if(abt) abt.onclick = function(){ copy(arMsg(L)); };
     d.querySelector('[data-a="img"]').onclick = function(){ showReportImage(L); };
+    var qb = d.querySelector('[data-a="qr"]'); if(qb) qb.onclick = function(){ showQrCard(L); };
     d.querySelector('[data-a="sent"]').onclick = function(){ if(L.sent) return; markSent(L); render(true); toast("نشان لگ گیا، یہ دوبارہ تلاش میں نہیں آئے گا"); };
     d.querySelector('[data-a="skip"]').onclick = function(){ if(confirm("اس کاروبار کو فہرست سے ہٹا دیں؟")){ addSeen(L.id); removeLead(L.id); toast("ہٹا دیا"); } };
     if(L.sent){ var sb = d.querySelector('[data-a="sent"]'); sb.textContent = isWA(L.country) ? "پیغام جا چکا" : "ای میل بھیجی جا چکی"; sb.style.background = "var(--good)"; sb.style.color = "#fff"; }
@@ -2771,6 +2773,104 @@ async function showReportImage(L, lang){
   ov.querySelectorAll('[data-l]').forEach(function(b){ b.onclick = function(){ URL.revokeObjectURL(url); showReportImage(L, b.getAttribute("data-l")); }; });
   var sb = ov.querySelector('[data-a="share"]');
   var file = null; try{ file = new File([blob], fname, { type: "image/png" }); }catch(e){}
+  if(!(file && navigator.canShare && navigator.canShare({ files: [file] }))) sb.style.display = "none";
+  sb.onclick = function(){ navigator.share({ files: [file], title: L.name }).catch(function(){}); };
+}
+/* ---------- review QR card (11 Nov, owner approved): a free gift for the business, printable, no password needed ----------
+   QR encoder written here (byte mode, error level M, versions 1-10) so no outside code ever runs on this site. */
+var QR = (function(){
+  var ECC = [-1,10,16,26,18,24,16,18,22,22,26], BLK = [-1,1,1,1,2,2,4,4,4,5,5];
+  function rawMods(v){ var r = (16*v + 128)*v + 64; if(v >= 2){ var n = Math.floor(v/7) + 2; r -= (25*n - 10)*n - 55; if(v >= 7) r -= 36; } return r; }
+  function dataCw(v){ return Math.floor(rawMods(v)/8) - ECC[v]*BLK[v]; }
+  function mul(x, y){ var z = 0; for(var i=7;i>=0;i--){ z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z & 255; }
+  function rsDiv(d){ var r = []; for(var i=0;i<d;i++) r.push(0); r[d-1] = 1; var root = 1;
+    for(var i2=0;i2<d;i2++){ for(var j=0;j<d;j++){ r[j] = mul(r[j], root); if(j+1 < d) r[j] ^= r[j+1]; } root = mul(root, 2); } return r; }
+  function rsRem(data, dv){ var r = dv.map(function(){ return 0; });
+    data.forEach(function(b){ var f = b ^ r.shift(); r.push(0); dv.forEach(function(c, i){ r[i] ^= mul(c, f); }); }); return r; }
+  function encode(text){
+    var bytes = Array.from(new TextEncoder().encode(String(text))), v = 1;
+    while(v <= 10 && 4 + (v <= 9 ? 8 : 16) + bytes.length*8 > dataCw(v)*8) v++;
+    if(v > 10) throw new Error("QR text too long");
+    var bits = [], put = function(val, n){ for(var i=n-1;i>=0;i--) bits.push((val >>> i) & 1); };
+    put(4, 4); put(bytes.length, v <= 9 ? 8 : 16); bytes.forEach(function(b){ put(b, 8); });
+    var cap = dataCw(v)*8; put(0, Math.min(4, cap - bits.length)); put(0, (8 - bits.length % 8) % 8);
+    for(var pad = 0xEC; bits.length < cap; pad ^= 0xEC ^ 0x11) put(pad, 8);
+    var data = []; for(var i=0;i<bits.length;i+=8){ var x = 0; for(var k=0;k<8;k++) x = (x << 1) | bits[i+k]; data.push(x); }
+    var nb = BLK[v], el = ECC[v], raw = Math.floor(rawMods(v)/8), ns = nb - raw % nb, sl = Math.floor(raw/nb), dv = rsDiv(el), blocks = [], pos = 0;
+    for(var b=0;b<nb;b++){ var dat = data.slice(pos, pos + sl - el + (b < ns ? 0 : 1)); pos += dat.length; var ec = rsRem(dat, dv); if(b < ns) dat.push(0); blocks.push(dat.concat(ec)); }
+    var all = []; for(var c=0;c<blocks[0].length;c++) for(var j=0;j<nb;j++) if(c !== sl - el || j >= ns) all.push(blocks[j][c]);
+    var size = v*4 + 17, M = [], F = [];
+    for(var y=0;y<size;y++){ M.push(new Array(size).fill(false)); F.push(new Array(size).fill(false)); }
+    var set = function(x, y, d){ M[y][x] = !!d; F[y][x] = true; };
+    for(var t=0;t<size;t++){ set(6, t, t % 2 === 0); set(t, 6, t % 2 === 0); }
+    [[3,3],[size-4,3],[3,size-4]].forEach(function(c){ for(var dy=-4;dy<=4;dy++) for(var dx=-4;dx<=4;dx++){ var xx = c[0]+dx, yy = c[1]+dy, d = Math.max(Math.abs(dx), Math.abs(dy));
+      if(xx >= 0 && xx < size && yy >= 0 && yy < size) set(xx, yy, d !== 2 && d !== 4); } });
+    var ap = []; if(v > 1){ var na = Math.floor(v/7) + 2, step = Math.ceil((v*4 + 4)/(na*2 - 2))*2; ap = [6]; for(var p2 = size-7; ap.length < na; p2 -= step) ap.splice(1, 0, p2); }
+    ap.forEach(function(ax, i){ ap.forEach(function(ay, j){ if((i === 0 && j === 0) || (i === 0 && j === ap.length-1) || (i === ap.length-1 && j === 0)) return;
+      for(var dy=-2;dy<=2;dy++) for(var dx=-2;dx<=2;dx++) set(ax+dx, ay+dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1); }); });
+    var fmt = function(mask){ var d = (0 << 3) | mask, r = d; for(var i=0;i<10;i++) r = (r << 1) ^ ((r >>> 9) * 0x537); var bb = ((d << 10) | r) ^ 0x5412, g = function(i){ return (bb >>> i) & 1; };
+      for(var i2=0;i2<=5;i2++) set(8, i2, g(i2)); set(8, 7, g(6)); set(8, 8, g(7)); set(7, 8, g(8)); for(var i3=9;i3<15;i3++) set(14-i3, 8, g(i3));
+      for(var i4=0;i4<8;i4++) set(size-1-i4, 8, g(i4)); for(var i5=8;i5<15;i5++) set(8, size-15+i5, g(i5)); set(8, size-8, true); };
+    fmt(0);
+    if(v >= 7){ var r7 = v; for(var i7=0;i7<12;i7++) r7 = (r7 << 1) ^ ((r7 >>> 11) * 0x1F25); var vb = (v << 12) | r7;
+      for(var i8=0;i8<18;i8++){ var bit = (vb >>> i8) & 1, a = size - 11 + i8 % 3, bq = Math.floor(i8/3); set(a, bq, bit); set(bq, a, bit); } }
+    var bi = 0;
+    for(var right=size-1; right>=1; right-=2){ if(right === 6) right = 5;
+      for(var vert=0; vert<size; vert++) for(var jj=0; jj<2; jj++){ var x2 = right - jj, up = ((right + 1) & 2) === 0, y2 = up ? size-1-vert : vert;
+        if(!F[y2][x2] && bi < all.length*8){ M[y2][x2] = ((all[bi >>> 3] >>> (7 - (bi & 7))) & 1) === 1; bi++; } } }
+    var maskFn = [function(x,y){ return (x+y)%2===0; }, function(x,y){ return y%2===0; }, function(x){ return x%3===0; }, function(x,y){ return (x+y)%3===0; },
+      function(x,y){ return (Math.floor(x/3)+Math.floor(y/2))%2===0; }, function(x,y){ return x*y%2+x*y%3===0; }, function(x,y){ return (x*y%2+x*y%3)%2===0; }, function(x,y){ return ((x+y)%2+x*y%3)%2===0; }];
+    var applyM = function(m){ for(var y=0;y<size;y++) for(var x=0;x<size;x++) if(!F[y][x] && maskFn[m](x, y)) M[y][x] = !M[y][x]; };
+    var penalty = function(){ var p = 0, dark = 0;
+      for(var y=0;y<size;y++){ for(var x=0;x<size;x++){ if(M[y][x]) dark++;
+        if(x < size-1 && y < size-1 && M[y][x] === M[y][x+1] && M[y][x] === M[y+1][x] && M[y][x] === M[y+1][x+1]) p += 3; } }
+      for(var o=0;o<2;o++) for(var a2=0;a2<size;a2++){ var run = 1; for(var b2=1;b2<size;b2++){ var c1 = o ? M[b2][a2] : M[a2][b2], c0 = o ? M[b2-1][a2] : M[a2][b2-1];
+        if(c1 === c0){ run++; if(run === 5) p += 3; else if(run > 5) p++; } else run = 1; } }
+      return p + Math.floor(Math.abs(dark*20 - size*size*10) / (size*size)) * 10; };
+    var best = 0, bestP = Infinity;
+    for(var m=0;m<8;m++){ applyM(m); fmt(m); var pp = penalty(); if(pp < bestP){ bestP = pp; best = m; } applyM(m); }
+    applyM(best); fmt(best);
+    return M;
+  }
+  return { encode: encode };
+})();
+function reviewUrl(L){ return /^[A-Za-z0-9_-]{10,}$/.test(L.id || "") ? "https://search.google.com/local/writereview?placeid=" + L.id : ""; }
+function qrCardCanvas(L){
+  var url = reviewUrl(L); if(!url) return null;
+  var M = QR.encode(url), n = M.length, W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H;
+  var g = c.getContext("2d"), font = '"Noto Nastaliq Urdu","Noto Naskh Arabic","Segoe UI",Arial,sans-serif';
+  g.fillStyle = "#ffffff"; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#1a73e8"; g.fillRect(0, 0, W, 22); g.fillRect(0, H-22, W, 22);
+  var fit = function(t, max, px, weight){ var s = px; do { g.font = (weight||"700") + " " + s + "px " + font; s -= 2; } while(g.measureText(t).width > max && s > 18); return g.font; };
+  var name = cleanBiz(L.name) || L.name || "";
+  g.textAlign = "center"; g.fillStyle = "#1d2321";
+  g.font = fit(name, W - 120, 64); g.fillText(name, W/2, 140);
+  g.fillStyle = "#3c4043"; g.font = fit("How was your visit? Tell us on Google", W - 120, 44, "600"); g.fillText("How was your visit? Tell us on Google", W/2, 215);
+  var side = isGulf(L.country) ? "شاركنا رأيك على جوجل" : (L.country === "PK" ? "گوگل پر اپنی رائے دیں" : "");
+  if(side){ g.font = fit(side, W - 120, 46, "600"); g.fillText(side, W/2, 285); }
+  var box = 640, cell = Math.floor(box / (n + 8)), q = cell * (n + 8), x0 = (W - q)/2, y0 = 330;
+  g.fillStyle = "#ffffff"; g.fillRect(x0, y0, q, q); g.fillStyle = "#000000";
+  for(var y=0;y<n;y++) for(var x=0;x<n;x++) if(M[y][x]) g.fillRect(x0 + (x+4)*cell, y0 + (y+4)*cell, cell, cell);
+  g.strokeStyle = "#dadce0"; g.lineWidth = 4; g.strokeRect(x0 - 10, y0 - 10, q + 20, q + 20);
+  g.fillStyle = "#1d2321"; g.font = fit("Scan with your phone camera", W - 120, 40, "600"); g.fillText("Scan with your phone camera", W/2, y0 + q + 80);
+  if(side){ var s2 = isGulf(L.country) ? "امسح الرمز بكاميرا هاتفك" : "فون کے کیمرے سے اسکین کریں"; g.font = fit(s2, W - 120, 40, "600"); g.fillText(s2, W/2, y0 + q + 140); }
+  g.fillStyle = "#5f6368"; g.font = "600 40px " + font; g.fillText("Thank you!", W/2, H - 90);   // no five stars on the card: it asks for an honest review, not a 5-star one
+  return c;
+}
+async function showQrCard(L){
+  var c = qrCardCanvas(L); if(!c){ toast("اس کاروبار کا گوگل نمبر نہیں ملا، کارڈ نہیں بن سکتا"); return; }
+  var blob = await new Promise(function(r){ c.toBlob(r, "image/png"); });
+  var fname = "Review_QR_" + String(L.name||"card").replace(/[^A-Za-z0-9]+/g, "_").slice(0, 40) + ".png", url = URL.createObjectURL(blob);
+  var old = document.querySelector(".ov"); if(old) old.remove();
+  var ov = document.createElement("div"); ov.className = "ov";
+  ov.innerHTML = '<img alt="" src="' + url + '"><div class="btns"><button class="btn btn-sm" style="width:auto" data-a="share">شیئر کریں</button>' +
+    '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" download="' + fname + '" href="' + url + '">ڈاؤن لوڈ کریں</a>' +
+    '<button class="btn2 btn-sm" data-a="test">کارڈ کا لنک کھولیں</button><button class="btn2 btn-sm" data-a="close">بند کریں</button></div>' +
+    '<p class="hint" style="color:#dde;text-align:center;max-width:520px">یہ کارڈ تحفہ ہے: دکان کے کاؤنٹر پر رکھیں، ہر گاہک اسکین کر کے ریویو لکھ سکتا ہے۔ بھیجنے سے پہلے "کارڈ کا لنک کھولیں" سے ایک بار دیکھ لیں کہ صحیح دکان کا ریویو صفحہ کھلتا ہے۔</p>';
+  document.body.appendChild(ov);
+  ov.querySelector('[data-a="close"]').onclick = function(){ ov.remove(); URL.revokeObjectURL(url); };
+  ov.querySelector('[data-a="test"]').onclick = function(){ window.open(reviewUrl(L), "_blank", "noopener"); };
+  var sb = ov.querySelector('[data-a="share"]'), file = null; try{ file = new File([blob], fname, { type: "image/png" }); }catch(e){}
   if(!(file && navigator.canShare && navigator.canShare({ files: [file] }))) sb.style.display = "none";
   sb.onclick = function(){ navigator.share({ files: [file], title: L.name }).catch(function(){}); };
 }
