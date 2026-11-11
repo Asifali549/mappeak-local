@@ -786,11 +786,11 @@ async function riskCheck(L){
 async function checkMailAll(){
   var todo = leads.filter(function(L){ return L.website && L.country !== "PK" &&
     (!L.mail || L.mail === "unknown" || ((L.mail === "ok" || L.mail === "missing") && L.spf === undefined)); });
-  for(var i=0;i<todo.length;i++){ await mailCheck(todo[i]); }
+  for(var i=0;i<todo.length;i++){ await mailCheck(todo[i]); checkBack(todo[i]); }
   var t2 = leads.filter(function(L){ return L.website && !L.exp; });
-  for(var j=0;j<t2.length;j++){ await expiryCheck(t2[j]); }
+  for(var j=0;j<t2.length;j++){ await expiryCheck(t2[j]); checkBack(t2[j]); }
   var t3 = leads.filter(function(L){ return L.website && (!L.risk || L.risk === "unknown"); });
-  for(var k=0;k<t3.length;k++){ await riskCheck(t3[k]); }
+  for(var k=0;k<t3.length;k++){ await riskCheck(t3[k]); checkBack(t3[k]); }
   if(todo.length || t2.length || t3.length) render();
   checkSpeedAll();
 }
@@ -902,7 +902,34 @@ function phoneKind(L){
 function clip(s, n){ return String(s == null ? "" : s).replace(/[\r\n\t\u2028\u2029]+/g, " ").replace(/\s{2,}/g, " ").trim().slice(0, n || 120); }
 /* the screen shows "today's best 10": already sorted best first, messaged ones left out; the rest one tap away */
 var TOP_N = 10, showAllLeads = false, findQ = "";
-var noMax = 0;   // the highest number ever given out (saved and synced with the results), so a skipped business's number is never reused
+var noMax = 0;
+/* saved or synced results are checked before use: numbers stay numbers (never page code), links only http(s),
+   and a damaged entry is dropped instead of stopping the whole tool (review 11 Nov) */
+function numOr(x, d){ x = +x; return isFinite(x) ? x : d; }
+function cleanAi(r){ if(!r || typeof r !== "object") return r; ["hits","tests","best"].forEach(function(k){ if(k in r) r[k] = numOr(r[k], 0); }); if(r.names && !Array.isArray(r.names)) r.names = []; return r; }
+function cleanLeads(list){
+  return (Array.isArray(list) ? list : []).filter(function(L){ return L && typeof L === "object" && typeof L.id === "string" && L.id; }).map(function(L){
+    if(!L.manual || typeof L.manual !== "object" || Array.isArray(L.manual)) L.manual = {};
+    if(!Array.isArray(L.issues)) L.issues = [];
+    L.name = String(L.name == null ? "" : L.name);
+    if(L.no != null) L.no = Math.max(0, Math.floor(numOr(L.no, 0))) || undefined;
+    if(L.rating != null) L.rating = numOr(L.rating, null);
+    L.reviews = numOr(L.reviews, 0);
+    if(L.speed != null) L.speed = numOr(L.speed, -2);
+    if(L.seo != null) L.seo = numOr(L.seo, undefined);
+    if(L.mapsRank != null) L.mapsRank = numOr(L.mapsRank, undefined);
+    if(L.comp){ if(typeof L.comp !== "object") delete L.comp; else { L.comp.n = String(L.comp.n == null ? "" : L.comp.n); L.comp.r = numOr(L.comp.r, 0); if(L.comp.rt != null) L.comp.rt = numOr(L.comp.rt, undefined); } }
+    if(L.maps) L.maps = safeUrl(L.maps);
+    if(L.website) L.website = safeUrl(L.website);
+    cleanAi(L.ai); cleanAi(L.aiC);
+    if(L.ut != null) L.ut = numOr(L.ut, 0);
+    return L;
+  });
+}
+function curLead(L){ for(var i=0;i<leads.length;i++){ if(leads[i].id === L.id) return leads[i]; } return null; }
+/* a website check that finished after a Sync replaced the list: copy its results onto the current copy */
+var CHECK_FIELDS = ["speed","seo","https","adTags","adTried","parked","broken","mail","spf","dmarc","exp","risk","shot","consent"];
+function checkBack(L){ var c = curLead(L); if(c && c !== L) CHECK_FIELDS.forEach(function(k){ if(L[k] !== undefined && c[k] === undefined) c[k] = L[k]; if(k === "speed" && L.speed != null && c.speed == null) c.speed = L.speed; }); }   // the highest number ever given out (saved and synced with the results), so a skipped business's number is never reused
 /* every business keeps one number for life (#17), the same on phone and laptop: missing or clashing numbers are filled in a fixed order */
 function normalizeNos(){
   var used = {}, max = +noMax || 0;
@@ -997,7 +1024,7 @@ async function checkSpeedAll(){
   if(speedRunning) return; speedRunning = true;
   try{
     var todo = leads.filter(function(L){ return L.website && (L.speed == null || (L.speed >= 0 && (L.seo === undefined || (L.adTags === undefined && !L.parked && !L.adTried)))); });
-    for(var i=0;i<todo.length;i++){ await speedCheck(todo[i]); render(true); }
+    for(var i=0;i<todo.length;i++){ await speedCheck(todo[i]); checkBack(todo[i]); render(true); }
     if(todo.length) render();
   } finally { speedRunning = false; }
 }
@@ -1091,10 +1118,10 @@ function q(text, key){
 }
 function markSent(L){
   var hadFollow = follows.some(function(f){ return f.id === L.id; }), wasSeen = seenIds().indexOf(L.id) >= 0;
-  addSent(); addFollow(L); addSeen(L.id); L.sent = true; L.sentAt = Date.now();
-  return function(){   // undo
-    L.sent = false; delete L.sentAt; addSent(-1);
-    if(!hadFollow){ follows = follows.filter(function(f){ return f.id !== L.id; }); saveFollow(); renderFollow(); }
+  addSent(); addFollow(L); addSeen(L.id); L.sent = true; L.sentAt = Date.now(); L.ut = Date.now();
+  return function(){   // undo (on the current copy: a Sync may have replaced the list since)
+    var C = curLead(L) || L; C.sent = false; delete C.sentAt; C.ut = Date.now(); if(C !== L){ L.sent = false; delete L.sentAt; } addSent(-1);
+    if(!hadFollow){ follows = follows.filter(function(f){ return f.id !== L.id; }); followDel(L.id); saveFollow(); renderFollow(); }
     if(!wasSeen){ var sn = seenIds().filter(function(x){ return x !== L.id; }); store.set("mp_seen", JSON.stringify(sn)); }
     render(true);
   };
@@ -1156,7 +1183,7 @@ function render(keepOrder){
       '<a class="'+(ADLIB_STRONG.indexOf(L.country) >= 0 ? 'btn' : 'btn2')+' btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(adsUrl(L))+'">فیس بک اشتہار دیکھیں</a>'+
       (gAdsUrl(L) ? '<a class="'+(ADLIB_STRONG.indexOf(L.country) >= 0 ? 'btn' : 'btn2')+' btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(gAdsUrl(L))+'">گوگل اشتہار دیکھیں</a>' : '')+
       (isWA(L.country)
-        ? (waNum(L.phone, L.country, L.intl) ? '<a class="btn btn-sm" data-a="wa" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
+        ? (waNum(L.phone, L.country, L.intl) && phoneKind(L) !== "landline" ? '<a class="btn btn-sm" data-a="wa" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
           (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="arab">عربی پیغام کاپی کریں</button>' : '')+
           '<button class="btn2 btn-sm" data-a="urdu">'+(isGulf(L.country) ? (L.urd ? "اردو پیغام کاپی کریں" : "انگریزی پیغام کاپی کریں") : "بنیادی پیغام کاپی کریں")+'</button>'+
           (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="email">ای میل کاپی کریں</button>' : '')
@@ -1170,7 +1197,7 @@ function render(keepOrder){
       var k = g.getAttribute("data-k");
       g.querySelectorAll("button").forEach(function(b){
         if(L.manual[k] === b.getAttribute("data-v")) b.classList.add("on");
-        b.onclick = function(){ L.manual[k] = b.getAttribute("data-v"); render(true); };   // keep cards in place while answering
+        b.onclick = function(){ L.manual[k] = b.getAttribute("data-v"); L.ut = Date.now(); render(true); };   // keep cards in place while answering
       });
     });
     var eb = d.querySelector('[data-a="email"]'); if(eb) eb.onclick = function(){ copy(emailFor(L)); autoSent(L, "ای میل"); };
@@ -1874,6 +1901,7 @@ $("cgApply").onclick = function(){
 try{
   var saved = JSON.parse(store.get("mp_leads","null"));
   if(saved) noMax = Math.max(noMax, +saved.noMax || 0);
+  if(saved && saved.leads) saved.leads = cleanLeads(saved.leads);
   if(saved && saved.leads && saved.leads.length){ lastTrade = saved.trade || ""; leads = saved.leads;
     leads.forEach(function(L){ var c = countryOf(L.address, L.country); if(L.country === "PK" && c === "US"){ delete L.mail; } L.country = c;
       if(L.website && L.issues.indexOf("freeDomain") < 0 && L.issues.indexOf("fbAsSite") < 0){   // older saved results: add the free-address check
@@ -2020,14 +2048,25 @@ $("leadFind").oninput = function(){ findQ = ($("leadFind").value||"").trim(); re
 $("urgentOnly").onchange = function(){ store.set("mp_urgentOnly", $("urgentOnly").checked ? "1" : "0"); render(); };
 /* ---------- follow-ups: one polite reminder 4 days after the first message ---------- */
 var follows = []; try{ follows = JSON.parse(store.get("mp_follow","[]")) || []; }catch(e){ follows = []; }
-function saveFollow(){ follows = dedupeFollows(follows); store.set("mp_follow", JSON.stringify(follows.slice(-500))); }
+/* cards removed by "واپس لیں": id -> time, synced (latest time wins), so the other device does not bring them back */
+function followDels(){ try{ var o = JSON.parse(store.get("mp_followDel","{}")); return o && typeof o === "object" && !Array.isArray(o) ? o : {}; }catch(e){ return {}; } }
+function followDel(id){ var o = followDels(); o[id] = Date.now(); var ks = Object.keys(o); if(ks.length > 500) ks.sort(function(a,b){ return o[a]-o[b]; }).slice(0, ks.length-500).forEach(function(k){ delete o[k]; }); store.set("mp_followDel", JSON.stringify(o)); }
+function dropDeleted(list){ var o = followDels(); return list.filter(function(f){ return !(f && o[f.id] && o[f.id] >= (f.la || f.fat || f.at || 0)); }); }
+follows = Array.isArray(follows) ? follows.filter(function(f){ return f && typeof f === "object" && f.id; }) : [];
+function capFollows(list){   // over 500: drop the oldest finished-without-payment or waiting cards first, never won (paid) clients
+  if(list.length <= 500) return list;
+  var extra = list.length - 500, out = [];
+  list.forEach(function(f){ if(extra > 0 && f.state !== "won"){ extra--; return; } out.push(f); });
+  return out.slice(-Math.max(500, out.length));
+}
+function saveFollow(){ follows = capFollows(dedupeFollows(dropDeleted(follows))); store.set("mp_follow", JSON.stringify(follows)); }
 /* one client = one card: the same phone or email (or the same name with no contact) added twice, e.g. on two devices */
 var STAGE_RANK = { waiting:0, followed:1, lost:1, replied:2, quoted:3, won:4 };
 function dedupeFollows(arr){
   var keep = [], byKey = {};
   (arr||[]).forEach(function(f){
     var ck = contactKey(f.contact) || contactKey(f.phone), k = ck ? "c:" + ck : (normName(f.n).length >= 4 ? "n:" + normName(f.n) + "|" + (f.c||"") : "");
-    if(!k){ keep.push(f); return; }
+    if(!k || f.twin){ keep.push(f); return; }
     var o = byKey[k];
     if(!o){ byKey[k] = f; keep.push(f); return; }
     var better = (STAGE_RANK[f.state]||0) > (STAGE_RANK[o.state]||0) || ((STAGE_RANK[f.state]||0) === (STAGE_RANK[o.state]||0) && (f.la||f.at||0) > (o.la||o.at||0));
@@ -2119,7 +2158,8 @@ function gmailSearch(f){
   return "https://mail.google.com/mail/" + (acct ? "?authuser=" + encodeURIComponent(acct) : "") + "#search/" + encodeURIComponent(who);
 }
 /* reminder day: 4 days after the first message, moved past the lead's weekend (nobody reads business email then) */
-function offDays(c){ if(c === "SA") return [5,6]; if(c === "PK") return [0]; return [6,0]; }
+var FRI_SAT = ["SA","QA","KW","BH","OM","EG","JO","IQ","YE","DZ","LY","SD"];   // weekend Friday + Saturday (UAE moved to Saturday + Sunday in 2022)
+function offDays(c){ if(FRI_SAT.indexOf(c) >= 0) return [5,6]; if(c === "PK") return [0]; return [6,0]; }
 function remindAt(f){
   var d = new Date(f.at + 4*864e5); d.setHours(0,0,0,0);
   var off = offDays(f.c);
@@ -2429,6 +2469,7 @@ $("mAdd").onclick = function(){
   if(dv && dv !== localDay(now)){ var p = dv.split("-"); at = new Date(+p[0], +p[1]-1, +p[2], 12, 0, 0).getTime(); if(!(at > 0)) at = now; at = Math.min(at, now + 8*864e5); }
   var f = { id: "m_" + now, n: n, c: $("mCountry").value, src: $("mSource").value, contact: ($("mContact").value||"").trim(),
     note: ($("mNote").value||"").trim(), link: ($("mLink").value||"").trim(), town: "", at: at, la: now, state: st, manual: true };
+  if(dup) f.twin = 1;   // you chose "add anyway": a second card for the same contact (e.g. two shops, one owner) is kept
   if(/^\+?[\d\s\-]{7,}$/.test(f.contact)) f.phone = f.contact;
   if(st === "replied") f.next = now; else if(NEXT_DAYS[st]) f.next = now + NEXT_DAYS[st]*864e5;
   follows.push(f); saveFollow();
@@ -2761,7 +2802,7 @@ $("csv").onclick = function(){
 /* ---------- phone + computer sync through the user's own Google Apps Script ---------- */
 var SECRET_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey"];
 var mergeEpoch = 0;   // "forget seen businesses" time, so an old list on another device doesn't bring them back
-var SYNC_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey","mp_watch","mp_gone","mp_goneDel","mp_leads","mp_seenEpoch","mp_seen","mp_days","mp_autoPos","mp_follow","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myWA","mp_myIntroUr","mp_useSig"];
+var SYNC_KEYS = ["mp_apiKey","mp_gemKey","mp_oaiKey","mp_watch","mp_gone","mp_goneDel","mp_leads","mp_seenEpoch","mp_seen","mp_days","mp_autoPos","mp_follow","mp_followDel","mp_hideNames","mp_myName","mp_myEmail","mp_myAddr","mp_myWA","mp_myIntroUr","mp_useSig"];
 var syncApplying = false, syncTimer = null, syncBusy = false, syncAgain = false;
 function syncTouched(k){
   if(!SYNC_KEYS || syncApplying || SYNC_KEYS.indexOf(k) < 0) return;
@@ -2783,6 +2824,11 @@ function mergeKey(k, a, b){   // a = local, b = remote; returns the merged entry
     (b.t >= mergeEpoch ? arr(b.v) : []).forEach(function(x){ if(u.indexOf(x) < 0) u.push(x); });
     return { v: JSON.stringify(u.slice(-3000)), t: Math.max(a.t, b.t) };
   }
+  if(k === "mp_followDel"){   // undone cards: the latest time for each card wins
+    var xa = {}, xb = {}; try{ xa = JSON.parse(a.v) || {}; }catch(e){} try{ xb = JSON.parse(b.v) || {}; }catch(e){}
+    Object.keys(xb).forEach(function(id){ xa[id] = Math.max(+xa[id] || 0, +xb[id] || 0); });
+    return { v: JSON.stringify(xa), t: Math.max(a.t, b.t) };
+  }
   if(k === "mp_autoPos"){   // how far auto search got in each country: the furthest point wins, so no city is searched twice
     var pa = {}, pb = {}; try{ pa = JSON.parse(a.v) || {}; }catch(e){} try{ pb = JSON.parse(b.v) || {}; }catch(e){}
     Object.keys(pb).forEach(function(c){ pa[c] = Math.max(+pa[c] || 0, +pb[c] || 0); });
@@ -2793,6 +2839,7 @@ function mergeKey(k, a, b){   // a = local, b = remote; returns the merged entry
     Object.keys(db).forEach(function(day){
       da[day] = da[day] || {};
       Object.keys(db[day] || {}).forEach(function(dev){
+        if(dev === DEV && da[day][dev]) return;   // this device's own count is exact here (an undo lowers it), never raised by an old copy
         var x = da[day][dev] = da[day][dev] || {}, y = db[day][dev] || {};
         Object.keys(y).forEach(function(fl){ x[fl] = Math.max(x[fl] || 0, y[fl] || 0); });
       });
@@ -2828,7 +2875,7 @@ function mergeKey(k, a, b){   // a = local, b = remote; returns the merged entry
       if(!o){ byId[f.id] = f; order.push(f.id); }
       else if(when(f) > when(o) || (when(f) === when(o) && (rank[f.state]||0) > (rank[o.state]||0))) byId[f.id] = f;
     });
-    return { v: JSON.stringify(order.map(function(id){ return byId[id]; }).slice(-500)), t: Math.max(a.t, b.t) };
+    return { v: JSON.stringify(capFollows(dropDeleted(order.map(function(id){ return byId[id]; })))), t: Math.max(a.t, b.t) };
   }
   return b.t > a.t ? b : a;   // newest wins
 }
@@ -2841,6 +2888,14 @@ function mergeLeads(a, b, seenV){
   if(!pn || !pn.leads || !po || !po.leads) return nw;
   var seen = arr(seenV), ids = {};
   var oldNo = {}; po.leads.forEach(function(L){ if(L && L.id && L.no) oldNo[L.id] = L.no; });
+  var oldById = {}; po.leads.forEach(function(L){ if(L && L.id) oldById[L.id] = L; });
+  pn.leads = pn.leads.map(function(L){
+    var O = L && oldById[L.id]; if(!O) return L;
+    var W = (+O.ut || 0) > (+L.ut || 0) ? O : L;   // what you did last (sent, undo, yes/no answers) wins on both devices
+    if(W === L && !(+L.ut) && !(+O.ut) && O.sent && !L.sent){ L.sent = true; L.sentAt = O.sentAt; }   // old data without times: never lose a "sent" mark
+    if(W === O){ CHECK_FIELDS.forEach(function(k){ if(O[k] === undefined && L[k] !== undefined) O[k] = L[k]; }); }
+    return W;
+  });
   pn.leads.forEach(function(L){ ids[L.id] = 1; if(oldNo[L.id] && (!L.no || oldNo[L.id] < L.no)) L.no = oldNo[L.id]; });   // one business, one number on both devices
   po.leads.forEach(function(L){ if(L && L.id && !ids[L.id] && (L.sent || seen.indexOf(L.id) < 0)){ pn.leads.push(L); ids[L.id] = 1; } });
   pn.leads = pn.leads.slice(-300);
@@ -2860,8 +2915,8 @@ function syncApply(remote){
       try{ localStorage.setItem("mp_ts_"+k, String(m.t)); }catch(e){} }
   });
   if(changed){
-    try{ var sv = JSON.parse(store.get("mp_leads","null")); if(sv && sv.leads){ leads = sv.leads; lastTrade = sv.trade || lastTrade; noMax = Math.max(noMax, +sv.noMax || 0); } }catch(e){}
-    follows = dedupeFollows(arr(store.get("mp_follow","[]")));
+    try{ var sv = JSON.parse(store.get("mp_leads","null")); if(sv && sv.leads){ leads = cleanLeads(sv.leads); lastTrade = sv.trade || lastTrade; noMax = Math.max(noMax, +sv.noMax || 0); } }catch(e){}
+    follows = dedupeFollows(dropDeleted(arr(store.get("mp_follow","[]")).filter(function(f){ return f && typeof f === "object" && f.id; })));
     try{ watch = JSON.parse(store.get("mp_watch","{}")) || {}; }catch(e){}
     var del = arr(store.get("mp_goneDel","[]"));
     gone = arr(store.get("mp_gone","[]")).filter(function(g){ return del.indexOf(g.id) < 0; });
