@@ -4,6 +4,25 @@ Last updated: 9 November 2026, evening (Pakistan time). Older sections below are
 
 **This repo is public. Never write emails, phone numbers or other contact details here.** Contacts live only in the tool's Client Follow-up list.
 
+## 10-11 Nov
+**Growth plan agreed 11 Nov** (see LEADS_ROUTINE.md top): Gulf Urdu-speaking shops on WhatsApp are the main lane (8-10 a day, free review QR card as the first offer), Western cold email only for urgent problems (max 2 a day), one forum reply a day, proof first (Meer Taqi job), five numbers a day. Tool fixes 11 Nov: number reuse, outside-review faults (sent marks, undo, damaged data, weekends), review QR card button.
+
+| Lead | Country | What was done | Next step |
+|---|---|---|---|
+| Kasapi Notary | USA | Forum reply 9 Nov; email sent 10 Nov | Wait; reminder from the tool |
+| Key City Septic & Plumbing, Abilene TX | USA | Email sent 10 Nov 8 PM PKT (website says 24 hours, Google shows no hours) | Wait |
+| Plumbing By Rick, San Angelo TX | USA | Email sent 10 Nov 8 PM PKT (107 vs 1,300+ reviews) | Wait |
+| Sanchez Septic, Tyler TX | USA | Email scheduled 11 Nov 8 PM PKT (3.5 stars vs 4.9) | Wait |
+| East Texas Septic Tank (Randy), Marshall TX | USA | Email scheduled 11 Nov 8 PM PKT (unanswered 1-star at top; address 3551 vs 3591) | Wait |
+| Lehi Orthodontics (Dr. Vrontikis), Utah | USA | Forum reply NOT posted (Gold PE came first); email scheduled 11 Nov 9 PM PKT | Wait |
+| AA Plumbing & Heating Services Ltd, Derby | UK | Email bounced 11 Nov (address does not exist; company has a strike-off proposal) | Closed ("بات ختم") |
+| Fake phone number on customer photo (forum) | ? | Forum reply 10 Nov, owner marked it recommended; Diamond PE later | Forum only |
+| Malicious competitor reviews (forum) | ? | Forum reply 10 Nov | Forum only |
+| Three Oaks Therapy, Milton Keynes | UK | Forum reply 11 Nov (reinstated but missing from Search). Sole trader: no email | Forum only |
+| Saudi WhatsApp enquiry (unknown number) | Saudi Arabia | He wrote first; asked "Are you in KSA?", then prices; prices sent 11 Nov 11 AM (199 / 149 / 299 SAR) | Wait; if quiet till Thu afternoon, one short check-in, then stop |
+| Saudi batch (#58-#63) | Saudi Arabia | WhatsApp 10 Nov; #59 report sent to the owner | Reminders from the tool |
+| Skipped: Cornerstone Plumbing Waco (agency, ads), Patriot Septic (no email), Lone Star Plumbing Abilene (lead-gen site), Evington Plumbing (UK sole trader), Emergency Plumber Leicestershire (lead-gen) | | | |
+
 ## 7-9 Nov (leads now come inside the main chat, 9:40 and 17:40 PKT; see LEADS_ROUTINE.md)
 | Lead | Country | What was done | Next step |
 |---|---|---|---|
