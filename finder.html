@@ -902,9 +902,10 @@ function phoneKind(L){
 function clip(s, n){ return String(s == null ? "" : s).replace(/[\r\n\t\u2028\u2029]+/g, " ").replace(/\s{2,}/g, " ").trim().slice(0, n || 120); }
 /* the screen shows "today's best 10": already sorted best first, messaged ones left out; the rest one tap away */
 var TOP_N = 10, showAllLeads = false, findQ = "";
+var noMax = 0;   // the highest number ever given out (saved and synced with the results), so a skipped business's number is never reused
 /* every business keeps one number for life (#17), the same on phone and laptop: missing or clashing numbers are filled in a fixed order */
 function normalizeNos(){
-  var used = {}, max = 0;
+  var used = {}, max = +noMax || 0;
   leads.forEach(function(L){ if(L.no > max) max = L.no; });
   var pos = {}; leads.forEach(function(L, i){ pos[L.id] = i; });
   leads.slice().sort(function(a, b){
@@ -915,6 +916,7 @@ function normalizeNos(){
     if(!L.no || used[L.no]) L.no = ++max;
     used[L.no] = 1;
   });
+  noMax = max;
 }
 function visibleLeads(){
   var c = selC(), only = $("urgentOnly").checked;
@@ -1078,7 +1080,7 @@ function fallbackCopy(t){
   document.body.removeChild(ta);
 }
 
-function saveLeads(){ store.set("mp_leads", JSON.stringify({trade:lastTrade, leads:leads})); }
+function saveLeads(){ store.set("mp_leads", JSON.stringify({trade:lastTrade, leads:leads, noMax:noMax})); }
 function removeLead(id){ leads = leads.filter(function(x){ return x.id !== id; }); render(); }
 function cityOf(L){ var parts = (L.address||"").split(","); return parts.length > 2 ? parts[parts.length-3].trim() : (L.town||""); }
 function gUrl(L){ return "https://www.google.com/search?q=" + encodeURIComponent('"' + L.name + '" ' + cityOf(L) + ' email'); }
@@ -1871,6 +1873,7 @@ $("cgApply").onclick = function(){
 /* restore last results so a page reload never costs a new search */
 try{
   var saved = JSON.parse(store.get("mp_leads","null"));
+  if(saved) noMax = Math.max(noMax, +saved.noMax || 0);
   if(saved && saved.leads && saved.leads.length){ lastTrade = saved.trade || ""; leads = saved.leads;
     leads.forEach(function(L){ var c = countryOf(L.address, L.country); if(L.country === "PK" && c === "US"){ delete L.mail; } L.country = c;
       if(L.website && L.issues.indexOf("freeDomain") < 0 && L.issues.indexOf("fbAsSite") < 0){   // older saved results: add the free-address check
@@ -2841,6 +2844,7 @@ function mergeLeads(a, b, seenV){
   pn.leads.forEach(function(L){ ids[L.id] = 1; if(oldNo[L.id] && (!L.no || oldNo[L.id] < L.no)) L.no = oldNo[L.id]; });   // one business, one number on both devices
   po.leads.forEach(function(L){ if(L && L.id && !ids[L.id] && (L.sent || seen.indexOf(L.id) < 0)){ pn.leads.push(L); ids[L.id] = 1; } });
   pn.leads = pn.leads.slice(-300);
+  pn.noMax = Math.max(+pn.noMax || 0, +po.noMax || 0);   // the highest number either device gave out
   return { v: JSON.stringify(pn), t: nw.t };
 }
 function syncApply(remote){
@@ -2856,7 +2860,7 @@ function syncApply(remote){
       try{ localStorage.setItem("mp_ts_"+k, String(m.t)); }catch(e){} }
   });
   if(changed){
-    try{ var sv = JSON.parse(store.get("mp_leads","null")); if(sv && sv.leads){ leads = sv.leads; lastTrade = sv.trade || lastTrade; } }catch(e){}
+    try{ var sv = JSON.parse(store.get("mp_leads","null")); if(sv && sv.leads){ leads = sv.leads; lastTrade = sv.trade || lastTrade; noMax = Math.max(noMax, +sv.noMax || 0); } }catch(e){}
     follows = dedupeFollows(arr(store.get("mp_follow","[]")));
     try{ watch = JSON.parse(store.get("mp_watch","{}")) || {}; }catch(e){}
     var del = arr(store.get("mp_goneDel","[]"));
