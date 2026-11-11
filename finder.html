@@ -1392,7 +1392,7 @@ function urduMsg(L){   // 11 Nov (owner approved, growth plan): lead with a free
   var me = ($("myIntroUr").value||"").trim() || "محمد آصف رضا";
   var gap = L.comp && L.comp.r > (L.reviews||0);
   return "السلام علیکم۔ میں " + me + (L.country === "PK" || /پاکستان/.test(me) ? "" : "، پاکستان") + " سے بات کر رہا ہوں۔\n" +
-    "میں دکانوں اور ریسٹورنٹس کا گوگل بزنس پروفائل (گوگل نقشے والی لسٹنگ) ٹھیک کرنے کا کام کرتا ہوں۔\n\n" +   // who we are first (11 Nov, owner asked)
+    "میں کاروباروں کے گوگل بزنس پروفائل (گوگل نقشے والی لسٹنگ) کا کام کرتا ہوں۔\n\n" +   // who we are first (11 Nov, owner asked)
     "گوگل نقشے پر آپ کی دکان " + L.name + " دیکھی۔ " +
     (gap ? "آپ کے " + (L.reviews||0) + " ریویو ہیں، اور قریب والی " + L.comp.n + " کے " + L.comp.r + "۔ اس لیے گاہک پہلے انہیں دیکھتا ہے۔"
          : (top ? UR_ISSUE[top] + "، اس لیے کئی گاہک آپ تک نہیں پہنچ پاتے۔" : "")) + "\n\n" +
@@ -1416,7 +1416,7 @@ function aeMsg(L){
   var top = allIssues(L).filter(function(k){ return EN_ISSUE[k]; })[0];
   var nm = ($("myName").value||"").trim() || "Asif";
   var gap = L.comp && L.comp.r > (L.reviews||0);
-  return "Hello, this is " + nm + " from MapPeak Local. I help shops and restaurants fix their Google Business Profile (their Google Maps listing).\n\n" +
+  return "Hello, this is " + nm + " from MapPeak Local. I work on Google Business Profiles (Google Maps listings) for businesses.\n\n" +
     "I saw " + L.name + " on Google Maps. " +
     (gap ? "You have " + (L.reviews||0) + " reviews, while " + L.comp.n + " nearby has " + L.comp.r + ", so customers see them first."
          : (top ? "I noticed " + EN_ISSUE[top] + "." : "")) + "\n\n" +

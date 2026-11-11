@@ -63,7 +63,7 @@ const fs = require('fs'), path = require('path'), os = require('os'), { execFile
   const ur = await p.evaluate(() => navigator.clipboard.readText());
   await card('No Id').locator('[data-a="urdu"]').click(); await p.waitForTimeout(200);
   const en = await p.evaluate(() => navigator.clipboard.readText());
-  ok('Q7 first WhatsApp message offers the free QR card (Urdu-speaking shop in Urdu, others in English)', /کیو آر کارڈ مفت/.test(ur) && /کارڈ بھیج دوں؟/.test(ur) && /گوگل بزنس پروفائل/.test(ur) && /تحفے کے طور پر/.test(ur) && /free review QR card/.test(en) && /fix their Google Business Profile/.test(en) && /only if you want/.test(en) && /won't message again/.test(en), ur.slice(0, 40) + ' / ' + en.slice(0, 40));
+  ok('Q7 first WhatsApp message offers the free QR card (Urdu-speaking shop in Urdu, others in English)', /کیو آر کارڈ مفت/.test(ur) && /کارڈ بھیج دوں؟/.test(ur) && /گوگل بزنس پروفائل/.test(ur) && /تحفے کے طور پر/.test(ur) && /free review QR card/.test(en) && /work on Google Business Profiles/.test(en) && /only if you want/.test(en) && /won't message again/.test(en), ur.slice(0, 40) + ' / ' + en.slice(0, 40));
   ok('Q6 a name with page code stays text; no page errors', !alerted && !errs.length, errs.join(' | '));
   console.log(res.join('\n')); await b.close();
 })();
