@@ -34,7 +34,7 @@ const fs = require('fs'), path = require('path'), os = require('os'), { execFile
   const ctx = await b.newContext({ viewport: { width: 400, height: 900 }, acceptDownloads: true });
   await ctx.route(/^https?:\/\/(?!localhost)/, async r => {
     const u = r.request().url(); const j = o => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(o) });
-    if (/places:searchText/.test(u)) return j({ places: [P(placeId, 'Lahori <b>Karahi</b> House'), P('short', 'No Id Grill')] });
+    if (/places:searchText/.test(u)) return j({ places: [P(placeId, 'Lahori <b>Karahi</b> House'), Object.assign(P('short', 'No Id Grill'), { primaryTypeDisplayName: { text: 'Restaurant' } })] });
     if (/places\.googleapis\.com\/v1\/places\//.test(u)) return j({ id: 'x' });
     if (/pagespeedonline/.test(u)) return j({ lighthouseResult: { categories: { performance: { score: 0.9 } }, audits: { 'network-requests': { details: { items: [] } } } } });
     if (/dns\.google|cloudflare-dns|quad9/.test(u)) return j({ Answer: [] });
@@ -57,6 +57,13 @@ const fs = require('fs'), path = require('path'), os = require('os'), { execFile
   const got = decode(f);
   ok('Q4 the downloaded card opens the business\'s own Google review page', got === 'https://search.google.com/local/writereview?placeid=' + placeId, got);
   ok('Q5 file name is safe and readable', /^Review_QR_Lahori_b_Karahi_b_House\.png$/.test(dl.suggestedFilename()), dl.suggestedFilename());
+  await p.locator('.ov [data-a="close"]').click();
+  await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: BASE });
+  await card('Lahori').locator('[data-a="urdu"]').click(); await p.waitForTimeout(200);
+  const ur = await p.evaluate(() => navigator.clipboard.readText());
+  await card('No Id').locator('[data-a="urdu"]').click(); await p.waitForTimeout(200);
+  const en = await p.evaluate(() => navigator.clipboard.readText());
+  ok('Q7 first WhatsApp message offers the free QR card (Urdu-speaking shop in Urdu, others in English)', /کیو آر کارڈ مفت/.test(ur) && /بھیج دوں؟/.test(ur) && /free review QR card/.test(en) && /won't message again/.test(en), ur.slice(0, 40) + ' / ' + en.slice(0, 40));
   ok('Q6 a name with page code stays text; no page errors', !alerted && !errs.length, errs.join(' | '));
   console.log(res.join('\n')); await b.close();
 })();
