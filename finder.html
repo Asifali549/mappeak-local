@@ -1238,10 +1238,13 @@ function assignComps(){
   leads.forEach(function(L){ var list = pool[L.town] || []; if(list.length) pickTopCat(L, list); });
   render();
 }
+/* 12 Nov (owner asked): a maker's or chain's office (e.g. "Sungrow Power" in a Multan solar search) is not a local shop to compare with */
+var BRAND_RE = /\b(sungrow|huawei|jinko|longi|canadian solar|trina|ja solar|growatt|goodwe|inverex|tesla|samsung|haier|dawlance|gree|orient electronics|kenwood|xiaomi|oppo|vivo|infinix|tecno|realme|apple store|toyota|honda|suzuki|kia|hyundai|mcdonald'?s|kfc|domino'?s|pizza hut|subway|starbucks|burger king|hardee'?s|nando'?s|tim hortons|costa coffee|walmart|home depot|lowe'?s|ikea|carrefour|lulu hypermarket|panda retail|othaim)\b/i;
+function isBrandOffice(x){ return BRAND_RE.test(String(x && x.n || "")); }
 function pickComp(L, list){
   (function(){
     var idx = -1; list.forEach(function(x, i){ if(idx < 0 && x.id === L.id) idx = i; });
-    var better = list.filter(function(x){ return x.id !== L.id && x.r > L.reviews && x.n; });
+    var better = list.filter(function(x){ return x.id !== L.id && x.r > L.reviews && x.n && !isBrandOffice(x); });
     var local = better.filter(function(x){ return x.r <= 1500; });
     if(local.length) better = local;
     var above = better.filter(function(x){ return idx >= 0 && list.indexOf(x) < idx; });
