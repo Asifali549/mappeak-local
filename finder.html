@@ -1244,7 +1244,7 @@ function isBrandOffice(x){ return BRAND_RE.test(String(x && x.n || "")); }
 function pickComp(L, list){
   (function(){
     var idx = -1; list.forEach(function(x, i){ if(idx < 0 && x.id === L.id) idx = i; });
-    var better = list.filter(function(x){ return x.id !== L.id && x.r > L.reviews && x.n && !isBrandOffice(x); });
+    var better = list.filter(function(x){ return x.id !== L.id && x.r > L.reviews && x.n && !isBrandOffice(x) && !sameChain(L.name, x.n); });   // not another branch of the same chain (13 Nov)
     var local = better.filter(function(x){ return x.r <= 1500; });
     if(local.length) better = local;
     var above = better.filter(function(x){ return idx >= 0 && list.indexOf(x) < idx; });
@@ -1390,17 +1390,33 @@ var UR_ISSUE = {
   phoneMismatch:"گوگل اور دوسری جگہوں پر فون نمبر الگ الگ ہے",
   notInAI:"گوگل کے AI سے آپ کے کام کی بہترین دکانیں پوچھیں تو وہ دوسروں کے نام لیتا ہے، آپ کا نہیں"
 };
+/* 13 Nov (owner asked): the first message follows what was found. Claim button seen by hand -> the claim problem and a free
+   "how to claim it" gift; a fresh 1-2 star review -> a proper report and appeal, paid only if Google removes it (never a promise);
+   the review gap only against a real other shop, not a branch of the same chain. */
+var CHAIN_SKIP = /^(al|el|the|new|restaurant|restaurants|resturant|cafe|kitchen|garage|workshop|auto|car|shop|store|mobile|pakistani|pakistan|indian|grill|darbar|palace|lahore|karachi|punjab|kashmir|saudi|uae|dubai|sharjah)$/i;
+function chainKey(n){ return String(n||"").toLowerCase().replace(/[^a-z0-9؀-ۿ ]+/g, " ").split(/\s+/).filter(function(w){ return w.length > 2 && !CHAIN_SKIP.test(w); }).slice(0, 2).join(" "); }
+function sameChain(a, b){ var x = chainKey(a), y = chainKey(b); return !!x && x === y; }
+function msgFacts(L){
+  var m = L.manual || {}, iss = allIssues(L);
+  return { claim: m.unclaimed === "yes", bad: iss.indexOf("recentBadReview") >= 0,
+    gap: !!(L.comp && L.comp.r > (L.reviews||0) && !sameChain(L.name, L.comp.n) && !sameChain(String(L.name).split(/\s+/)[0], String(L.comp.n).split(/\s+/)[0])), iss: iss };
+}
 function urduMsg(L){   // 11 Nov (owner approved, growth plan): lead with a free gift - the shop's review QR card - not a "check"
-  var top = allIssues(L).filter(function(k){ return UR_ISSUE[k]; })[0];
+  var f = msgFacts(L);
+  var top = f.iss.filter(function(k){ return UR_ISSUE[k] && k !== "recentBadReview"; })[0];
   var me = ($("myIntroUr").value||"").trim() || "محمد آصف رضا";
-  var gap = L.comp && L.comp.r > (L.reviews||0);
+  var situation = f.claim
+    ? "ایک ضروری بات: یہ لسٹنگ ابھی تک کسی کے نام پر کلیم نہیں ہوئی۔ اس کا مطلب ہے کہ آپ نہ ریویو کا جواب دے سکتے ہیں، نہ نمبر یا وقت خود بدل سکتے ہیں، اور کوئی دوسرا بھی اسے اپنے نام کرنے کی کوشش کر سکتا ہے۔"
+    : (f.gap ? "آپ کے " + (L.reviews||0) + " ریویو ہیں، اور قریب والی " + L.comp.n + " کے " + L.comp.r + "۔ اس لیے گاہک پہلے انہیں دیکھتا ہے۔"
+             : (top ? UR_ISSUE[top] + "، اس لیے کئی گاہک آپ تک نہیں پہنچ پاتے۔" : ""));
+  var bad = f.bad ? "\n\nآپ کی لسٹنگ پر حال ہی میں ایک برا ریویو بھی آیا ہے۔ اگر وہ جھوٹا ہے یا گوگل کے اصول کے خلاف ہے، تو میں اس کی صحیح شکایت اور اپیل کر دیتا ہوں: فیس صرف تب، جب گوگل اسے ہٹا دے۔" : "";
+  var gift = f.claim
+    ? "تحفے کے طور پر میں آپ کو مفت بتا دیتا ہوں کہ اسے اپنے نام کیسے کریں، اور ساتھ آپ کی دکان کا ریویو والا کیو آر کارڈ بھی بنا دیتا ہوں۔ نہ کوئی پیسے، نہ کوئی پاس ورڈ۔"
+    : "تحفے کے طور پر میں آپ کی دکان کے نام کا ریویو والا کیو آر کارڈ مفت بنا کر بھیج دیتا ہوں۔ کاؤنٹر پر رکھ لیں، گاہک فون سے اسکین کر کے گوگل پر اپنی رائے لکھ دیتا ہے۔ نہ کوئی پیسے، نہ کوئی پاس ورڈ۔";
   return "السلام علیکم۔ میں " + me + (L.country === "PK" || /پاکستان/.test(me) ? "" : "، پاکستان") + " سے بات کر رہا ہوں۔\n" +
     "میں کاروباروں کے گوگل بزنس پروفائل (گوگل میپس لسٹنگ) کا کام کرتا ہوں۔\n\n" +   // who we are first (11 Nov, owner asked)
-    "گوگل میپس پر آپ کی دکان " + L.name + " دیکھی۔ " +
-    (gap ? "آپ کے " + (L.reviews||0) + " ریویو ہیں، اور قریب والی " + L.comp.n + " کے " + L.comp.r + "۔ اس لیے گاہک پہلے انہیں دیکھتا ہے۔"
-         : (top ? UR_ISSUE[top] + "، اس لیے کئی گاہک آپ تک نہیں پہنچ پاتے۔" : "")) + "\n\n" +
-    "تحفے کے طور پر میں آپ کی دکان کے نام کا ریویو والا کیو آر کارڈ مفت بنا کر بھیج دیتا ہوں۔ کاؤنٹر پر رکھ لیں، گاہک فون سے اسکین کر کے گوگل پر اپنی رائے لکھ دیتا ہے۔ نہ کوئی پیسے، نہ کوئی پاس ورڈ۔\n\n" +
-    "کام پسند آئے تو پروفائل کا باقی کام بھی کر سکتا ہوں، وہ آپ کی مرضی۔ کارڈ بھیج دوں؟";
+    "گوگل میپس پر آپ کی دکان " + L.name + " دیکھی۔ " + situation + bad + "\n\n" + gift + "\n\n" +
+    "کام پسند آئے تو پروفائل کا باقی کام بھی کر سکتا ہوں، وہ آپ کی مرضی۔ " + (f.claim ? "بھیج دوں؟" : "کارڈ بھیج دوں؟");
 }
 var PAKRE = /pakistan|lahor|karach|punjab|peshawar|multan|quetta|islamabad|rawalpindi|faisalabad|sialkot|gujranwala|sindh|desi|karahi|nihari|haleem|sajji|pathan|kashmir/i;
 var EN_ISSUE = {
@@ -1416,15 +1432,20 @@ var EN_ISSUE = {
 };
 function aeMsg(L){
   if(L.urd) return urduMsg(L);
-  var top = allIssues(L).filter(function(k){ return EN_ISSUE[k]; })[0];
+  var f = msgFacts(L);
+  var top = f.iss.filter(function(k){ return EN_ISSUE[k] && k !== "recentBadReview"; })[0];
   var nm = ($("myName").value||"").trim() || "Asif";
-  var gap = L.comp && L.comp.r > (L.reviews||0);
+  var situation = f.claim
+    ? "One important thing: the listing has not been claimed yet. So you can't reply to reviews or change your phone number or hours yourself, and someone else could try to claim it."
+    : (f.gap ? "You have " + (L.reviews||0) + " reviews, while " + L.comp.n + " nearby has " + L.comp.r + ", so customers see them first."
+             : (top ? "I noticed " + EN_ISSUE[top] + "." : ""));
+  var bad = f.bad ? "\n\nThere is also a recent bad review on your listing. If it is fake or breaks Google's rules, I can file a proper report and appeal for you, and you pay only if Google removes it." : "";
+  var gift = f.claim
+    ? "As a gift, I can show you for free how to claim it in your name, and make you a review QR card for your shop. No cost, no password."
+    : "As a gift, I'd like to make you a free review QR card with your shop's name. Put it on the counter: customers scan it with their phone and leave a Google review. No cost, no password.";
   return "Hello, this is " + nm + " from MapPeak Local. I work on Google Business Profiles (Google Maps listings) for businesses.\n\n" +
-    "I saw " + L.name + " on Google Maps. " +
-    (gap ? "You have " + (L.reviews||0) + " reviews, while " + L.comp.n + " nearby has " + L.comp.r + ", so customers see them first."
-         : (top ? "I noticed " + EN_ISSUE[top] + "." : "")) + "\n\n" +
-    "As a gift, I'd like to make you a free review QR card with your shop's name. Put it on the counter: customers scan it with their phone and leave a Google review. No cost, no password.\n\n" +
-    "If you like it, I can help with the rest of your profile too, only if you want. Shall I send the card?\n\n" +
+    "I saw " + L.name + " on Google Maps. " + situation + bad + "\n\n" + gift + "\n\n" +
+    "If you like it, I can help with the rest of your profile too, only if you want. " + (f.claim ? "Shall I send it?" : "Shall I send the card?") + "\n\n" +
     "اگر آپ اردو میں بات کرنا چاہیں تو بتائیں، میں پاکستان سے ہوں۔\n\n" +
     "If you'd rather not hear from me, just say so and I won't message again.";
 }
