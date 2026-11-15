@@ -148,6 +148,12 @@ a{color:var(--brand)}
     <div class="btns"><button class="btn2 btn-sm" id="saveSet">Save کریں</button><button class="btn2 btn-sm" id="clearSeen">پرانے کاروبار کی یادداشت صاف کریں</button></div>
   </details>
 
+  <div class="card" id="fuFindBox">
+    <label style="margin-top:0" for="fuFind">پرانا گاہک ڈھونڈیں (نام، فون نمبر، ای میل یا نوٹ)</label>
+    <input id="fuFind" dir="auto" autocomplete="off" placeholder="Laziz  /  +966 59 375 2163">
+    <p class="hint" id="fuFindInfo" style="display:none"></p>
+  </div>
+
   <details class="card" id="fuBox">
     <summary>Reminder والے پیغام (<span class="en" id="fuDue">0</span> آج بھیجنے ہیں)</summary>
     <p class="hint">جس کاروبار کو پیغام بھیجا اور چار دن تک جواب نہیں آیا، اسے ایک چھوٹی سی Reminder بھیجیں۔ صرف ایک بار، اس سے زیادہ نہیں۔ جواب آ جائے تو "جواب آ گیا" دبا دیں۔</p>
@@ -2197,6 +2203,30 @@ function remindAt(f){
   for(var i=0; i<3 && off.indexOf(d.getDay()) >= 0; i++) d.setDate(d.getDate() + 1);
   return d.getTime();
 }
+/* 15 Nov (owner asked): one search box for the Reminder list and Client Follow-up: name, phone in any format, email, note */
+var fuQ = "";
+function digitsOf(x){ return String(x||"").replace(/\D/g, ""); }
+function fuMatch(f){
+  var q = fuQ.trim().toLowerCase(); if(!q) return true;
+  var qd = digitsOf(q);
+  if(qd.length >= 6 && qd.length >= q.replace(/[\s+()\-.]/g, "").length - 1){   // the box holds a phone number
+    var tail = qd.replace(/^0+/, "").slice(-9);
+    return [f.contact, f.phone].some(function(x){ var d = digitsOf(x); return d.length >= 6 && (d.indexOf(tail) >= 0 || tail.indexOf(d.replace(/^0+/, "").slice(-9)) >= 0); });
+  }
+  var hay = [f.n, f.contact, f.phone, f.town, f.note, f.src, f.link].join(" ").toLowerCase();
+  return q.split(/\s+/).every(function(w){ return hay.indexOf(w) >= 0; });
+}
+var STAGE_WORD = { waiting:"Reminder کی لسٹ میں", followed:"Reminder بھیج دی", replied:"جواب آیا", quoted:"Price بتا دی", won:"Payment مل گئی", lost:"بات ختم" };
+function fuFindInfo(){
+  var info = $("fuFindInfo"); if(!info) return;
+  if(!fuQ.trim()){ info.style.display = "none"; info.innerHTML = ""; return; }
+  var hit = follows.filter(fuMatch);
+  info.style.display = "";
+  if(!hit.length){ info.innerHTML = '<b style="color:var(--bad)">یہ نام یا نمبر لسٹ میں نہیں ہے۔</b> یعنی اسے ابھی تک پیغام نہیں گیا (یا اس آلے پر درج نہیں ہوا)۔'; return; }
+  info.innerHTML = '<b class="en">' + hit.length + '</b> ملے:<br>' + hit.slice(0, 8).map(function(f){
+    return '• ' + esc(f.n) + ' ← ' + (STAGE_WORD[f.state] || esc(f.state)) + (f.note ? ' · نوٹ: ' + esc(f.note) : '');
+  }).join("<br>") + (hit.length > 8 ? '<br>…' : '');
+}
 function renderFollow(){
   var box = $("fuList"); box.innerHTML = "";
   var now = Date.now(), due = 0;
@@ -2212,6 +2242,7 @@ function renderFollow(){
         '<button class="btn2 btn-sm" data-a="reply">جواب آ گیا</button><button class="btn2 btn-sm" data-a="lost">بات ختم</button></div></div>';
       d.querySelector('[data-a="reply"]').onclick = function(){ setStage(f, "replied"); toast("بہت اچھا! اب یہ گاہکوں کے سفر میں ہے"); };
       d.querySelector('[data-a="lost"]').onclick = function(){ if(confirm("اس سے بات ختم سمجھیں؟ بعد میں واپس بھی لا سکتے ہیں۔")) setStage(f, "lost", { prev: "waiting" }); };
+      if(!fuMatch(f)) d.style.display = "none";
       box.appendChild(d); return;
     }
     var doneToday = f.state === "followed";
@@ -2272,6 +2303,7 @@ function renderFollow(){
         saveFollow(); renderFollow(); toast("تاریخ بدل گئی");
       };
     })();
+    if(!fuMatch(f)) d.style.display = "none";
     box.appendChild(d);
   });
   if(!list.length) box.innerHTML = '<p class="hint">ابھی کوئی Reminder نہیں۔ جب آپ کسی کاروبار پر "ای میل بھیج دی" یا "پیغام بھیج دیا" دبائیں گے، وہ یہاں آ جائے گا۔</p>';
@@ -2425,6 +2457,7 @@ function renderPipe(){
       setStage(f, "won", { amt: a.trim(), wat: Date.now() }); toast("مبارک ہو! 🎉");
     });
     on("note", function(){ var t = prompt("نوٹ لکھیں", f.note || ""); if(t !== null){ f.note = t.trim(); f.la = Date.now(); saveFollow(); renderFollow(); } });
+    if(!fuMatch(f)) d.style.display = "none";
     on("lost", function(){ if(confirm("اس گاہک سے بات ختم سمجھیں؟ بعد میں واپس بھی لا سکتے ہیں۔")) setStage(f, "lost", { prev: f.state }); });
     box.appendChild(d);
   });
@@ -2436,14 +2469,20 @@ function renderPipe(){
       var r = document.createElement("div"); r.className = "task";
       r.innerHTML = '<div class="tx"><b class="en">' + esc(f.n) + '</b></div><button class="btn2 btn-sm">واپس لائیں</button>';
       r.querySelector("button").onclick = function(){ setStage(f, f.prev && f.prev !== "lost" ? f.prev : "replied"); toast("واپس آ گیا"); };
+      if(!fuMatch(f)) r.style.display = "none";
       det.appendChild(r);
     });
+    if(fuQ.trim() && lost.some(fuMatch)) det.open = true;
     box.appendChild(det);
   }
   if(!box.querySelector(".lead")) box.insertAdjacentHTML("afterbegin", '<p class="hint">ابھی کوئی جواب دینے والا گاہک نہیں۔ جس کا جواب آئے، Reminder والے خانے میں "جواب آ گیا" دبائیں، یا نیچے سے ہاتھ سے شامل کریں۔</p>');
   $("pipeDue").textContent = due;
   if(due) $("pipeBox").open = true;
+  if(fuQ.trim()){ $("fuBox").open = true; $("pipeBox").open = true; }
+  fuFindInfo();
 }
+(function(){ var inp = $("fuFind"); if(!inp) return; var t = null;
+  inp.addEventListener("input", function(){ clearTimeout(t); t = setTimeout(function(){ fuQ = inp.value || ""; renderFollow(); }, 150); }); })();
 /* duplicate guard: the tool is the one record of who was already contacted, whichever chat the work came from */
 function contactKey(c){ c = String(c||"").trim().toLowerCase(); if(/@/.test(c)) return c; var d = c.replace(/[^0-9]/g,""); return d.length >= 7 ? d.slice(-9) : ""; }
 /* same business if every distinctive word of the shorter name is in the longer one ("InfoTank" = "InfoTank (Avery Sellers)"),
