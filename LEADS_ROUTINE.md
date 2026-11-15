@@ -16,7 +16,7 @@ Diagnosis: the weak link is trust (no proof), then target (too much cold English
 - **Proof first:** finish one or two Pakistani jobs (Meer Taqi, Alhamdulillah Solar, Jampur, first), before/after screenshots and two lines of
   written feedback he may show (never a review in exchange).
 - **Western cold email: at most 2 a day,** only urgent problems (broken or for-sale website, unclaimed listing, wrong hours/phone, top bad review unanswered).
-- **Forum: reputation only.** At most ONE forum reply a day (the best thread of both runs); no private email after a forum reply unless the
+- **Forum: reputation only.** Up to THREE forum replies a day when there are that many good threads (owner asked 15 Nov; was one); no private email after a forum reply unless the
   owner answers on the forum or the post names a business with a serious money problem and a public email.
 - **Five numbers a day:** sent, replies, gifts accepted, price asked, paid. Day 7 check: under 1 reply in 20 after 60 messages -> change trade
   or first line, not the channel. Day 14 targets (estimates): ~100 WhatsApp sent, 10 replies, 5 gifts, 2 price talks, 1 payment.

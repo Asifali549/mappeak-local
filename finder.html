@@ -313,7 +313,9 @@ var FIELDS = ["places.id","places.displayName","places.formattedAddress","places
   "places.paymentOptions","places.accessibilityOptions","nextPageToken"].join(",");
 
 var leads = [];
-var pool = {};      // town -> businesses in Google's order (used to name a competitor)
+var pool = {};      // search words ("<trade> in <town>", lower case) -> businesses in Google's order (used to name a competitor)
+/* 15 Nov (bug, owner approved): keyed by the search, not the town, so a mobile-shop search in Riyadh never names a mobile shop as a workshop's competitor */
+function poolKey(q){ return String(q||"").trim().toLowerCase(); }
 var shots = {};     // website screenshots, kept only in memory
 var lastTrade = "", lastTowns = [];
 
@@ -1231,11 +1233,11 @@ function render(keepOrder){
 /* pick one real local competitor: the business with the most reviews that Google shows ahead of this one */
 function assignComps(){
   leads.forEach(function(L){
-    var list = pool[L.town] || []; if(!list.length) return;
+    var list = pool[poolKey(L.mapsQ)] || []; if(!list.length) return;   // old saved leads / other searches keep their competitor
     pickComp(L, list);
   });
   /* main category check: what do the top 3 businesses Google shows for this search use? */
-  leads.forEach(function(L){ var list = pool[L.town] || []; if(list.length) pickTopCat(L, list); });
+  leads.forEach(function(L){ var list = pool[poolKey(L.mapsQ)] || []; if(list.length) pickTopCat(L, list); });
   render();
 }
 /* 12 Nov (owner asked): a maker's or chain's office (e.g. "Sungrow Power" in a Multan solar search) is not a local shop to compare with */
@@ -1573,7 +1575,7 @@ $("go").onclick = async function(){
         (data.places||[]).forEach(function(p, pi){
           addWatch(p, town);
           if(!p.businessStatus || p.businessStatus === "OPERATIONAL"){
-            (pool[town] = pool[town] || []).push({ id:p.id, n:(p.displayName&&p.displayName.text)||"", r:p.userRatingCount||0, rt:p.rating||null,
+            var pk = poolKey(lastTrade + " in " + town); (pool[pk] = pool[pk] || []).push({ id:p.id, n:(p.displayName&&p.displayName.text)||"", r:p.userRatingCount||0, rt:p.rating||null,
               t:p.primaryType||"", c:(p.primaryTypeDisplayName&&p.primaryTypeDisplayName.text)||"" });
           }
           if(ids[p.id] || seen.indexOf(p.id) >= 0) return;
@@ -1679,7 +1681,7 @@ $("autoGo").onclick = async function(){
       (data.places||[]).forEach(function(pl, pi){
         addWatch(pl, city);
         if(!pl.businessStatus || pl.businessStatus === "OPERATIONAL"){
-          (pool[city] = pool[city] || []).push({ id:pl.id, n:(pl.displayName&&pl.displayName.text)||"", r:pl.userRatingCount||0, rt:pl.rating||null,
+          var pk = poolKey(trade + " in " + city); (pool[pk] = pool[pk] || []).push({ id:pl.id, n:(pl.displayName&&pl.displayName.text)||"", r:pl.userRatingCount||0, rt:pl.rating||null,
             t:pl.primaryType||"", c:(pl.primaryTypeDisplayName&&pl.primaryTypeDisplayName.text)||"" });
         }
         if(ids[pl.id] || seen.indexOf(pl.id) >= 0) return;
