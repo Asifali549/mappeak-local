@@ -288,6 +288,18 @@ San Angelo, TX</textarea>
     <div id="bookAll"></div>
   </details>
 
+  <details class="card" id="badBox">
+    <summary>برے ریویو کی جانچ</summary>
+    <p class="hint">گوگل میپس سے کوئی بھی برا ریویو کاپی کر کے یہاں چپکائیں۔ ٹول گوگل کے لکھے ہوئے اصولوں سے ملا کر اندازہ لگاتا ہے کہ یہ ہٹ سکتا ہے یا نہیں، اور شکایت، جواب اور گاہک کا پیغام تیار کرتا ہے۔ یہ صرف اندازہ ہے، فیصلہ گوگل کرتا ہے۔</p>
+    <label for="badText">ریویو کا متن</label>
+    <textarea id="badText" dir="auto" rows="3" placeholder="Not recommend"></textarea>
+    <div class="row">
+      <div><label for="badStars">ستارے</label><select id="badStars" class="en"><option>1</option><option>2</option><option>3</option></select></div>
+      <div><label for="badBiz">کاروبار کا نام (اختیاری)</label><input id="badBiz" dir="auto" autocomplete="off"></div>
+    </div>
+    <div class="btns"><button class="btn btn-sm" id="badGo" style="width:auto">جانچیں</button></div>
+  </details>
+
   <details class="card" id="watchBox">
     <summary>Suspended Listing Monitor</summary>
     <p class="hint">ہر تلاش میں جتنے بھی کاروبار آتے ہیں، ٹول ان سب کو یہاں یاد رکھتا ہے۔ ہفتے میں ایک بار نیچے والا بٹن دبائیں۔ ٹول دیکھے گا کہ ان میں سے کون سا کاروبار گوگل نقشے سے غائب ہو گیا ہے۔ غائب کاروبار کی لسٹنگ شاید بند ہوئی ہے۔</p>
@@ -931,6 +943,7 @@ function cleanLeads(list){
     if(L.website) L.website = safeUrl(L.website);
     cleanAi(L.ai); cleanAi(L.aiC);
     if(L.ut != null) L.ut = numOr(L.ut, 0);
+    if(L.bad != null) L.bad = cleanBad(L.bad);
     return L;
   });
 }
@@ -1019,6 +1032,8 @@ function claudeText(){
     out.push("Issues: " + (allIssues(L).map(function(k){ return (URGENT.indexOf(k) >= 0 ? "*" : "") + CHECKS[k][2]; }).join("; ") || "none found"));
     if(L.comp) out.push("Competitor: " + clip(L.comp.n, 60) + ", " + L.comp.r + " reviews" + (L.comp.rt ? ", " + L.comp.rt + " stars" : "") + (L.comp.above ? " (ranks above them)" : ""));
     if(man.length) out.push("Checked by hand: " + man.join("; "));
+    (L.bad || []).forEach(function(b){ var sg = reviewSignals(b.x).map(function(g){ return g.en; });
+      out.push("Bad review: " + b.r + " star" + (b.t ? ", " + Math.max(0, Math.floor((Date.now() - b.t) / 864e5)) + " days ago" : "") + (b.a ? ", by " + clip(b.a, 40) : "") + ': "' + clip(b.x || "(no text)", 200) + '"' + (sg.length ? " [signals: " + sg.join("; ") + "]" : " [no rule signals]")); });
     if(/^https:\/\//.test(L.maps || "")) out.push("Maps: " + clip(L.maps, 200));
   });
   return out.join("\n");
@@ -1167,7 +1182,7 @@ function render(keepOrder){
       '<div style="flex:1;min-width:0"><div class="name"><span class="leadno en">#'+L.no+'</span>'+esc(L.name)+'</div>'+
       '<div class="meta en" style="text-align:left">'+esc(L.address || ("Service area · " + (L.town||"")))+'</div>'+
       '<div class="stat" style="margin-top:4px"><span class="pill">ریٹنگ <b class="en">'+(L.rating==null?"-":L.rating)+'</b></span>'+
-      '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+(L.auto ? '<span class="pill">خودکار</span>' : '')+bigBadge(L)+lifeBadge(L)+adTagBadge(L)+mailBadge(L)+speedBadge(L)+riskBadge(L)+lawBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
+      '<span class="pill">ریویو <b class="en">'+L.reviews+'</b></span>'+(urgentOf(L).length ? '<span class="pill" style="background:var(--bad);color:#fff">فوری</span>' : '')+(L.auto ? '<span class="pill">خودکار</span>' : '')+badPill(L)+bigBadge(L)+lifeBadge(L)+adTagBadge(L)+mailBadge(L)+speedBadge(L)+riskBadge(L)+lawBadge(L)+(L.manual && L.manual.ads === "yes" ? '<span class="pill" style="color:var(--good)">فیس بک اشتہار چل رہے ہیں</span>' : '')+'</div></div></div>'+
       '<div class="body"><b>غلطیاں:</b><ul>'+urIssues+'</ul>'+
       '<div class="en" style="text-align:left;font-size:15px">'+(L.phone?esc(L.phone)+" &middot; ":"")+(safeUrl(L.website)?'<a target="_blank" rel="noopener" href="'+esc(safeUrl(L.website))+'">Website</a>':'No website')+'</div>'+
       compLine(L)+aiLine(L)+
@@ -1200,6 +1215,7 @@ function render(keepOrder){
           '<button class="btn2 btn-sm" data-a="report">رپورٹ کاپی کریں</button>')+
       '<button class="btn2 btn-sm" data-a="img">تصویری رپورٹ</button>'+
       (reviewUrl(L) ? '<button class="btn2 btn-sm" data-a="qr">ریویو کیو آر کارڈ</button>' : '')+
+      (L.bad && L.bad.length ? '<button class="btn2 btn-sm" data-a="bad">برا ریویو جانچیں</button>' : '')+
       '<button class="btn2 btn-sm" data-a="sent">'+(isWA(L.country) ? "پیغام بھیج دیا" : "ای میل بھیج دی")+'</button>'+
       '<button class="btn2 btn-sm" data-a="skip">چھوڑ دیں</button></div></div>';
     d.querySelectorAll(".yn").forEach(function(g){
@@ -1216,6 +1232,7 @@ function render(keepOrder){
     var abt = d.querySelector('[data-a="arab"]'); if(abt) abt.onclick = function(){ copy(arMsg(L)); };
     d.querySelector('[data-a="img"]').onclick = function(){ showReportImage(L); };
     var qb = d.querySelector('[data-a="qr"]'); if(qb) qb.onclick = function(){ showQrCard(L); };
+    var bdb = d.querySelector('[data-a="bad"]'); if(bdb) bdb.onclick = function(){ showBadReviews(L, L.bad); };
     d.querySelector('[data-a="sent"]').onclick = function(){ if(L.sent) return; markSent(L); render(true); toast("نشان لگ گیا، یہ دوبارہ تلاش میں نہیں آئے گا"); };
     d.querySelector('[data-a="skip"]').onclick = function(){ if(confirm("اس کاروبار کو فہرست سے ہٹا دیں؟")){ addSeen(L.id); removeLead(L.id); toast("ہٹا دیا"); } };
     if(L.sent){ var sb = d.querySelector('[data-a="sent"]'); sb.textContent = isWA(L.country) ? "پیغام جا چکا" : "ای میل بھیجی جا چکی"; sb.style.background = "var(--good)"; sb.style.color = "#fff"; }
@@ -1327,6 +1344,7 @@ function toLead(p, town, country){
   if(isWA(L.country)) L.mail = "na";
   if(isGulf(L.country)) L.urd = PAKRE.test(L.name + " " + L.cat);
   lifeData(L, p);
+  L.bad = badReviews(p);
   return L;
 }
 /* ---------- is the business alive, and does the owner look after the profile? (10 Nov, owner asked) ----------
@@ -2950,6 +2968,140 @@ async function showQrCard(L){
   if(!(file && navigator.canShare && navigator.canShare({ files: [file] }))) sb.style.display = "none";
   sb.onclick = function(){ navigator.share({ files: [file], title: L.name }).catch(function(){}); };
 }
+/* ---------- bad review check (16 Nov, owner asked) ----------
+   Google removes a review only when it breaks its published content rules. This only GUESSES which rule might apply,
+   from the words in the review and the owner's yes/no answers; Google decides. Never mass reports, never fake claims. */
+/* a function, not a var: saved results are cleaned on page open, before this part of the file has run */
+function contribOk(u){ return /^https:\/\/www\.google\.com\/maps\/contrib\/\d+[\/A-Za-z0-9?=&_.-]*$/.test(String(u || "")); }
+function badReviews(p){
+  return (p && Array.isArray(p.reviews) ? p.reviews : []).filter(function(rv){ return rv && rv.rating && rv.rating <= 2; }).slice(0, 5).map(function(rv){
+    var a = rv.authorAttribution || {}, tx = (rv.originalText && rv.originalText.text) || (rv.text && rv.text.text) || "";
+    return { r: Math.round(+rv.rating) || 1, t: Date.parse(rv.publishTime || "") || 0, x: String(tx).slice(0, 600), a: clip(a.displayName, 60), u: contribOk(a.uri) ? String(a.uri) : "" };
+  });
+}
+function cleanBad(list){
+  return (Array.isArray(list) ? list : []).filter(function(b){ return b && typeof b === "object"; }).slice(0, 5).map(function(b){
+    return { r: Math.min(5, Math.max(1, Math.round(numOr(b.r, 1)) || 1)), t: numOr(b.t, 0) || 0, x: String(b.x == null ? "" : b.x).slice(0, 600), a: clip(b.a, 60), u: contribOk(b.u) ? String(b.u) : "" };
+  });
+}
+function badPill(L){ return L.bad && L.bad.length ? '<span class="pill" style="color:var(--bad)">برا ریویو <b class="en">' + L.bad.length + '</b></span>' : ''; }
+/* each signal: words in the review that match one of Google's written rules. w = weight (3 strong, 2 medium) */
+var REVIEW_RULES = [
+  { k:"insult", w:3, cat:"Profanity / Bullying or harassment", ur:"گالی یا بے عزتی والے الفاظ", en:"profanity or insults",
+    re:/\b(f+u+c+k\w*|shit\w*|bitch\w*|bastard\w*|asshole\w*|idiot\w*|moron\w*|kutt[ae]\w*|kuttay|harami\w*|haramzad\w*|kamin[ae]\w*|ullu ka|gandu\w*|chutiy\w*)\b|كلب|حمار|حرامي|حقير|ڪتا|کتے|کتا|حرامی|کمینے|کمینہ/i },
+  { k:"contact", w:3, cat:"Spam", ur:"فون نمبر، لنک یا ای میل لکھا ہے (اشتہار یا اسپام)", en:"phone number, link or email in the review (spam)",
+    re:/(https?:\/\/|www\.|\b[\w.+-]+@[\w-]+\.[a-z]{2,}\b|\+?\d(?:[\s-]?\d){8,}|\bwhats?app me\b|\bcall me\b)/i },
+  { k:"staff", w:3, cat:"Conflict of interest", ur:"لگتا ہے لکھنے والا یہاں کا ملازم یا پرانا ملازم ہے", en:"written by a current or former employee",
+    re:/\b(i (used to )?work(ed)? (here|there|for them)|former (employee|staff)|ex[- ]?(employee|staff|worker)|my (ex[- ]?)?boss|they fired me|fired me|my salary|unpaid salary|didn'?t pay (me|my))\b|تنخواہ|نوکری سے نکال/i },
+  { k:"never", w:3, cat:"Fake engagement", ur:"لکھنے والا خود کہتا ہے کہ وہ کبھی وہاں نہیں گیا", en:"the writer says they never visited",
+    re:/\b(never (been|visited|went|go)|haven'?t (been|visited)|didn'?t (visit|go there)|not been there|without visiting)\b|کبھی نہیں گیا|لم أزر/i },
+  { k:"rival", w:2, cat:"Conflict of interest", ur:"گاہکوں کو کسی دوسری دکان کی طرف بھیجتا ہے", en:"sends customers to another business",
+    re:/\b(go to [A-Z][\w']+|try [A-Z][\w']+ instead|better (go|place) (to|is)|instead go|visit [A-Z][\w']+ instead)\b/ },
+  { k:"threat", w:3, cat:"Bullying or harassment", ur:"دھمکی یا نفرت والی بات", en:"threats or hate",
+    re:/\b(i will (kill|hurt|burn|destroy)|kill (you|them)|burn (it|this place)|death to)\b/i },
+  { k:"offtopic", w:2, cat:"Off topic", ur:"بات اس کاروبار کے بارے میں نہیں لگتی", en:"not about this business (off topic)",
+    re:/\b(wrong (place|location|business|shop)|different (shop|place|business)|meant (another|the other)|politic\w*|election)\b/i }
+];
+function reviewSignals(x){
+  var t = String(x || "");
+  return REVIEW_RULES.filter(function(r){ return r.re.test(t); });
+}
+/* questions only the owner (or we, by opening the writer's profile) can answer */
+var REVIEW_QS = [
+  { k:"rival5", w:3, cat:"Conflict of interest", ur:"لکھنے والے نے اسی علاقے میں اسی کام کی کسی دوسری دکان کو پانچ ستارے دیے ہیں؟", en:"the writer gave 5 stars to a nearby competitor in the same trade" },
+  { k:"burst", w:2, cat:"Spam / Fake engagement", ur:"لکھنے والے نے ایک ہی دن میں کئی دکانوں کو ایک ستارہ دیا ہے؟", en:"the writer gave 1 star to several businesses on the same day" },
+  { k:"stranger", w:2, cat:"Fake engagement", ur:"مالک کہتا ہے کہ یہ شخص کبھی گاہک نہیں رہا، یا پرانا ملازم ہے؟", en:"the owner says this person was never a customer, or is a former employee" },
+  { k:"newacct", w:1, cat:"Fake engagement", ur:"اکاؤنٹ نیا لگتا ہے (ایک دو ریویو، کوئی تصویر نہیں)؟", en:"the account looks new (one or two reviews, no photos)" }
+];
+function reviewVerdict(b, ans){
+  var sig = reviewSignals(b.x), qs = REVIEW_QS.filter(function(q){ return ans && ans[q.k] === "yes"; });
+  var score = 0, cats = [];
+  sig.concat(qs).forEach(function(g){ score += g.w; if(cats.indexOf(g.cat) < 0) cats.push(g.cat); });
+  var level = score >= 3 ? "good" : score >= 2 ? "maybe" : "real";
+  return { sig: sig, qs: qs, score: score, level: level, cats: cats, empty: !String(b.x || "").trim() };
+}
+var VERDICT_UR = { good: "ہٹنے کا اچھا امکان", maybe: "شاید ہٹ جائے، کوشش کی جا سکتی ہے", real: "اصلی گاہک کی رائے لگتی ہے: ہٹے گا نہیں، اچھا جواب دیں" };
+function reportText(b, v, biz){
+  var why = v.sig.map(function(g){ return g.en; }).concat(v.qs.map(function(q){ return q.en; }));
+  return "Review" + (b.a ? " by " + clip(b.a, 60) : "") + (b.r ? " (" + b.r + " star)" : "") + (biz ? " on " + clip(biz, 80) : "") + ":\n\"" + clip(b.x || "(no text)", 400) + "\"\n\n" +
+    "Report category: " + (v.cats[0] || "Not helpful") + "\n" +
+    "Reason: This review appears to break Google's Maps user contributed content policy: " + (why.join("; ") || "no clear rule signal") + ". " +
+    "We respect genuine customer feedback and are only asking Google to check this review against its published rules.";
+}
+function ownerReply(b, v){
+  if(v.level === "real" || !v.qs.some(function(q){ return q.k === "stranger"; }))
+    return "Thank you for your feedback. We're sorry your experience didn't meet your expectations. We always try to give every customer good service, so we would really like to know what went wrong. Please contact us directly or ask for the manager on your next visit, and we will do our best to make it right.";
+  return "Thank you for taking the time to write. We take every review seriously, but we can't find any record of your visit. If you were our customer, please contact us directly with the date of your visit so we can look into it and make it right.";
+}
+function clientMsg(v, urdu){
+  if(urdu) return v.level === "real"
+    ? "آپ کے گوگل پروفائل پر ایک برا ریویو ہے۔ یہ اصلی گاہک کی رائے لگتی ہے، اس لیے گوگل اسے نہیں ہٹائے گا۔ لیکن اس کا اچھا اور ادب والا جواب نئے گاہکوں کا بھروسہ بڑھاتا ہے۔ جواب میں تیار کر کے دے سکتا ہوں۔"
+    : "آپ کے گوگل پروفائل پر ایک برا ریویو ہے جو گوگل کے اصول کے خلاف لگتا ہے۔ میں اس کی صحیح شکایت اور اپیل کر دیتا ہوں۔ فیصلہ گوگل کرتا ہے، اس لیے فیس صرف تب، جب گوگل اسے ہٹا دے۔";
+  return v.level === "real"
+    ? "There is a negative review on your Google profile. It looks like genuine customer feedback, so Google won't remove it, but a calm, professional reply builds trust with new customers. I can write the reply for you."
+    : "There is a negative review on your Google profile that may break Google's rules. I can file a proper report and appeal for you. Google makes the decision, so you pay only if Google removes it.";
+}
+function aiPrompt(b, biz){
+  return "Here is a " + b.r + "-star Google Maps review of a local business" + (biz ? " (" + clip(biz, 80) + ")" : "") + ":\n\"" + clip(b.x || "(rating only, no text)", 600) + "\"\n" +
+    "Using Google's Maps user contributed content policy (prohibited and restricted content), does this review likely break any rule? If yes, which report category fits best and why, in 3 short lines. If it is genuine customer feedback, say so and suggest a short, polite owner reply.";
+}
+function showBadReviews(L, list){
+  list = list || [];
+  if(!list.length){ toast("کوئی برا ریویو نہیں ملا"); return; }
+  var biz = L ? L.name : "", urdu = L ? (L.country === "PK" || !!L.urd) : true;
+  var old = document.querySelector(".ov"); if(old) old.remove();
+  var ov = document.createElement("div"); ov.className = "ov"; ov.style.justifyContent = "flex-start"; ov.style.overflowY = "auto";
+  var box = document.createElement("div"); box.className = "card"; box.style.maxWidth = "640px"; box.style.width = "100%"; box.style.margin = "0";
+  box.innerHTML = '<h3 style="margin-top:0">برے ریویو کی جانچ' + (biz ? ' <span class="en">' + esc(clip(biz, 60)) + '</span>' : '') + '</h3>' +
+    '<p class="hint">یہ صرف اندازہ ہے، آخری فیصلہ گوگل کرتا ہے۔ گوگل ٹول کو زیادہ سے زیادہ پانچ ریویو دیتا ہے، باقی برے ریویو نیچے والے "برے ریویو کی جانچ" خانے میں چپکا کر دیکھیں۔</p><div data-a="list"></div>' +
+    '<div class="btns"><button class="btn2 btn-sm" data-a="close">بند کریں</button></div>';
+  ov.appendChild(box); document.body.appendChild(ov);
+  box.querySelector('[data-a="close"]').onclick = function(){ ov.remove(); };
+  var wrap = box.querySelector('[data-a="list"]');
+  list.forEach(function(b){
+    var ans = {}, d = document.createElement("div"); d.className = "lead"; d.style.padding = "12px";
+    var days = b.t ? Math.max(0, Math.floor((Date.now() - b.t) / 864e5)) : null;
+    d.innerHTML = '<div class="en" style="font-weight:600">' + "&#9733;".repeat(b.r) + "&#9734;".repeat(Math.max(0, 5 - b.r)) +
+      (days != null ? ' &middot; ' + days + ' days ago' : '') + (b.a ? ' &middot; ' + esc(b.a) : '') + '</div>' +
+      '<div dir="auto" style="margin:6px 0;white-space:pre-wrap">' + (String(b.x || "").trim() ? esc(b.x) : '<i>(صرف ستارے، کوئی متن نہیں)</i>') + '</div>' +
+      '<div data-a="qs"></div><div data-a="verdict" style="margin:8px 0"></div>' +
+      '<div class="btns">' + (b.u ? '<button class="btn2 btn-sm" data-a="prof">لکھنے والے کا پروفائل کھولیں</button>' : '') +
+      '<button class="btn2 btn-sm" data-a="rep">شکایت کا متن کاپی کریں</button><button class="btn2 btn-sm" data-a="reply">مالک کا جواب کاپی کریں</button>' +
+      '<button class="btn2 btn-sm" data-a="msg">گاہک کو پیغام کاپی کریں</button><button class="btn2 btn-sm" data-a="ai">AI سے گہری جانچ</button></div>';
+    var qbox = d.querySelector('[data-a="qs"]');
+    REVIEW_QS.forEach(function(q){
+      var r = document.createElement("div"); r.className = "yn"; r.style.margin = "4px 0";
+      r.innerHTML = '<div style="font-size:14px">' + esc(q.ur) + '</div><div class="btns" style="margin-top:2px"><button class="btn2 btn-sm" data-v="yes">ہاں</button><button class="btn2 btn-sm" data-v="no">نہیں</button></div>';
+      r.querySelectorAll("button").forEach(function(btn){ btn.onclick = function(){
+        ans[q.k] = btn.getAttribute("data-v");
+        r.querySelectorAll("button").forEach(function(o){ o.className = "btn2 btn-sm"; }); btn.className = "btn btn-sm"; btn.style.width = "auto";
+        draw(); }; });
+      qbox.appendChild(r);
+    });
+    var vEl = d.querySelector('[data-a="verdict"]');
+    function draw(){
+      var v = reviewVerdict(b, ans), col = v.level === "good" ? "var(--good)" : v.level === "maybe" ? "var(--warn)" : "inherit";
+      vEl.innerHTML = '<b style="color:' + col + '">اندازہ: ' + VERDICT_UR[v.level] + '</b>' +
+        (v.sig.length || v.qs.length ? '<ul style="margin:4px 0">' + v.sig.map(function(g){ return '<li>' + esc(g.ur) + '</li>'; }).join("") + v.qs.map(function(q){ return '<li>' + esc(q.ur.replace(/؟$/, "")) + ': ہاں</li>'; }).join("") + '</ul>' : '') +
+        (v.empty ? '<div class="hint">صرف ستاروں والا ریویو گوگل عموماً نہیں ہٹاتا، جب تک ثابت نہ ہو کہ لکھنے والا کبھی گاہک نہیں رہا۔</div>' : '') +
+        (v.cats.length ? '<div class="hint">شکایت میں چنیں: <span class="en">' + esc(v.cats[0]) + '</span></div>' : '');
+      return v;
+    }
+    draw();
+    var pb = d.querySelector('[data-a="prof"]'); if(pb) pb.onclick = function(){ if(contribOk(b.u)) window.open(b.u, "_blank", "noopener"); };
+    d.querySelector('[data-a="rep"]').onclick = function(){ copy(reportText(b, reviewVerdict(b, ans), biz)); toast("شکایت کا متن کاپی ہو گیا"); };
+    d.querySelector('[data-a="reply"]').onclick = function(){ copy(ownerReply(b, reviewVerdict(b, ans))); toast("جواب کاپی ہو گیا"); };
+    d.querySelector('[data-a="msg"]').onclick = function(){ copy(clientMsg(reviewVerdict(b, ans), urdu)); toast("پیغام کاپی ہو گیا"); };
+    d.querySelector('[data-a="ai"]').onclick = function(){ copy(aiPrompt(b, biz)); toast("سوال کاپی ہو گیا، جیمنائی میں چپکائیں"); window.open("https://gemini.google.com/app", "_blank", "noopener"); };
+    wrap.appendChild(d);
+  });
+}
+$("badGo").onclick = function(){
+  var x = ($("badText").value || "").trim(), r = +$("badStars").value || 1, biz = ($("badBiz").value || "").trim();
+  if(!x && !confirm("متن خالی ہے۔ صرف ستاروں والے ریویو کی جانچ کریں؟")) return;
+  var c = selC();
+  showBadReviews({ name: biz, country: c, urd: isWA(c) }, [{ r: r, t: 0, x: x.slice(0, 600), a: "", u: "" }]);
+};
 renderFollow();
 $("adsAll").onclick = function(){
   var trade = ($("trade").value||"").trim(), town = (($("towns").value||"").split("\n")[0]||"").replace(/,.*$/,"").trim();
