@@ -48,7 +48,7 @@ const { chromium } = require('playwright');
   const v = async i => (await items.nth(i).locator('[data-a="verdict"]').textContent()).trim();
   ok('B6 "Not recommend" alone: genuine feedback, reply instead', /اصلی گاہک/.test(await v(0)), await v(0));
   ok('B7 former employee + phone number: good chance of removal', /ہٹنے کا اچھا امکان/.test(await v(1)), await v(1));
-  await items.nth(0).locator('.yn').nth(0).locator('button[data-v="yes"]').click(); await p.waitForTimeout(150);
+  await items.nth(0).locator('details').evaluate(e => e.open = true); await items.nth(0).locator('.yn').nth(0).locator('button[data-v="yes"]').click(); await p.waitForTimeout(150);
   ok('B8 answering "gave 5 stars to a nearby competitor" changes the guess', /ہٹنے کا اچھا امکان/.test(await v(0)) && /Conflict of interest/.test(await v(0)), await v(0));
   await items.nth(0).locator('[data-a="rep"]').click(); await p.waitForTimeout(150);
   const rep = await p.evaluate(() => navigator.clipboard.readText());
@@ -78,6 +78,13 @@ const { chromium } = require('playwright');
   const stars = await p.locator('.ov .lead').first().locator('.en').first().textContent();
   ok('B15 damaged saved reviews are cleaned (one left, stars 1-5, no bad link) and old leads without them still work',
     !alerted && !(await p.$('.ov img')) && (await p.locator('.ov .lead').count()) === 1 && (stars.match(/\u2605/g) || []).length <= 5 && (await p.locator('.ov [data-a="prof"]').count()) === 0 && (await card('Lahori').count()) === 1 && (await card('Lahori').locator('[data-a="bad"]').count()) === 0, stars);
+  // layout (16 Nov, owner: "only the yes/no page shows, no answer"): the guess comes first, the questions are folded away
+  if (await p.$('.ov')) await p.locator('.ov [data-a="close"]').click();
+  await p.evaluate(() => { document.getElementById('badBox').open = true; });
+  await p.fill('#badText', 'Not recommend'); await p.click('#badGo'); await p.waitForTimeout(300);
+  const order = await p.evaluate(() => { const d = document.querySelector('.ov .lead'); const v = d.querySelector('[data-a="verdict"]'), q = d.querySelector('details'); return !!(v && q && (v.compareDocumentPosition(q) & Node.DOCUMENT_POSITION_FOLLOWING) && !q.open && v.getBoundingClientRect().top < window.innerHeight); });
+  ok('B17 the guess is shown first, on screen; the yes/no questions are folded below', order);
+  await p.locator('.ov [data-a="close"]').click();
   ok('B16 no page errors', !errs.length, errs.join(' | '));
   console.log(res.join('\n')); await b.close();
 })();

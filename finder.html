@@ -3064,18 +3064,19 @@ function showBadReviews(L, list){
     d.innerHTML = '<div class="en" style="font-weight:600">' + "&#9733;".repeat(b.r) + "&#9734;".repeat(Math.max(0, 5 - b.r)) +
       (days != null ? ' &middot; ' + days + ' days ago' : '') + (b.a ? ' &middot; ' + esc(b.a) : '') + '</div>' +
       '<div dir="auto" style="margin:6px 0;white-space:pre-wrap">' + (String(b.x || "").trim() ? esc(b.x) : '<i>(صرف ستارے، کوئی متن نہیں)</i>') + '</div>' +
-      '<div data-a="qs"></div><div data-a="verdict" style="margin:8px 0"></div>' +
+      '<div data-a="verdict" style="margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:10px"></div>' +
       '<div class="btns">' + (b.u ? '<button class="btn2 btn-sm" data-a="prof">لکھنے والے کا پروفائل کھولیں</button>' : '') +
       '<button class="btn2 btn-sm" data-a="rep">شکایت کا متن کاپی کریں</button><button class="btn2 btn-sm" data-a="reply">مالک کا جواب کاپی کریں</button>' +
-      '<button class="btn2 btn-sm" data-a="msg">گاہک کو پیغام کاپی کریں</button><button class="btn2 btn-sm" data-a="ai">AI سے گہری جانچ</button></div>';
+      '<button class="btn2 btn-sm" data-a="msg">گاہک کو پیغام کاپی کریں</button><button class="btn2 btn-sm" data-a="ai">AI سے گہری جانچ</button></div>' +
+      '<details style="margin-top:8px"><summary style="cursor:pointer;font-size:14px">مزید جانچ (صرف تب، جب آپ نے لکھنے والے کا پروفائل دیکھا ہو)</summary><div data-a="qs"></div></details>';
     var qbox = d.querySelector('[data-a="qs"]');
     REVIEW_QS.forEach(function(q){
-      var r = document.createElement("div"); r.className = "yn"; r.style.margin = "4px 0";
-      r.innerHTML = '<div style="font-size:14px">' + esc(q.ur) + '</div><div class="btns" style="margin-top:2px"><button class="btn2 btn-sm" data-v="yes">ہاں</button><button class="btn2 btn-sm" data-v="no">نہیں</button></div>';
+      var r = document.createElement("div"); r.style.margin = "6px 0";
+      r.innerHTML = '<div style="font-size:14px">' + esc(q.ur) + '</div><div class="yn"><button data-v="yes">ہاں</button><button data-v="no">نہیں</button></div>';
       r.querySelectorAll("button").forEach(function(btn){ btn.onclick = function(){
         ans[q.k] = btn.getAttribute("data-v");
-        r.querySelectorAll("button").forEach(function(o){ o.className = "btn2 btn-sm"; }); btn.className = "btn btn-sm"; btn.style.width = "auto";
-        draw(); }; });
+        r.querySelectorAll("button").forEach(function(o){ o.classList.remove("on"); }); btn.classList.add("on");
+        draw(); vEl.scrollIntoView({ block: "nearest" }); }; });
       qbox.appendChild(r);
     });
     var vEl = d.querySelector('[data-a="verdict"]');
