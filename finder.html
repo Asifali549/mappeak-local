@@ -2096,6 +2096,14 @@ function capFollows(list){   // over 500: drop the oldest finished-without-payme
   list.forEach(function(f){ if(extra > 0 && f.state !== "won"){ extra--; return; } out.push(f); });
   return out.slice(-Math.max(500, out.length));
 }
+/* 16 Nov (bug, owner found): a Sync rebuilds the client list, so "واپس لیں" must change the card that is in the list now, not the old copy */
+function curFollow(f){ for(var i=0;i<follows.length;i++){ if(follows[i].id === f.id) return follows[i]; } return null; }
+function undoReminder(f, prev){
+  var c = curFollow(f) || f;
+  c.state = prev.state; if(prev.fat == null) delete c.fat; else c.fat = prev.fat; c.la = Date.now();
+  if(curFollow(f) === null) follows.push(c);   // the card was dropped meanwhile: put it back
+  saveFollow(); renderFollow();
+}
 function saveFollow(){ follows = capFollows(dedupeFollows(dropDeleted(follows))); store.set("mp_follow", JSON.stringify(follows)); }
 /* one client = one card: the same phone or email (or the same name with no contact) added twice, e.g. on two devices */
 var STAGE_RANK = { waiting:0, followed:1, lost:1, replied:2, quoted:3, won:4 };
@@ -2274,14 +2282,14 @@ function renderFollow(){
     var mb = d.querySelector('[data-a="mail"]'); if(mb) mb.addEventListener("click", function(){   // the mailto link still opens Gmail
       var prev = { state: f.state, fat: f.fat };
       f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); setTimeout(renderFollow, 400);
-      offerUndo(f.n + ": Reminder جی میل میں کھل گئی، بھیجنے یا Schedule کرنے کے بعد کچھ نہیں دبانا ✓", function(){ f.state = prev.state; f.fat = prev.fat; f.la = Date.now(); if(prev.fat == null) delete f.fat; saveFollow(); renderFollow(); });
+      offerUndo(f.n + ": Reminder جی میل میں کھل گئی، بھیجنے یا Schedule کرنے کے بعد کچھ نہیں دبانا ✓", function(){ undoReminder(f, prev); });
     });
     d.querySelector('[data-a="copy"]').onclick = function(){
       copy(followText(f));
       if(doneToday){ toast("Reminder کاپی ہو گئی"); return; }   // already marked: just copy again
       var prev = { state: f.state, fat: f.fat, la: f.la };
       f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); setTimeout(renderFollow, 400);
-      offerUndo(f.n + ": Reminder کاپی ہو گئی اور نشان لگ گیا ✓", function(){ f.state = prev.state; f.fat = prev.fat; f.la = Date.now(); if(prev.fat == null) delete f.fat; saveFollow(); renderFollow(); });
+      offerUndo(f.n + ": Reminder کاپی ہو گئی اور نشان لگ گیا ✓", function(){ undoReminder(f, prev); });
     };
     var ab = d.querySelector('[data-a="addr"]'); if(ab) ab.onclick = function(){ copy(f.contact); };
     var db0 = d.querySelector('[data-a="done"]'); if(db0) db0.onclick = function(){ f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); renderFollow(); toast("نشان لگ گیا، اب اسے دوبارہ پیغام نہیں بھیجنا"); };
