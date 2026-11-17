@@ -2310,7 +2310,8 @@ function renderFollow(){
       '<button class="btn2 btn-sm" data-a="copy">' + (doneToday ? 'Reminder دوبارہ کاپی کریں' : 'Reminder کاپی کریں') + '</button>' +
       (doneToday ? '' : '<button class="btn2 btn-sm" data-a="done">Reminder بھیج دی</button>') +
       '<button class="btn2 btn-sm" data-a="reply">جواب آ گیا</button>' +
-      (doneToday ? '' : '<button class="btn2 btn-sm" data-a="date">تاریخ بدلیں</button>') + '</div>' +
+      (doneToday ? '' : '<button class="btn2 btn-sm" data-a="date">تاریخ بدلیں</button>') +
+      '<button class="btn2 btn-sm" data-a="lost">بات ختم</button>' + '</div>' +
       '<div data-a="datebox" style="display:none;margin-top:8px"><label style="margin-top:0">پہلا رابطہ کس دن</label>' +
       '<input type="date" class="en"><div class="btns"><button class="btn btn-sm" style="width:auto" data-a="datesave">Save کریں</button></div></div></div>';
     var gb = d.querySelector('[data-a="gmail"]'); if(gb) gb.onclick = function(){ openGmail(f); };
@@ -2329,6 +2330,8 @@ function renderFollow(){
     var ab = d.querySelector('[data-a="addr"]'); if(ab) ab.onclick = function(){ copy(f.contact); };
     var db0 = d.querySelector('[data-a="done"]'); if(db0) db0.onclick = function(){ f.state = "followed"; f.fat = f.la = Date.now(); saveFollow(); renderFollow(); toast("نشان لگ گیا، اب اسے دوبارہ پیغام نہیں بھیجنا"); };
     d.querySelector('[data-a="reply"]').onclick = function(){ setStage(f, "replied"); toast("بہت اچھا! اب یہ گاہکوں کے سفر میں ہے"); };
+    /* 17 Nov (owner asked): finish from the Reminder list too (no WhatsApp on the number, or they said no) */
+    d.querySelector('[data-a="lost"]').onclick = function(){ if(confirm("اس سے بات ختم سمجھیں؟ بعد میں واپس بھی لا سکتے ہیں۔")) setStage(curFollow(f) || f, "lost", { prev: f.state }); };
     if(!doneToday) (function(){   // change the first-contact day (for example an email scheduled for Monday)
       var box = d.querySelector('[data-a="datebox"]'), inp = box.querySelector("input");
       d.querySelector('[data-a="date"]').onclick = function(){
