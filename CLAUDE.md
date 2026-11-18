@@ -11,6 +11,7 @@ Site: https://asifali549.github.io/mappeak-local/ (GitHub Pages, this repo). No 
 ## How to talk to the owner
 - Reply in **Urdu script**. Start every reply by restating his question in Urdu (his voice input sometimes arrives in Hindi or Gurmukhi script, which he cannot read).
 - Keep common English tech words in English, written in Urdu letters in chat (سیٹنگ، سیو، سینڈ، کلائنٹ، پروفائل). In the tool's UI, use the English words themselves.
+- Never translate such words into pure Urdu (owner repeated this 18 Nov): thread = تھریڈ (never دھاگا), lead = لیڈ, post = پوسٹ, reply = رپلائی, forum = فورم.
 - Never mix Latin-script words inside an Urdu sentence (word order scrambles on his phone). Anything he must copy (links, names, search words, English drafts) goes in its own code block.
 - Button and menu names in step-by-step instructions: exactly as they appear on screen, in English.
 - **Ask permission before building or changing any tool.** Explain the plan, wait for yes.
