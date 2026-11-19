@@ -37,7 +37,7 @@ const { chromium } = require('playwright');
   // claim button seen on the Pakistani workshop
   await card('Lahore Auto').locator('.yn[data-k="unclaimed"] button[data-v="yes"]').click(); await p.waitForTimeout(400);
   const m1 = await msg('Lahore Auto');
-  ok('M1 claim seen: Urdu message names the claim problem and offers to show how to claim', /کلیم نہیں ہوئی/.test(m1) && /اپنے نام کیسے کریں/.test(m1) && /بھیج دوں؟/.test(m1) && !/Desert Star/.test(m1), m1.slice(0, 160));
+  ok('M1 claim seen: Urdu message names the claim problem and offers to show how to claim', /کلیم نہیں ہوئی/.test(m1) && /اپنے نام کیسے کریں/.test(m1) && /بھیج دوں؟/.test(m1) && /کلیم نہیں ہوئی/.test((m1.split('\n').find(l => /^• /.test(l)) || '')), m1.slice(0, 160));   // 19 Nov: the claim problem is the first point (other real problems may follow)
   const m0 = await msg('Falcon');
   ok('M2 fresh bad review: report and appeal, fee only if Google removes it, no promise', /recent bad review/.test(m0) && /pay only if Google removes it/.test(m0) && !/guarantee|we will remove|will be removed/i.test(m0), m0.slice(0, 200));
   ok('M3 no claim answer: no claim sentence, the review-gap line stays', !/not been claimed/.test(m0) && /Desert Star Auto Service nearby has 900/.test(m0));

@@ -561,6 +561,7 @@ var CHECKS = {
   unsafeSite: [30,"گوگل ان کی ویب سائٹ کو خطرناک دکھا رہا ہے","Google flags your website as unsafe","Clean the site, then request a review in Google Search Console"],
   siteBroken: [20,"گوگل لسٹنگ والی ویب سائٹ کھلتی ہی نہیں","The website link on your Google listing doesn't open","Fix the website or update the link on the listing"],
   siteParked: [25,"ویب سائٹ کا پتہ بک رہا ہے، کھولنے پر برائے فروخت کا صفحہ آتا ہے","The website on your Google listing shows a 'domain for sale' page","Renew or buy back the domain, or update the website link on the listing"],
+  wrongCat:   [14,"بنیادی کیٹیگری اس کام کی نہیں (جیسے سطحہ کو شپنگ سروس لکھا ہو)","The main Google category doesn't match the business's work","Set the main category to the one that matches the core service"],
   catMismatch:[11,"بنیادی کیٹیگری اوپر والے کاروباروں سے مختلف ہے","The main Google category differs from the top-ranked businesses","Review the main category and pick the one that best matches the core service"],
   unclaimed:  [25,"لسٹنگ کسی کے نام نہیں، گوگل پر کلیم کا بٹن ہے","Your Google listing hasn't been claimed yet","Claim and verify the listing so only you can edit it"],
   notIndexable:[15,"ویب سائٹ گوگل تلاش سے چھپی ہوئی ہے","Your website is set to be hidden from Google search","Remove the 'noindex' setting so Google can show the site"],
@@ -602,6 +603,35 @@ function evaluate(p){
   if(p.reviews && p.reviews.some(function(rv){ var t = Date.parse(rv.publishTime||""); return rv.rating && rv.rating <= 2 && t && (Date.now()-t) < 60*864e5; })) issues.push("recentBadReview");
   return issues;
 }
+/* 19 Nov (owner asked): a business found for a trade whose name says that trade, but whose main category is another one
+   (a tow truck listed as "Shipping service" or "Car dealer"). Only for trades the tool knows; the name must match too, so a real
+   car dealer that showed up in a tow search is never flagged. */
+var TRADE_CAT = [
+  { re:/garage door/i, skip:true },
+  { re:/\btow|towing|wrecker|roadside|سطح|سحب/i, ok:/tow|wreck|roadside/i, cat:"Towing service", what:"a tow truck", ur:"ٹو ٹرک (سطحہ)" },
+  { re:/puncture|\btyres?\b|\btires?\b|بنشر|كفرات|إطارات/i, ok:/tire|tyre/i, cat:"Tire shop", what:"tyre repair", ur:"پنکچر اور ٹائر" },
+  { re:/plumb|سباك|سباكة/i, ok:/plumb/i, cat:"Plumber", what:"a plumber", ur:"پلمبر" },
+  { re:/electric|كهربا/i, ok:/electric/i, cat:"Electrician", what:"an electrician", ur:"الیکٹریشن" },
+  { re:/locksmith|فتح أبواب|مفاتيح|اقفال|أقفال/i, ok:/locksmith|lock|key/i, cat:"Locksmith", what:"a locksmith", ur:"تالے والا" },
+  { re:/\bhvac\b|\ba\/?c\b|air[- ]?condition|مكيف|تكييف/i, ok:/air condition|hvac|heating|cooling|refrigerat/i, cat:"Air conditioning repair service", what:"AC repair", ur:"اے سی ریپئر" },
+  { re:/pest|حشرات|مكافحة/i, ok:/pest|extermin/i, cat:"Pest control service", what:"pest control", ur:"کیڑے مار سروس" },
+  { re:/roof/i, ok:/roof/i, cat:"Roofing contractor", what:"a roofer", ur:"چھت کا کام" },
+  { re:/workshop|car repair|auto repair|mechanic|ورشة|ورشه/i, ok:/repair|mechanic|garage|auto|car service|body|tire|tyre|workshop/i, cat:"Auto repair shop", what:"car repair", ur:"گاڑیوں کی ورکشاپ" },
+  { re:/barber|حلاق|salon for men/i, ok:/barber|hair/i, cat:"Barber shop", what:"a barber", ur:"حجام" },
+  { re:/tailor|خياط/i, ok:/tailor|alteration|cloth/i, cat:"Tailor", what:"a tailor", ur:"درزی" }
+];
+function wrongCatOf(L){
+  var cat = String(L.cat||"").trim(), trade = String(L.mapsQ||"").split(/ in /i)[0];
+  if(!cat || !trade) return null;
+  for(var i = 0; i < TRADE_CAT.length; i++){
+    var t = TRADE_CAT[i];
+    if(!t.re.test(trade)) continue;
+    if(t.skip) return null;
+    if(!t.re.test(String(L.name||""))) return null;   // the name must say the trade too
+    return t.ok.test(cat) ? null : t;
+  }
+  return null;
+}
 function allIssues(L){
   var m = L.manual || {};
   var a = L.issues.filter(function(k){ return k !== "stale" || (L.reviews||0) <= 5; });   // older saved results: drop the unreliable "no new reviews" on busy listings
@@ -629,6 +659,7 @@ function allIssues(L){
   if(m.phone === "yes") a.push("phoneMismatch");
   if(m.hours === "yes"){ a = a.filter(function(k){ return k !== "noHours"; }); a.push("hoursMismatch"); }
   if(m.fb === "no") a.push("fbStale");
+  if(wrongCatOf(L)){ a.push("wrongCat"); a = a.filter(function(k){ return k !== "catMismatch"; }); }
   a = a.filter(function(k, i){ return CHECKS[k] && a.indexOf(k) === i; });
   return a.sort(function(x,y){ return CHECKS[y][0]-CHECKS[x][0]; });
 }
@@ -682,6 +713,7 @@ function lineFor(k, L, used){
       if(/^(services?|contractor|service establishment|establishment|point of interest|store|business)$/i.test(L.cat||""))
         return "Your main Google category is just \"" + L.cat + "\", which is too general, so Google may not show you when people search for " + (lastTrade || "your service") + " in " + cityOf(L) + ".";
       return "Your main Google category is \"" + (L.cat || "not set") + "\", while the top-ranked businesses for this search in " + cityOf(L) + " use \"" + L.topCat + "\". The main category decides which searches you show up in.";
+    case "wrongCat": var wc = wrongCatOf(L); return wc ? "Your main Google category is \"" + L.cat + "\", not \"" + wc.cat + "\", so Google shows you less when people search for " + wc.what + "." : CHECKS.wrongCat[2] + ".";
     case "recentBadReview": return "A recent low-star review from the last two months is one of the first things new customers see on your listing.";
     case "siteBroken": return "The website link on your Google listing doesn't open.";
     case "notIndexable": return "Your website is set to be hidden from Google search.";
@@ -1443,22 +1475,79 @@ function msgFacts(L){
   return { claim: m.unclaimed === "yes", bad: iss.indexOf("recentBadReview") >= 0,
     gap: !!(L.comp && L.comp.r > (L.reviews||0) && !sameChain(L.name, L.comp.n) && !sameChain(String(L.name).split(/\s+/)[0], String(L.comp.n).split(/\s+/)[0])), iss: iss };
 }
-function urduMsg(L){   // 11 Nov (owner approved, growth plan): lead with a free gift - the shop's review QR card - not a "check"
-  var f = msgFacts(L);
-  var top = f.iss.filter(function(k){ return UR_ISSUE[k] && k !== "recentBadReview"; })[0];
+/* 19 Nov (owner asked): the first message names the 2-3 real problems that cost this business customers (short, one line each),
+   offers a free detailed check, and keeps the QR card as a gift. Only problems a shop owner cares about (no website-tech or "no website"). */
+var MSG_ORDER = ["unclaimed","wrongCat","siteParked","siteBroken","phoneMismatch","noHours","hoursMismatch","GAP","ratingLow","noReplies","fewPhotos","stale","reviews10","notInAI"];
+function compLabel(L){ var n = String(L.comp && L.comp.n || "").trim(); return (!n || n.toLowerCase() === String(cityOf(L)||L.town||"").toLowerCase().trim()) ? "" : n; }
+function msgPoints(L, ur){
+  var f = msgFacts(L), out = [], has = {};
+  f.iss.forEach(function(k){ has[k] = 1; });
+  if(f.claim) has.unclaimed = 1;
+  if(f.gap) has.GAP = 1;
+  MSG_ORDER.forEach(function(k){
+    if(out.length >= 3 || !has[k]) return;
+    if(k === "reviews10" && f.gap) return;
+    var t = ur ? urPoint(k, L) : enPoint(k, L);
+    if(t) out.push(t);
+  });
+  return out;
+}
+function enPoint(k, L){
+  var wc = wrongCatOf(L), cn = compLabel(L);
+  switch(k){
+    case "unclaimed": return "the listing is not claimed yet, so you can't reply to reviews or change your number or hours, and someone else could try to claim it";
+    case "wrongCat": return wc ? "the main category is \"" + L.cat + "\", not \"" + wc.cat + "\", so Google shows you less when people search for " + wc.what : "";
+    case "siteParked": return "the website link on your listing opens a \"domain for sale\" page, so customers who tap it can't reach you";
+    case "siteBroken": return "the website link on your listing doesn't open, so customers who tap it can't reach you";
+    case "phoneMismatch": return "the phone number on Google is different from the one on your website, so some calls may go to the wrong number";
+    case "noHours": return "your working hours are not on the listing, so customers don't know when to call";
+    case "hoursMismatch": return "your hours are on your website but missing on Google";
+    case "GAP": return "you have " + (L.reviews||0) + " reviews, while " + (cn ? cn : "a business") + " nearby has " + L.comp.r + ", so customers see them first";
+    case "ratingLow": return "your rating is " + L.rating + " stars; below 4, many customers move on to the next one";
+    case "noReplies": return "your reviews have no replies from you, and customers notice that";
+    case "fewPhotos": return "there are fewer than 5 photos; real photos of your shop and work build trust before a customer calls";
+    case "stale": return "there are no new reviews in the last 3 months, so the listing looks less active";
+    case "reviews10": return "you have only " + (L.reviews||0) + " review" + (L.reviews === 1 ? "" : "s") + ", so new customers have little to go on";
+    case "notInAI": return EN_ISSUE.notInAI;
+  }
+  return "";
+}
+function urPoint(k, L){
+  var wc = wrongCatOf(L), cn = compLabel(L);
+  switch(k){
+    case "unclaimed": return "یہ لسٹنگ ابھی تک کسی کے نام پر کلیم نہیں ہوئی، اس لیے آپ نہ ریویو کا جواب دے سکتے ہیں نہ نمبر یا وقت بدل سکتے ہیں، اور کوئی دوسرا بھی اسے اپنے نام کرنے کی کوشش کر سکتا ہے";
+    case "wrongCat": return wc ? "گوگل پر بنیادی کیٹیگری \"" + L.cat + "\" لکھی ہے، \"" + wc.cat + "\" نہیں، اس لیے جب کوئی " + wc.ur + " ڈھونڈتا ہے تو آپ کم نظر آتے ہیں" : "";
+    case "siteParked": return "لسٹنگ پر لگی ویب سائٹ کھولیں تو \"ڈومین برائے فروخت\" کا صفحہ آتا ہے، گاہک آپ تک نہیں پہنچ پاتا";
+    case "siteBroken": return "لسٹنگ پر لگی ویب سائٹ کھلتی ہی نہیں، گاہک آپ تک نہیں پہنچ پاتا";
+    case "phoneMismatch": return "گوگل اور ویب سائٹ پر فون نمبر الگ الگ ہے، کچھ کالیں غلط نمبر پر جا سکتی ہیں";
+    case "noHours": return "کھلنے اور بند ہونے کا وقت نہیں لکھا، گاہک کو پتہ نہیں چلتا کہ کب فون کرے";
+    case "hoursMismatch": return "وقت ویب سائٹ پر لکھا ہے مگر گوگل پر نہیں";
+    case "GAP": return "آپ کے " + (L.reviews||0) + " ریویو ہیں، اور قریب والی " + (cn ? cn : "ایک دکان") + " کے " + L.comp.r + "، اس لیے گاہک پہلے انہیں دیکھتا ہے";
+    case "ratingLow": return "ریٹنگ " + L.rating + " ہے، چار سے کم ریٹنگ دیکھ کر کئی گاہک آگے نکل جاتے ہیں";
+    case "noReplies": return "ریویو کے جواب نہیں دیے گئے، گاہک یہ دیکھتے ہیں";
+    case "fewPhotos": return "تصویریں پانچ سے بھی کم ہیں، دکان اور کام کی اصل تصویریں دیکھ کر گاہک کو بھروسہ ہوتا ہے";
+    case "stale": return "تین مہینے سے کوئی نیا ریویو نہیں، لسٹنگ سست لگتی ہے";
+    case "reviews10": return "صرف " + (L.reviews||0) + " ریویو ہیں، نئے گاہک کو فیصلہ کرنے کے لیے کم معلومات ملتی ہیں";
+    case "notInAI": return UR_ISSUE.notInAI;
+  }
+  return "";
+}
+function urduMsg(L){   // 11 Nov: gift first; 19 Nov (owner asked): plus the 2-3 real problems and a free detailed check
+  var f = msgFacts(L), pts = msgPoints(L, true);
   var me = ($("myIntroUr").value||"").trim() || "محمد آصف رضا";
-  var situation = f.claim
-    ? "ایک ضروری بات: یہ لسٹنگ ابھی تک کسی کے نام پر کلیم نہیں ہوئی۔ اس کا مطلب ہے کہ آپ نہ ریویو کا جواب دے سکتے ہیں، نہ نمبر یا وقت خود بدل سکتے ہیں، اور کوئی دوسرا بھی اسے اپنے نام کرنے کی کوشش کر سکتا ہے۔"
-    : (f.gap ? "آپ کے " + (L.reviews||0) + " ریویو ہیں، اور قریب والی " + L.comp.n + " کے " + L.comp.r + "۔ اس لیے گاہک پہلے انہیں دیکھتا ہے۔"
-             : (top ? UR_ISSUE[top] + "، اس لیے کئی گاہک آپ تک نہیں پہنچ پاتے۔" : ""));
+  var seen = pts.length
+    ? "گوگل میپس پر آپ کی دکان " + L.name + " دیکھی، اس میں " + (pts.length === 1 ? "ایک چیز نظر آئی جس سے" : (pts.length === 2 ? "دو چیزیں نظر آئیں جن سے" : "تین چیزیں نظر آئیں جن سے")) + " گاہک ضائع ہو سکتے ہیں:\n" + pts.map(function(t){ return "• " + t; }).join("\n")
+    : "گوگل میپس پر آپ کی دکان " + L.name + " دیکھی۔";
   var bad = f.bad ? "\n\nآپ کی لسٹنگ پر حال ہی میں ایک برا ریویو بھی آیا ہے۔ اگر وہ جھوٹا ہے یا گوگل کے اصول کے خلاف ہے، تو میں اس کی صحیح شکایت اور اپیل کر دیتا ہوں: فیس صرف تب، جب گوگل اسے ہٹا دے۔" : "";
+  var check = "آپ چاہیں تو میں پورا پروفائل باریکی سے مفت جانچ کر بتا دیتا ہوں کہ کیا کیا ٹھیک کرنا ہے، کیونکہ میرا کام یہی ہے۔";
   var gift = f.claim
-    ? "تحفے کے طور پر میں آپ کو مفت بتا دیتا ہوں کہ اسے اپنے نام کیسے کریں، اور ساتھ آپ کی دکان کا ریویو والا کیو آر کارڈ بھی بنا دیتا ہوں۔ نہ کوئی پیسے، نہ کوئی پاس ورڈ۔"
-    : "تحفے کے طور پر میں آپ کی دکان کے نام کا ریویو والا کیو آر کارڈ مفت بنا کر بھیج دیتا ہوں۔ کاؤنٹر پر رکھ لیں، گاہک فون سے اسکین کر کے گوگل پر اپنی رائے لکھ دیتا ہے۔ نہ کوئی پیسے، نہ کوئی پاس ورڈ۔";
+    ? "اور تحفے کے طور پر میں آپ کو مفت بتا دیتا ہوں کہ اسے اپنے نام کیسے کریں، ساتھ آپ کی دکان کا ریویو والا کیو آر کارڈ بھی بنا دیتا ہوں۔ نہ کوئی پیسے، نہ کوئی پاس ورڈ۔"
+    : "اور تحفے کے طور پر آپ کی دکان کے نام کا ریویو والا کیو آر کارڈ مفت بنا کر بھیج دیتا ہوں۔ گاہک فون سے اسکین کر کے گوگل پر اپنی رائے لکھ دیتا ہے۔ نہ کوئی پیسے، نہ کوئی پاس ورڈ۔";
   return "السلام علیکم۔ میں " + me + (L.country === "PK" || /پاکستان/.test(me) ? "" : "، پاکستان") + " سے بات کر رہا ہوں۔\n" +
-    "میں کاروباروں کے گوگل بزنس پروفائل (گوگل میپس لسٹنگ) کا کام کرتا ہوں۔\n\n" +   // who we are first (11 Nov, owner asked)
-    "گوگل میپس پر آپ کی دکان " + L.name + " دیکھی۔ " + situation + bad + "\n\n" + gift + "\n\n" +
-    "کام پسند آئے تو پروفائل کا باقی کام بھی کر سکتا ہوں، وہ آپ کی مرضی۔ " + (f.claim ? "بھیج دوں؟" : "کارڈ بھیج دوں؟");
+    "میں کاروباروں کے گوگل بزنس پروفائل (گوگل میپس لسٹنگ) کا کام کرتا ہوں۔\n\n" +
+    seen + bad + "\n\n" + check + " " + gift + "\n\n" +
+    "پروفائل کا باقی کام بھی کر سکتا ہوں، وہ صرف آپ کی مرضی۔ " + (f.claim ? "بھیج دوں؟" : "کارڈ بھیج دوں؟") + "\n\n" +
+    "اگر دلچسپی نہیں تو بتا دیں، دوبارہ پیغام نہیں کروں گا۔";
 }
 var PAKRE = /pakistan|lahor|karach|punjab|peshawar|multan|quetta|islamabad|rawalpindi|faisalabad|sialkot|gujranwala|sindh|desi|karahi|nihari|haleem|sajji|pathan|kashmir/i;
 var EN_ISSUE = {
@@ -1474,22 +1563,21 @@ var EN_ISSUE = {
 };
 function aeMsg(L){
   if(L.urd) return urduMsg(L);
-  var f = msgFacts(L);
-  var top = f.iss.filter(function(k){ return EN_ISSUE[k] && k !== "recentBadReview"; })[0];
+  var f = msgFacts(L), pts = msgPoints(L, false);
   var nm = ($("myName").value||"").trim() || "Asif";
-  var situation = f.claim
-    ? "One important thing: the listing has not been claimed yet. So you can't reply to reviews or change your phone number or hours yourself, and someone else could try to claim it."
-    : (f.gap ? "You have " + (L.reviews||0) + " reviews, while " + L.comp.n + " nearby has " + L.comp.r + ", so customers see them first."
-             : (top ? "I noticed " + EN_ISSUE[top] + "." : ""));
+  var seen = pts.length
+    ? "I looked at " + L.name + " on Google Maps and noticed " + (pts.length === 1 ? "one thing" : pts.length + " things") + " that can cost you customers:\n" + pts.map(function(t){ return "• " + t; }).join("\n")
+    : "I saw " + L.name + " on Google Maps.";
   var bad = f.bad ? "\n\nThere is also a recent bad review on your listing. If it is fake or breaks Google's rules, I can file a proper report and appeal for you, and you pay only if Google removes it." : "";
+  var check = "If you want, I can check your whole profile in detail for free and tell you exactly what to fix.";
   var gift = f.claim
-    ? "As a gift, I can show you for free how to claim it in your name, and make you a review QR card for your shop. No cost, no password."
-    : "As a gift, I'd like to make you a free review QR card with your shop's name. Put it on the counter: customers scan it with their phone and leave a Google review. No cost, no password.";
-  return "Hello, this is " + nm + " from MapPeak Local. I work on Google Business Profiles (Google Maps listings) for businesses.\n\n" +
-    "I saw " + L.name + " on Google Maps. " + situation + bad + "\n\n" + gift + "\n\n" +
-    "If you like it, I can help with the rest of your profile too, only if you want. " + (f.claim ? "Shall I send it?" : "Shall I send the card?") + "\n\n" +
+    ? "And as a gift, I can show you for free how to claim it in your name, and make you a review QR card for your shop. No cost, no password."
+    : "And as a small gift, a free review QR card with your shop's name: customers scan it with their phone and leave a Google review. No cost, no password.";
+  return "Assalamu Alaikum. My name is " + nm + ", I work on Google Business Profiles (Google Maps listings) for businesses.\n\n" +
+    seen + bad + "\n\n" + check + " " + gift + "\n\n" +
+    "I can help with the rest of your profile too, only if you want. " + (f.claim ? "Shall I send it?" : "Shall I send the card?") + "\n\n" +
     "اگر آپ اردو میں بات کرنا چاہیں تو بتائیں، میں پاکستان سے ہوں۔\n\n" +
-    "If you'd rather not hear from me, just say so and I won't message again.";
+    "If you're not interested, just tell me and I won't message again.\n" + nm + ", MapPeak Local";
 }
 function waText(L){ return isGulf(L.country) ? aeMsg(L) : urduMsg(L); }   // same text as the card's main copy button (Urdu / English by the business)
 function waUrl(L){ return "https://wa.me/" + waNum(L.phone, L.country, L.intl) + "?text=" + encodeURIComponent(waText(L)); }   // opens the chat with this business's message already typed (9 Nov, owner asked)
@@ -1538,6 +1626,7 @@ var AR = {
   unsafeSite:["Google يعرض موقعكم على أنه غير آمن","تنظيف الموقع ثم طلب مراجعة من Search Console"],
   siteBroken:["رابط الموقع في ملف Google لا يفتح","إصلاح الموقع أو تحديث الرابط في الملف"],
   siteParked:["رابط الموقع يعرض صفحة \"النطاق للبيع\"","تجديد النطاق أو تحديث الرابط في الملف"],
+  wrongCat:["الفئة الرئيسية في Google لا تطابق نوع النشاط","اختيار الفئة التي تطابق الخدمة الأساسية"],
   catMismatch:["الفئة الرئيسية تختلف عن الأنشطة الأعلى ترتيباً","اختيار الفئة الأقرب للخدمة الأساسية"],
   unclaimed:["الملف غير موثّق باسمكم، ويمكن لأي شخص اقتراح تعديلات عليه","المطالبة بالملف وتوثيقه"],
   notIndexable:["الموقع مخفي عن نتائج بحث Google","إزالة إعداد noindex من الموقع"],
@@ -2702,6 +2791,7 @@ var URR = {
   unsafeSite:["گوگل آپ کی ویب سائٹ کو خطرناک دکھا رہا ہے","ویب سائٹ صاف کروا کر گوگل سے دوبارہ جانچ کروائیں"],
   siteBroken:["گوگل پروفائل والی ویب سائٹ کھلتی ہی نہیں","ویب سائٹ ٹھیک کروائیں یا لنک بدلیں"],
   siteParked:["ویب سائٹ کھولنے پر ڈومین برائے فروخت کا صفحہ آتا ہے","ڈومین کی تجدید کروائیں یا لنک بدلیں"],
+  wrongCat:["گوگل پر بنیادی کیٹیگری آپ کے کام کی نہیں","وہ کیٹیگری چنیں جو آپ کے اصل کام سے ملتی ہو"],
   catMismatch:["بنیادی کیٹیگری اوپر والے کاروباروں سے مختلف ہے","وہ کیٹیگری چنیں جو آپ کے اصل کام سے ملتی ہو"],
   unclaimed:["پروفائل آپ کے نام پر نہیں، کوئی بھی اس میں تبدیلی کی تجویز دے سکتا ہے","پروفائل اپنے نام کروائیں اور تصدیق کریں"],
   notIndexable:["ویب سائٹ گوگل تلاش سے چھپی ہوئی ہے","ویب سائٹ کی وہ سیٹنگ ہٹائیں جو گوگل سے چھپاتی ہے"],

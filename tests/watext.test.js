@@ -46,7 +46,7 @@ const { chromium } = require('playwright');
   ok('W1 Urdu-speaking UAE business: link carries the Urdu message', L.host === 'wa.me' && L.num === '/971501112210' && L.text === cU && /[؀-ۿ]/.test(L.text) && /Lahori Karahi/.test(L.text), L.text.slice(0, 60));
   L = await linkText('Golden Fork');
   const cE = await copied('Golden Fork');
-  ok('W2 other UAE business: link carries the English message', L.text === cE && /^Hello,/.test(L.text) && /Golden Fork Bistro/.test(L.text), L.text.slice(0, 40));
+  ok('W2 other UAE business: link carries the English message', L.text === cE && /^Assalamu Alaikum/.test(L.text) && /Golden Fork Bistro/.test(L.text), L.text.slice(0, 40));
   L = await linkText('Evil');
   ok('W3 symbols in a name stay inside the message (no extra link parts)', L.host === 'wa.me' && L.num === '/971562223333' && /Evil & Co \?x=1#y "quote"/.test(L.text) && L.href.indexOf('#') < 0);
   // tapping opens WhatsApp with the text and still marks it sent
