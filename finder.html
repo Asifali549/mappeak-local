@@ -608,17 +608,17 @@ function evaluate(p){
    car dealer that showed up in a tow search is never flagged. */
 var TRADE_CAT = [
   { re:/garage door/i, skip:true },
-  { re:/\btow|towing|wrecker|roadside|سطح|سحب/i, ok:/tow|wreck|roadside/i, cat:"Towing service", what:"a tow truck", ur:"ٹو ٹرک (سطحہ)" },
-  { re:/puncture|\btyres?\b|\btires?\b|بنشر|كفرات|إطارات/i, ok:/tire|tyre/i, cat:"Tire shop", what:"tyre repair", ur:"پنکچر اور ٹائر" },
-  { re:/plumb|سباك|سباكة/i, ok:/plumb/i, cat:"Plumber", what:"a plumber", ur:"پلمبر" },
-  { re:/electric|كهربا/i, ok:/electric/i, cat:"Electrician", what:"an electrician", ur:"الیکٹریشن" },
-  { re:/locksmith|فتح أبواب|مفاتيح|اقفال|أقفال/i, ok:/locksmith|lock|key/i, cat:"Locksmith", what:"a locksmith", ur:"تالے والا" },
-  { re:/\bhvac\b|\ba\/?c\b|air[- ]?condition|مكيف|تكييف/i, ok:/air condition|hvac|heating|cooling|refrigerat/i, cat:"Air conditioning repair service", what:"AC repair", ur:"اے سی ریپئر" },
-  { re:/pest|حشرات|مكافحة/i, ok:/pest|extermin/i, cat:"Pest control service", what:"pest control", ur:"کیڑے مار سروس" },
-  { re:/roof/i, ok:/roof/i, cat:"Roofing contractor", what:"a roofer", ur:"چھت کا کام" },
-  { re:/workshop|car repair|auto repair|mechanic|ورشة|ورشه/i, ok:/repair|mechanic|garage|auto|car service|body|tire|tyre|workshop/i, cat:"Auto repair shop", what:"car repair", ur:"گاڑیوں کی ورکشاپ" },
-  { re:/barber|حلاق|salon for men/i, ok:/barber|hair/i, cat:"Barber shop", what:"a barber", ur:"حجام" },
-  { re:/tailor|خياط/i, ok:/tailor|alteration|cloth/i, cat:"Tailor", what:"a tailor", ur:"درزی" }
+  { re:/\btow|towing|wrecker|roadside|سطح|سحب/i, ok:/tow|wreck|roadside/i, cat:"Towing service", what:"a tow truck", ar:"سطحة", ur:"ٹو ٹرک (سطحہ)" },
+  { re:/puncture|\btyres?\b|\btires?\b|بنشر|كفرات|إطارات/i, ok:/tire|tyre/i, cat:"Tire shop", what:"tyre repair", ar:"بنشر", ur:"پنکچر اور ٹائر" },
+  { re:/plumb|سباك|سباكة/i, ok:/plumb/i, cat:"Plumber", what:"a plumber", ar:"سباك", ur:"پلمبر" },
+  { re:/electric|كهربا/i, ok:/electric/i, cat:"Electrician", what:"an electrician", ar:"كهربائي", ur:"الیکٹریشن" },
+  { re:/locksmith|فتح أبواب|مفاتيح|اقفال|أقفال/i, ok:/locksmith|lock|key/i, cat:"Locksmith", what:"a locksmith", ar:"فتح أبواب", ur:"تالے والا" },
+  { re:/\bhvac\b|\ba\/?c\b|air[- ]?condition|مكيف|تكييف/i, ok:/air condition|hvac|heating|cooling|refrigerat/i, cat:"Air conditioning repair service", what:"AC repair", ar:"صيانة مكيفات", ur:"اے سی ریپئر" },
+  { re:/pest|حشرات|مكافحة/i, ok:/pest|extermin/i, cat:"Pest control service", what:"pest control", ar:"مكافحة حشرات", ur:"کیڑے مار سروس" },
+  { re:/roof/i, ok:/roof/i, cat:"Roofing contractor", what:"a roofer", ar:"أعمال الأسطح", ur:"چھت کا کام" },
+  { re:/workshop|car repair|auto repair|mechanic|ورشة|ورشه/i, ok:/repair|mechanic|garage|auto|car service|body|tire|tyre|workshop/i, cat:"Auto repair shop", what:"car repair", ar:"ورشة سيارات", ur:"گاڑیوں کی ورکشاپ" },
+  { re:/barber|حلاق|salon for men/i, ok:/barber|hair/i, cat:"Barber shop", what:"a barber", ar:"حلاق", ur:"حجام" },
+  { re:/tailor|خياط/i, ok:/tailor|alteration|cloth/i, cat:"Tailor", what:"a tailor", ar:"خياط", ur:"درزی" }
 ];
 function wrongCatOf(L){
   var cat = String(L.cat||"").trim(), trade = String(L.mapsQ||"").split(/ in /i)[0];
@@ -1247,8 +1247,8 @@ function render(keepOrder){
       (gAdsUrl(L) ? '<a class="'+(ADLIB_STRONG.indexOf(L.country) >= 0 ? 'btn' : 'btn2')+' btn-sm" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(gAdsUrl(L))+'">گوگل اشتہار دیکھیں</a>' : '')+
       (isWA(L.country)
         ? (waNum(L.phone, L.country, L.intl) && phoneKind(L) !== "landline" ? '<a class="btn btn-sm" data-a="wa" style="text-decoration:none;border-radius:10px;width:auto" target="_blank" rel="noopener" href="'+esc(waUrl(L))+'">واٹس ایپ کھولیں</a>' : '<span class="pill">موبائل نمبر نہیں، فون کریں</span>')+
-          (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="arab">عربی پیغام کاپی کریں</button>' : '')+
-          '<button class="btn2 btn-sm" data-a="urdu">'+(isGulf(L.country) ? (L.urd ? "اردو پیغام کاپی کریں" : "انگریزی پیغام کاپی کریں") : "بنیادی پیغام کاپی کریں")+'</button>'+
+          (isGulf(L.country) && !arabicName(L) && !L.urd ? '<button class="btn2 btn-sm" data-a="arab">عربی پیغام کاپی کریں</button>' : '')+
+          '<button class="btn2 btn-sm" data-a="urdu">'+(isGulf(L.country) ? (L.urd ? "اردو پیغام کاپی کریں" : arabicName(L) ? "عربی پیغام کاپی کریں" : "انگریزی پیغام کاپی کریں") : "بنیادی پیغام کاپی کریں")+'</button>'+
           (isGulf(L.country) ? '<button class="btn2 btn-sm" data-a="email">ای میل کاپی کریں</button>' : '')
         : '<button class="btn2 btn-sm" data-a="email">ای میل کاپی کریں</button>'+
           (langOf(L.country) !== "en" ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="'+esc(trUrl(emailFor(L), langOf(L.country)))+'">'+WORLD[L.country][3]+' میں ترجمہ</a>' : '')+
@@ -1268,7 +1268,7 @@ function render(keepOrder){
     var eb = d.querySelector('[data-a="email"]'); if(eb) eb.onclick = function(){ copy(emailFor(L)); autoSent(L, "ای میل"); };
     var wb = d.querySelector('[data-a="wa"]'); if(wb) wb.addEventListener("click", function(){ wb.href = waUrl(L); autoSent(L, "پیغام"); });   // fresh text (name may have changed), the link still opens WhatsApp
     var rb = d.querySelector('[data-a="report"]'); if(rb) rb.onclick = function(){ copy(reportFor(L)); };
-    var ub = d.querySelector('[data-a="urdu"]'); if(ub) ub.onclick = function(){ copy(isGulf(L.country) ? aeMsg(L) : urduMsg(L)); };
+    var ub = d.querySelector('[data-a="urdu"]'); if(ub) ub.onclick = function(){ copy(isGulf(L.country) ? gulfMsg(L) : urduMsg(L)); };
     var abt = d.querySelector('[data-a="arab"]'); if(abt) abt.onclick = function(){ copy(arMsg(L)); };
     d.querySelector('[data-a="img"]').onclick = function(){ showReportImage(L); };
     var qb = d.querySelector('[data-a="qr"]'); if(qb) qb.onclick = function(){ showQrCard(L); };
@@ -1487,7 +1487,7 @@ function msgPoints(L, ur){
   MSG_ORDER.forEach(function(k){
     if(out.length >= 3 || !has[k]) return;
     if(k === "reviews10" && f.gap) return;
-    var t = ur ? urPoint(k, L) : enPoint(k, L);
+    var t = ur === "ar" ? arPoint(k, L) : ur ? urPoint(k, L) : enPoint(k, L);
     if(t) out.push(t);
   });
   return out;
@@ -1579,7 +1579,7 @@ function aeMsg(L){
     "اگر آپ اردو میں بات کرنا چاہیں تو بتائیں، میں پاکستان سے ہوں۔\n\n" +
     "If you're not interested, just tell me and I won't message again.\n" + nm + ", MapPeak Local";
 }
-function waText(L){ return isGulf(L.country) ? aeMsg(L) : urduMsg(L); }   // same text as the card's main copy button (Urdu / English by the business)
+function waText(L){ return isGulf(L.country) ? gulfMsg(L) : urduMsg(L); }   // same text as the card's main copy button (Urdu / English by the business)
 function waUrl(L){ return "https://wa.me/" + waNum(L.phone, L.country, L.intl) + "?text=" + encodeURIComponent(waText(L)); }   // opens the chat with this business's message already typed (9 Nov, owner asked)
 function passes(p, f){
   if(p.businessStatus && p.businessStatus !== "OPERATIONAL") return false;
@@ -1642,14 +1642,46 @@ var AR = {
   fbStale:["لا نشاط على صفحة فيسبوك منذ 3 أشهر","نشر تحديث أو صورة عمل كل أسبوع"],
   noAttributes:["تفاصيل الدفع وسهولة الوصول غير موجودة في الملف","إضافة خيارات الدفع وسهولة الوصول"]
 };
+/* 22 Nov (owner asked): an Arab-run Gulf business (name only in Arabic letters, not Urdu-speaking) gets the first message in Arabic,
+   same shape as urduMsg / aeMsg (who he is, 2-3 real problems, free detailed check, QR gift). Owner's #240 answered the English one with "؟". */
+function arabicName(L){ var n = String(L && L.name || ""); return /[؀-ۿ]/.test(n) && !/[A-Za-z]{2,}/.test(n); }
+function gulfMsg(L){ return L.urd ? urduMsg(L) : (arabicName(L) ? arMsg(L) : aeMsg(L)); }
+function arPoint(k, L){
+  var wc = wrongCatOf(L), cn = compLabel(L);
+  switch(k){
+    case "unclaimed": return "الصفحة غير موثّقة باسمكم حتى الآن، فما تقدرون تردّون على التقييمات أو تغيّرون الرقم والأوقات، وممكن أحد ثاني يحاول يطالب بها";
+    case "wrongCat": return wc ? "التصنيف الأساسي مكتوب \"" + L.cat + "\" وليس \"" + wc.cat + "\"، فقوقل يظهركم أقل لما أحد يدوّر " + wc.ar : "";
+    case "siteParked": return "رابط الموقع في صفحتكم يفتح صفحة \"الدومين للبيع\"، فالزبون ما يوصل لكم";
+    case "siteBroken": return "رابط الموقع في صفحتكم ما يفتح، فالزبون ما يوصل لكم";
+    case "phoneMismatch": return "رقم الجوال في قوقل يختلف عن الرقم في موقعكم، فبعض الاتصالات ممكن تروح لرقم غلط";
+    case "noHours": return "أوقات العمل غير مكتوبة، فالزبون ما يعرف متى يتصل";
+    case "hoursMismatch": return "الأوقات مكتوبة في موقعكم لكنها غير موجودة في قوقل";
+    case "GAP": return "عندكم " + (L.reviews||0) + " تقييم، و" + (cn ? "\"" + cn + "\"" : "محل") + " قريب منكم عنده " + L.comp.r + "، فالزبون يشوفه أول";
+    case "ratingLow": return "التقييم " + L.rating + "، وكثير من الناس يتجاوزون المحل إذا التقييم أقل من 4";
+    case "noReplies": return "التقييمات بدون ردود منكم، والزبائن يلاحظون هذا";
+    case "fewPhotos": return "الصور أقل من 5، والصور الحقيقية للمحل والشغل تعطي الزبون ثقة قبل ما يتصل";
+    case "stale": return "ما فيه تقييمات جديدة من 3 شهور، فالصفحة تبان أقل نشاط";
+    case "reviews10": return "عندكم " + (L.reviews||0) + " تقييمات فقط، والزبون الجديد يحتاج يشوف أكثر";
+    case "notInAI": return AR.notInAI ? AR.notInAI[0] : "";
+  }
+  return "";
+}
 function arMsg(L){
-  var top = allIssues(L).filter(function(k){ return AR[k]; }).slice(0,3).map(function(k){ return "- " + AR[k][0]; }).join("\n");
+  var f = msgFacts(L), pts = msgPoints(L, "ar");
   var nm = ($("myName").value||"").trim() || "Asif";
-  return "مرحباً،\n\nمعكم " + nm + " من MapPeak Local. اطلعت على ملف " + L.name + " في خرائط Google ولاحظت بعض النقاط التي قد تُفقدكم عملاء:\n" +
-    (top || "- الملف يحتاج إلى استكمال بعض البيانات المهمة") + "\n" +
-    (L.comp ? "- " + L.comp.n + " القريب منكم لديه " + L.comp.r + " تقييماً، لذلك يظهر للعملاء أولاً\n" : "") +
-    "\nيسعدني إرسال تقرير مختصر بالمشاكل وخطوات الحل مجاناً. هل يناسبكم؟\n\n" +
-    "إذا لم ترغبوا في التواصل، أخبروني ولن أراسلكم مرة أخرى.";
+  var nmAr = /^(muhammad\s+)?asif(\s+(raza|ali))?$/i.test(nm) ? "آصف" : nm;
+  var seen = pts.length
+    ? "شفت صفحة \"" + L.name + "\" في خرائط قوقل، ولاحظت " + (pts.length === 1 ? "شي واحد ممكن يضيّع عليكم زباين" : pts.length === 2 ? "شيئين ممكن تضيّع عليكم زباين" : pts.length + " أشياء ممكن تضيّع عليكم زباين") + ":\n" + pts.map(function(t){ return "• " + t; }).join("\n")
+    : "شفت صفحة \"" + L.name + "\" في خرائط قوقل.";
+  var bad = f.bad ? "\n\nوفيه تقييم سلبي جديد على صفحتكم. إذا كان مزيّف أو مخالف لسياسات قوقل، أقدر أرفع بلاغ واعتراض صحيح، وما تدفع إلا إذا قوقل حذفه." : "";
+  var gift = f.claim
+    ? "وهدية مني: أشرح لكم مجاناً كيف توثّقون الصفحة باسمكم، مع بطاقة QR للتقييمات باسم محلكم. بدون أي تكلفة وبدون كلمة سر."
+    : "وهدية مني: بطاقة QR باسم محلكم، الزبون يمسحها بجواله ويكتب تقييمه في قوقل مباشرة. بدون أي تكلفة وبدون كلمة سر.";
+  return "السلام عليكم، أهلاً أخي.\nأنا " + nmAr + "، أشتغل على صفحات المحلات في خرائط قوقل.\n\n" +
+    seen + bad + "\n\nأقدر أراجع صفحتكم كاملة مجاناً وأقول لكم وش تحتاج بالضبط. " + gift + "\n\n" +
+    (f.claim ? "تبغى أرسل لك الطريقة؟" : "تبغى أرسلها لك؟") + "\n\n" +
+    "اگر آپ اردو میں بات کرنا چاہیں تو بتائیں، میں پاکستان سے ہوں۔\n\n" +
+    "إذا ما تبغى، قل لي وما راح أراسلك مرة ثانية.\n" + nmAr + "، MapPeak Local";
 }
 function townSuffix(c, t){
   if(c === "PK" && !/pakistan/i.test(t)) return ", Pakistan";

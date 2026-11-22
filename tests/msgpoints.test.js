@@ -16,6 +16,7 @@ const { chromium } = require('playwright');
     P('t3', 'Dammam Towing 24', 60, 'Towing service'),                                                // right category
     P('d1', 'Al Majdouie Cars', 30, 'Car dealer'),                                                    // a real car dealer in a tow search: never flagged
     P('big', 'سطحه غرب الدمام', 600, 'Towing service'),                                               // competitor
+    P('t5', 'Riyadh Tow Truck Service', 47, 'Shipping service', { regularOpeningHours: undefined, photos: [1] }),   // English name: English message
   ];
   const PK = [P('p1', 'Ali Plumbing Services', 12, 'Hardware store', { formattedAddress: 'Johar Town, Lahore, Pakistan', internationalPhoneNumber: '+92 300 1112233', nationalPhoneNumber: '0300 1112233' })];
   const ctx = await b.newContext({ viewport: { width: 400, height: 900 } });
@@ -44,14 +45,21 @@ const { chromium } = require('playwright');
   const bullets = t => (t.match(/^• /gm) || []).length;
 
   await search('SA', 'سطحة', 'Dammam');
-  const m1 = await msg('سطحه الدمام');
+  const m1 = await msg('Riyadh Tow Truck');
   ok('P1 wrong category is named with the right one', /main category is "Shipping service", not "Towing service"/.test(m1) && /search for a tow truck/.test(m1), m1.slice(0, 400));
   ok('P2 real problems as short lines, at most 3, wrong category first', bullets(m1) >= 2 && bullets(m1) <= 3 && /^• the main category/m.test(m1.split('\n').find(l => /^• /.test(l))), bullets(m1));
   ok('P3 missing hours named; no "no website" / payment-details noise', /working hours are not on the listing/.test(m1) && !/website link|no website|payment|accessibility/i.test(m1));
   ok('P4 offers a free detailed check and keeps the QR gift and opt-out', /check your whole profile in detail for free/.test(m1) && /free review QR card/.test(m1) && /Shall I send the card\?/.test(m1) && /won't message again/.test(m1) && /Asif, MapPeak Local/.test(m1));
   const m2 = await msg('هيدروليك');
-  ok('P5 "Car dealer" tow truck flagged too', /"Car dealer", not "Towing service"/.test(m2));
-  ok('P6 review gap against the real competitor', /you have 28 reviews, while \S.* nearby has \d+, so customers see them first/.test(m2), m2.slice(0, 400));
+  ok('P5 "Car dealer" tow truck flagged too (Arabic-name business: Arabic message)', /"Car dealer" وليس "Towing service"/.test(m2) && /يدوّر سطحة/.test(m2), m2.slice(0, 300));
+  ok('P6 review gap against the real competitor', /عندكم 28 تقييم، و.* قريب منكم عنده \d+، فالزبون يشوفه أول/.test(m2), m2.slice(0, 400));
+  // 22 Nov (owner asked): Arab-run business (name only in Arabic letters) gets the first message in Arabic
+  const a1 = await msg('سطحه الدمام');
+  ok('A1 Arabic name: Arabic message with intro, problems as lines, free check, QR gift, Urdu line, opt-out', /^السلام عليكم/.test(a1) && /أشتغل على صفحات المحلات/.test(a1) && /"Shipping service" وليس "Towing service"/.test(a1) && /أوقات العمل غير مكتوبة/.test(a1) && /أقدر أراجع صفحتكم كاملة مجاناً/.test(a1) && /بطاقة QR/.test(a1) && /تبغى أرسلها لك؟/.test(a1) && /اردو میں بات/.test(a1) && /ما راح أراسلك/.test(a1) && /آصف، MapPeak Local/.test(a1) && /أنا آصف/.test(a1) && bullets(a1) >= 2 && bullets(a1) <= 3, a1.slice(0, 500));
+  ok('A2 no English sentences in the Arabic message; two problems read "شيئين"', !/I looked at|Shall I send|cost you customers/.test(a1) && /ولاحظت شيئين/.test(m2));
+  const lbl = await card('سطحه الدمام').first().locator('[data-a="urdu"]').textContent();
+  ok('A3 the copy button says Arabic, and no second Arabic button', /عربی پیغام/.test(lbl) && (await card('سطحه الدمام').first().locator('[data-a="arab"]').count()) === 0, lbl);
+  ok('A4 an English-named Gulf business still gets English, with the Arabic option one tap away', /^Assalamu Alaikum/.test(m1) && (await card('Riyadh Tow Truck').first().locator('[data-a="arab"]').count()) === 1);
   const m3 = await msg('Dammam Towing 24');
   ok('P7 right category: no category point', !/main category/.test(m3));
   const m4 = await msg('Al Majdouie');
