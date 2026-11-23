@@ -562,6 +562,7 @@ var CHECKS = {
   siteBroken: [20,"گوگل لسٹنگ والی ویب سائٹ کھلتی ہی نہیں","The website link on your Google listing doesn't open","Fix the website or update the link on the listing"],
   siteParked: [25,"ویب سائٹ کا پتہ بک رہا ہے، کھولنے پر برائے فروخت کا صفحہ آتا ہے","The website on your Google listing shows a 'domain for sale' page","Renew or buy back the domain, or update the website link on the listing"],
   wrongCat:   [14,"بنیادی کیٹیگری اس کام کی نہیں (جیسے سطحہ کو شپنگ سروس لکھا ہو)","The main Google category doesn't match the business's work","Set the main category to the one that matches the core service"],
+  noCat:      [20,"گوگل پر کوئی بنیادی کیٹیگری ہی نہیں لکھی (بھیجنے سے پہلے میپس پر نام کے نیچے دیکھ لیں)","The listing has no main Google category at all","Set the main category to the one that matches the core service"],
   catMismatch:[11,"بنیادی کیٹیگری اوپر والے کاروباروں سے مختلف ہے","The main Google category differs from the top-ranked businesses","Review the main category and pick the one that best matches the core service"],
   unclaimed:  [25,"لسٹنگ کسی کے نام نہیں، گوگل پر کلیم کا بٹن ہے","Your Google listing hasn't been claimed yet","Claim and verify the listing so only you can edit it"],
   notIndexable:[15,"ویب سائٹ گوگل تلاش سے چھپی ہوئی ہے","Your website is set to be hidden from Google search","Remove the 'noindex' setting so Google can show the site"],
@@ -616,7 +617,8 @@ var TRADE_CAT = [
   { re:/\bhvac\b|\ba\/?c\b|air[- ]?condition|مكيف|تكييف/i, ok:/air condition|hvac|heating|cooling|refrigerat/i, cat:"Air conditioning repair service", what:"AC repair", ar:"صيانة مكيفات", ur:"اے سی ریپئر" },
   { re:/pest|حشرات|مكافحة/i, ok:/pest|extermin/i, cat:"Pest control service", what:"pest control", ar:"مكافحة حشرات", ur:"کیڑے مار سروس" },
   { re:/roof/i, ok:/roof/i, cat:"Roofing contractor", what:"a roofer", ar:"أعمال الأسطح", ur:"چھت کا کام" },
-  { re:/workshop|car repair|auto repair|mechanic|ورشة|ورشه/i, ok:/repair|mechanic|garage|auto|car service|body|tire|tyre|workshop/i, cat:"Auto repair shop", what:"car repair", ar:"ورشة سيارات", ur:"گاڑیوں کی ورکشاپ" },
+  { re:/workshop|car repair|auto repair|mechanic|ورشة|ورشه/i, nm:/workshop|repair|mechanic|garage|maint|auto service|car service|ورشة|ورشه|صيانة/i,
+    bad:/parts|spare|accessor|dealer|wash|rental/i, ok:/repair|mechanic|garage|auto|car service|body|tire|tyre|workshop|maintenance/i, cat:"Auto repair shop", what:"car repair", ar:"ورشة سيارات", ur:"گاڑیوں کی ورکشاپ" },
   { re:/barber|حلاق|salon for men/i, ok:/barber|hair/i, cat:"Barber shop", what:"a barber", ar:"حلاق", ur:"حجام" },
   { re:/tailor|خياط/i, ok:/tailor|alteration|cloth/i, cat:"Tailor", what:"a tailor", ar:"خياط", ur:"درزی" }
 ];
@@ -627,10 +629,18 @@ function wrongCatOf(L){
     var t = TRADE_CAT[i];
     if(!t.re.test(trade)) continue;
     if(t.skip) return null;
-    if(!t.re.test(String(L.name||""))) return null;   // the name must say the trade too
+    if(!(t.nm || t.re).test(String(L.name||""))) return null;   // the name must say the trade too
+    if(t.bad && t.bad.test(cat)) return t;   // 23 Nov: a workshop listed as "Auto parts store" (the word "auto" alone is not enough)
     return t.ok.test(cat) ? null : t;
   }
   return null;
+}
+/* 23 Nov (owner asked): Google sent no main category at all (a workshop with 108 reviews had none). Old saved results too. */
+function noCatOf(L){ return !String(L.cat||"").trim() && !String(L.ptype||"").trim() && !!L.id && !/^m_/.test(String(L.id)); }
+function searchTradeOf(L){   // the trade of the search that found it: a known one (TRADE_CAT) or the plain search words
+  var trade = String(L.mapsQ||"").split(/ in /i)[0].trim();
+  for(var i = 0; i < TRADE_CAT.length; i++){ if(TRADE_CAT[i].re.test(trade)) return TRADE_CAT[i].skip ? { words:trade } : { t:TRADE_CAT[i], words:trade }; }
+  return { words:trade };
 }
 function allIssues(L){
   var m = L.manual || {};
@@ -660,6 +670,7 @@ function allIssues(L){
   if(m.hours === "yes"){ a = a.filter(function(k){ return k !== "noHours"; }); a.push("hoursMismatch"); }
   if(m.fb === "no") a.push("fbStale");
   if(wrongCatOf(L)){ a.push("wrongCat"); a = a.filter(function(k){ return k !== "catMismatch"; }); }
+  if(noCatOf(L)){ a.push("noCat"); a = a.filter(function(k){ return k !== "catMismatch" && k !== "wrongCat"; }); }
   a = a.filter(function(k, i){ return CHECKS[k] && a.indexOf(k) === i; });
   return a.sort(function(x,y){ return CHECKS[y][0]-CHECKS[x][0]; });
 }
@@ -713,6 +724,7 @@ function lineFor(k, L, used){
       if(/^(services?|contractor|service establishment|establishment|point of interest|store|business)$/i.test(L.cat||""))
         return "Your main Google category is just \"" + L.cat + "\", which is too general, so Google may not show you when people search for " + (lastTrade || "your service") + " in " + cityOf(L) + ".";
       return "Your main Google category is \"" + (L.cat || "not set") + "\", while the top-ranked businesses for this search in " + cityOf(L) + " use \"" + L.topCat + "\". The main category decides which searches you show up in.";
+    case "noCat": var st0 = searchTradeOf(L); return "Your listing has no main Google category at all, so Google doesn't know to show you when people search for " + (st0.t ? st0.t.what : st0.words || "your service") + ".";
     case "wrongCat": var wc = wrongCatOf(L); return wc ? "Your main Google category is \"" + L.cat + "\", not \"" + wc.cat + "\", so Google shows you less when people search for " + wc.what + "." : CHECKS.wrongCat[2] + ".";
     case "recentBadReview": return "A recent low-star review from the last two months is one of the first things new customers see on your listing.";
     case "siteBroken": return "The website link on your Google listing doesn't open.";
@@ -1477,7 +1489,7 @@ function msgFacts(L){
 }
 /* 19 Nov (owner asked): the first message names the 2-3 real problems that cost this business customers (short, one line each),
    offers a free detailed check, and keeps the QR card as a gift. Only problems a shop owner cares about (no website-tech or "no website"). */
-var MSG_ORDER = ["unclaimed","wrongCat","siteParked","siteBroken","phoneMismatch","noHours","hoursMismatch","GAP","ratingLow","noReplies","fewPhotos","stale","reviews10","notInAI"];
+var MSG_ORDER = ["unclaimed","noCat","wrongCat","siteParked","siteBroken","phoneMismatch","noHours","hoursMismatch","GAP","ratingLow","noReplies","fewPhotos","stale","reviews10","notInAI"];
 function compLabel(L){ var n = String(L.comp && L.comp.n || "").trim(); return (!n || n.toLowerCase() === String(cityOf(L)||L.town||"").toLowerCase().trim()) ? "" : n; }
 function msgPoints(L, ur){
   var f = msgFacts(L), out = [], has = {};
@@ -1496,6 +1508,7 @@ function enPoint(k, L){
   var wc = wrongCatOf(L), cn = compLabel(L);
   switch(k){
     case "unclaimed": return "the listing is not claimed yet, so you can't reply to reviews or change your number or hours, and someone else could try to claim it";
+    case "noCat": var st = searchTradeOf(L); return "the listing has no main category at all, so Google doesn't know to show you when people search for " + (st.t ? st.t.what : st.words || "a business like yours");
     case "wrongCat": return wc ? "the main category is \"" + L.cat + "\", not \"" + wc.cat + "\", so Google shows you less when people search for " + wc.what : "";
     case "siteParked": return "the website link on your listing opens a \"domain for sale\" page, so customers who tap it can't reach you";
     case "siteBroken": return "the website link on your listing doesn't open, so customers who tap it can't reach you";
@@ -1516,6 +1529,7 @@ function urPoint(k, L){
   var wc = wrongCatOf(L), cn = compLabel(L);
   switch(k){
     case "unclaimed": return "یہ لسٹنگ ابھی تک کسی کے نام پر کلیم نہیں ہوئی، اس لیے آپ نہ ریویو کا جواب دے سکتے ہیں نہ نمبر یا وقت بدل سکتے ہیں، اور کوئی دوسرا بھی اسے اپنے نام کرنے کی کوشش کر سکتا ہے";
+    case "noCat": var su = searchTradeOf(L); return "گوگل پر آپ کی کوئی بنیادی کیٹیگری ہی نہیں لکھی، اس لیے جب کوئی " + (su.t ? su.t.ur : "آپ والا کام") + " ڈھونڈتا ہے تو گوگل کو پتہ ہی نہیں کہ آپ کو دکھائے";
     case "wrongCat": return wc ? "گوگل پر بنیادی کیٹیگری \"" + L.cat + "\" لکھی ہے، \"" + wc.cat + "\" نہیں، اس لیے جب کوئی " + wc.ur + " ڈھونڈتا ہے تو آپ کم نظر آتے ہیں" : "";
     case "siteParked": return "لسٹنگ پر لگی ویب سائٹ کھولیں تو \"ڈومین برائے فروخت\" کا صفحہ آتا ہے، گاہک آپ تک نہیں پہنچ پاتا";
     case "siteBroken": return "لسٹنگ پر لگی ویب سائٹ کھلتی ہی نہیں، گاہک آپ تک نہیں پہنچ پاتا";
@@ -1627,6 +1641,7 @@ var AR = {
   siteBroken:["رابط الموقع في ملف Google لا يفتح","إصلاح الموقع أو تحديث الرابط في الملف"],
   siteParked:["رابط الموقع يعرض صفحة \"النطاق للبيع\"","تجديد النطاق أو تحديث الرابط في الملف"],
   wrongCat:["الفئة الرئيسية في Google لا تطابق نوع النشاط","اختيار الفئة التي تطابق الخدمة الأساسية"],
+  noCat:["لا توجد فئة رئيسية للملف في Google","اختيار الفئة التي تطابق الخدمة الأساسية"],
   catMismatch:["الفئة الرئيسية تختلف عن الأنشطة الأعلى ترتيباً","اختيار الفئة الأقرب للخدمة الأساسية"],
   unclaimed:["الملف غير موثّق باسمكم، ويمكن لأي شخص اقتراح تعديلات عليه","المطالبة بالملف وتوثيقه"],
   notIndexable:["الموقع مخفي عن نتائج بحث Google","إزالة إعداد noindex من الموقع"],
@@ -1650,6 +1665,7 @@ function arPoint(k, L){
   var wc = wrongCatOf(L), cn = compLabel(L);
   switch(k){
     case "unclaimed": return "الصفحة غير موثّقة باسمكم حتى الآن، فما تقدرون تردّون على التقييمات أو تغيّرون الرقم والأوقات، وممكن أحد ثاني يحاول يطالب بها";
+    case "noCat": var sa = searchTradeOf(L); return "الصفحة ما فيها تصنيف أساسي أبداً، فقوقل ما يعرف يظهركم لما أحد يدوّر " + (sa.t ? sa.t.ar : "على محل مثل محلكم");
     case "wrongCat": return wc ? "التصنيف الأساسي مكتوب \"" + L.cat + "\" وليس \"" + wc.cat + "\"، فقوقل يظهركم أقل لما أحد يدوّر " + wc.ar : "";
     case "siteParked": return "رابط الموقع في صفحتكم يفتح صفحة \"الدومين للبيع\"، فالزبون ما يوصل لكم";
     case "siteBroken": return "رابط الموقع في صفحتكم ما يفتح، فالزبون ما يوصل لكم";
@@ -2824,6 +2840,7 @@ var URR = {
   siteBroken:["گوگل پروفائل والی ویب سائٹ کھلتی ہی نہیں","ویب سائٹ ٹھیک کروائیں یا لنک بدلیں"],
   siteParked:["ویب سائٹ کھولنے پر ڈومین برائے فروخت کا صفحہ آتا ہے","ڈومین کی تجدید کروائیں یا لنک بدلیں"],
   wrongCat:["گوگل پر بنیادی کیٹیگری آپ کے کام کی نہیں","وہ کیٹیگری چنیں جو آپ کے اصل کام سے ملتی ہو"],
+  noCat:["گوگل پر کوئی بنیادی کیٹیگری ہی نہیں لکھی","وہ کیٹیگری چنیں جو آپ کے اصل کام سے ملتی ہو"],
   catMismatch:["بنیادی کیٹیگری اوپر والے کاروباروں سے مختلف ہے","وہ کیٹیگری چنیں جو آپ کے اصل کام سے ملتی ہو"],
   unclaimed:["پروفائل آپ کے نام پر نہیں، کوئی بھی اس میں تبدیلی کی تجویز دے سکتا ہے","پروفائل اپنے نام کروائیں اور تصدیق کریں"],
   notIndexable:["ویب سائٹ گوگل تلاش سے چھپی ہوئی ہے","ویب سائٹ کی وہ سیٹنگ ہٹائیں جو گوگل سے چھپاتی ہے"],
