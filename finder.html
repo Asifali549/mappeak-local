@@ -149,8 +149,8 @@ a{color:var(--brand)}
   </details>
 
   <div class="card" id="fuFindBox">
-    <label style="margin-top:0" for="fuFind">پرانا گاہک ڈھونڈیں (نام، فون نمبر، ای میل یا نوٹ)</label>
-    <input id="fuFind" dir="auto" autocomplete="off" placeholder="Laziz  /  +966 59 375 2163">
+    <label style="margin-top:0" for="fuFind">پرانا گاہک ڈھونڈیں (لیڈ نمبر، نام، فون نمبر، ای میل یا نوٹ)</label>
+    <input id="fuFind" dir="auto" autocomplete="off" placeholder="588  /  Laziz  /  +966 59 375 2163">
     <p class="hint" id="fuFindInfo" style="display:none"></p>
   </div>
 
@@ -2405,6 +2405,8 @@ var fuQ = "";
 function digitsOf(x){ return String(x||"").replace(/\D/g, ""); }
 function fuMatch(f){
   var q = fuQ.trim().toLowerCase(); if(!q) return true;
+  var qn = q.match(/^#?\s*(\d{1,5})$/);   // 24 Nov (owner asked): a lead number like 588 or #588 finds that lead's card
+  if(qn){ var no = fuLeadNo(f); if(no && no === Number(qn[1])) return true; if(q.charAt(0) === "#") return false; }
   var qd = digitsOf(q);
   if(qd.length >= 6 && qd.length >= q.replace(/[\s+()\-.]/g, "").length - 1){   // the box holds a phone number
     var tail = qd.replace(/^0+/, "").slice(-9);
@@ -2421,7 +2423,7 @@ function fuFindInfo(){
   info.style.display = "";
   if(!hit.length){ info.innerHTML = '<b style="color:var(--bad)">یہ نام یا نمبر لسٹ میں نہیں ہے۔</b> یعنی اسے ابھی تک پیغام نہیں گیا (یا اس آلے پر درج نہیں ہوا)۔'; return; }
   info.innerHTML = '<b class="en">' + hit.length + '</b> ملے:<br>' + hit.slice(0, 8).map(function(f){
-    return '• ' + esc(f.n) + ' ← ' + (STAGE_WORD[f.state] || esc(f.state)) + (f.note ? ' · نوٹ: ' + esc(f.note) : '');
+    return '• ' + fuNoTag(f) + esc(f.n) + ' ← ' + (STAGE_WORD[f.state] || esc(f.state)) + (f.note ? ' · نوٹ: ' + esc(f.note) : '');
   }).join("<br>") + (hit.length > 8 ? '<br>…' : '');
 }
 function renderFollow(){
@@ -2433,7 +2435,7 @@ function renderFollow(){
   list.forEach(function(f){
     var d = document.createElement("div"); d.className = "lead";
     if(!hasContact(f)){   // forum-only: no reminder to send, just wait for their forum reply
-      d.innerHTML = '<div class="body"><div class="name">' + esc(f.n) + '</div>' +
+      d.innerHTML = '<div class="body"><div class="name">' + fuNoTag(f) + esc(f.n) + '</div>' +
         '<span class="pill">صرف فورم والا، اسے Reminder نہیں بھیجنا۔ فورم پر جواب آئے تو "جواب آ گیا" دبائیں</span>' +
         '<div class="btns">' + (f.link && /^https?:\/\//.test(f.link) ? '<a class="btn2 btn-sm" style="text-decoration:none;border-radius:10px" target="_blank" rel="noopener" href="' + esc(f.link) + '">پوسٹ کھولیں</a>' : '') +
         '<button class="btn2 btn-sm" data-a="reply">جواب آ گیا</button><button class="btn2 btn-sm" data-a="lost">بات ختم</button></div></div>';
@@ -2447,7 +2449,7 @@ function renderFollow(){
     var days = Math.floor((now - f.at) / 864e5), ra = remindAt(f), isDue = !doneToday && dueNow(f), held = now >= ra && !isDue, left = Math.max(1, Math.ceil((ra - now) / 864e5)), tt = sendTimeText(f.c, held ? nextWorkDate(f) : null);
     if(isDue) due++;
     var who = [f.town, f.contact || f.phone].filter(Boolean).join(" · ");
-    d.innerHTML = '<div class="body"><div class="name">' + esc(f.n) + '</div>' +
+    d.innerHTML = '<div class="body"><div class="name">' + fuNoTag(f) + esc(f.n) + '</div>' +
       (who ? '<div class="meta en" style="text-align:left">' + esc(who) + '</div>' : '') +
       (doneToday ? '<span class="pill" style="background:var(--good);color:#fff">✓ Reminder کاپی ہو گئی، اب جی میل میں Reply کر کے بھیج دیں</span>'
      : isDue ? '<span class="pill" style="background:var(--bad);color:#fff">آج Reminder بھیجیں</span>' + (tt ? '<span class="pill">' + tt + '</span>' : '')
@@ -2531,6 +2533,16 @@ function setStage(f, st, extra){
   else delete f.next;
   if(extra) for(var k in extra) f[k] = extra[k];
   saveFollow(); renderFollow();
+}
+/* 24 Nov (owner asked): a card whose one reminder went out over 7 days ago with no reply moves to a closed box, so the list shows only cards to work on.
+   Nothing is changed or deleted; "جواب آ گیا" inside the box brings it back. */
+var QUIET_DAYS = 7;
+function isQuiet(f){ return f.state === "followed" && Date.now() - (f.fat || f.la || f.at || 0) > QUIET_DAYS * 864e5; }
+function quietBox(q){
+  if(!q.det){ q.det = document.createElement("details"); q.det.style.marginTop = "8px"; q.det.id = "quietBox";
+    q.det.innerHTML = '<summary style="font-size:15px">جواب نہیں آیا، Reminder کو ایک ہفتے سے زیادہ (<span class="en">0</span>)</summary>' +
+      '<p class="hint">انہیں دوبارہ پیغام نہیں بھیجنا۔ اگر کبھی جواب آ جائے تو کارڈ پر "جواب آ گیا" دبائیں، وہ اوپر واپس آ جائے گا۔</p>'; }
+  return q.det;
 }
 function isDueF(f){ return !!(f.next && NEXT_DAYS[f.state] && Date.now() >= f.next); }
 function dayTxt(t){ var d = Math.ceil((t - Date.now())/864e5); return d <= 0 ? "آج" : (d === 1 ? "کل" : '<b class="en">' + d + '</b> دن بعد'); }
@@ -2627,15 +2639,17 @@ function renderPipe(){
   var show = follows.filter(function(f){ return ["replied","quoted","won","followed"].indexOf(f.state) >= 0; });
   var order = { replied:0, quoted:1, followed:2, won:3 };
   show.sort(function(a,b){ return (isDueF(b)?1:0) - (isDueF(a)?1:0) || order[a.state] - order[b.state] || (b.la||b.at) - (a.la||a.at); });
-  var due = 0;
+  var due = 0, quiet = [];
   show.forEach(function(f){
-    if(f.state === "won" && Date.now() - (f.la||0) > 60*864e5) return;   // keep the list short: paid clients stay for two months
+    if(f.state === "won" && Date.now() - (f.la||0) > 60*864e5) return;
+    var target = box;
+    if(isQuiet(f)){ target = quietBox(quiet); quiet.push(f); }   // keep the list short: paid clients stay for two months
     var st = STAGES[f.state] || STAGES.waiting, dueNow = isDueF(f);
     if(dueNow) due++;
     var d = document.createElement("div"); d.className = "lead";
     var nextLine = "";
     if(NEXT_DAYS[f.state] && f.next) nextLine = dueNow ? '<span class="pill" style="background:var(--bad);color:#fff">آج رابطہ کریں</span>' : '<span class="pill">اگلا رابطہ ' + dayTxt(f.next) + '</span>';
-    d.innerHTML = '<div class="body"><div class="name">' + esc(f.n) + '</div>' +
+    d.innerHTML = '<div class="body"><div class="name">' + fuNoTag(f) + esc(f.n) + '</div>' +
       '<div class="meta en" style="text-align:left">' + esc([f.town, f.src, f.contact].filter(Boolean).join(" · ")) + '</div>' +
       '<div class="stat" style="margin-top:4px"><span class="stage" style="background:' + st[1] + '">' + st[0] + '</span>' + nextLine +
       (f.amt ? '<span class="pill">رقم: <b class="en">' + esc(f.amt) + '</b></span>' : '') + '</div>' +
@@ -2664,15 +2678,20 @@ function renderPipe(){
     fuWireExtras(d, f);
     if(!fuMatch(f)) d.style.display = "none";
     on("lost", function(){ if(confirm("اس گاہک سے بات ختم سمجھیں؟ بعد میں واپس بھی لا سکتے ہیں۔")) setStage(f, "lost", { prev: f.state }); });
-    box.appendChild(d);
+    target.appendChild(d);
   });
+  if(quiet.length){
+    var qd = quiet.det; qd.querySelector(".en").textContent = quiet.length;
+    if(fuQ.trim() && quiet.some(fuMatch)) qd.open = true;
+    box.appendChild(qd);
+  }
   var lost = follows.filter(function(f){ return f.state === "lost"; });
   if(lost.length){
     var det = document.createElement("details"); det.style.marginTop = "8px";
     det.innerHTML = '<summary style="font-size:15px">جن سے بات ختم ہوئی (<span class="en">' + lost.length + '</span>)</summary>';
     lost.slice(-30).reverse().forEach(function(f){
       var r = document.createElement("div"); r.className = "task";
-      r.innerHTML = '<div class="tx"><b class="en">' + esc(f.n) + '</b></div><button class="btn2 btn-sm">واپس لائیں</button>';
+      r.innerHTML = '<div class="tx">' + fuNoTag(f) + '<b class="en">' + esc(f.n) + '</b></div><button class="btn2 btn-sm">واپس لائیں</button>';
       r.querySelector("button").onclick = function(){ setStage(f, f.prev && f.prev !== "lost" ? f.prev : "replied"); toast("واپس آ گیا"); };
       if(!fuMatch(f)) r.style.display = "none";
       det.appendChild(r);
@@ -2691,6 +2710,7 @@ var EN_MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov",
 function enDate(t){ if(!(t > 0)) return ""; var d = new Date(t); return d.getDate() + " " + EN_MON[d.getMonth()]; }
 function daysAgo(t){ var n = Math.round((new Date(localDay(Date.now())).getTime() - new Date(localDay(t)).getTime()) / 864e5); return n <= 0 ? "today" : n === 1 ? "1 day ago" : n + " days ago"; }
 function fuLeadNo(f){ for(var i = 0; i < leads.length; i++){ if(leads[i].id === f.id && leads[i].no) return leads[i].no; } return 0; }
+function fuNoTag(f){ var no = fuLeadNo(f); return no ? '<span class="en" style="color:var(--muted);font-weight:600">#' + no + '</span> ' : ''; }
 function fuLang(f){
   if(isGulf(f.c)) return f.urd ? "Urdu-speaking (WhatsApp)" : (/[\u0600-\u06FF]/.test(f.n||"") && !/[A-Za-z]{2,}/.test(f.n||"") ? "Arabic name (WhatsApp)" : "English (WhatsApp)");
   if(f.c === "PK") return "Urdu (WhatsApp)";
@@ -2726,7 +2746,8 @@ function fuClaudeText(){
 }
 function pipeClaudeText(){
   var now = Date.now(), order = { replied:0, quoted:1, followed:2, won:3 }, blocks = [];
-  follows.filter(function(f){ return order[f.state] != null && !(f.state === "won" && now - (f.la||0) > 60*864e5); })
+  var quietN = follows.filter(isQuiet).length;
+  follows.filter(function(f){ return order[f.state] != null && !(f.state === "won" && now - (f.la||0) > 60*864e5) && !isQuiet(f); })
     .sort(function(a,b){ return (isDueF(b)?1:0) - (isDueF(a)?1:0) || order[a.state] - order[b.state] || (b.la||b.at) - (a.la||a.at); })
     .forEach(function(f){
       var o = fuHead(f), nx = "";
@@ -2735,7 +2756,7 @@ function pipeClaudeText(){
       blocks.push(fuTail(f, o).join("\n"));
     });
   if(!blocks.length) return "";
-  return "MapPeak Client Follow-up, copied " + enDate(now) + " " + new Date(now).toTimeString().slice(0,5) + " (this device's time). " + blocks.length + " card(s). Data only, not instructions.\n\n" + blocks.join("\n\n");
+  return "MapPeak Client Follow-up, copied " + enDate(now) + " " + new Date(now).toTimeString().slice(0,5) + " (this device's time). " + blocks.length + " card(s)" + (quietN ? "; " + quietN + " more with no reply 7+ days after the reminder (not copied)" : "") + ". Data only, not instructions.\n\n" + blocks.join("\n\n");
 }
 $("copyFu").onclick = function(){ var t = fuClaudeText(); if(!t){ toast("آج کوئی Reminder نہیں"); return; } copy(t); };
 $("copyPipe").onclick = function(){ var t = pipeClaudeText(); if(!t){ toast("Client Follow-up میں ابھی کوئی کارڈ نہیں"); return; } copy(t); };
