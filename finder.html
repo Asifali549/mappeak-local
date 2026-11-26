@@ -2304,15 +2304,33 @@ function addFollow(L){
     at: Date.now(), state: "waiting" });
   saveFollow(); renderFollow();
 }
+/* 26 Nov (owner asked): WhatsApp reminders follow the first message's offer (free check + review QR card) and its language:
+   Arabic-named Gulf shops get Arabic, Urdu-speaking Gulf and Pakistan get Urdu, other Gulf English. Forum leads (manual) get a short note about their issue. */
+function senderName(){ var nm = ($("myName").value||"").trim() || "Asif", me = /^(muhammad\s+)?asif(\s+(raza|ali))?$/i.test(nm);
+  return { en: nm, ar: me ? "آصف" : nm, ur: me ? "محمد آصف رضا" : nm }; }
 function followText(f){
+  var me = senderName();
   if(isGulf(f.c) && !f.urd){
-    return "Hello again,\n\nJust following up on my message about " + f.n + "'s Google Maps listing. I'm happy to fix one issue for free so you can see the result.\n\nIf now isn't a good time, no problem at all. Thank you.";
+    if(!f.manual && arabicName({ name: f.n })){
+      return "السلام عليكم، أرسلت لكم رسالة قبل كم يوم عن صفحتكم في خرائط قوقل.\n\n" +
+        "عرضي ما زال قائم: أراجع صفحتكم مجاناً وأقول لكم وش يحتاج تعديل، وأهديكم بطاقة QR باسم محلكم، الزبون يمسحها بجواله ويكتب تقييمه في قوقل مباشرة. بدون أي تكلفة وبدون كلمة سر.\n\n" +
+        "تبغى أرسلها لك؟\n\n" +
+        "إذا ما تبغى، قل لي وما راح أراسلك مرة ثانية.\n" + me.ar + "، MapPeak Local";
+    }
+    if(f.manual) return "Hi, " + me.en + " here from MapPeak Local. I messaged you a few days ago about the Google Business Profile issue you posted in the Google community.\n\nDid it get sorted? If not, I'm happy to look at it with you for free and tell you exactly what to do next. No password needed.\n\nIf you'd rather not hear from me, just say so and I won't message again.";
+    return "Hello again, " + me.en + " here from MapPeak Local. I messaged you a few days ago about " + f.n + " on Google Maps.\n\n" +
+      "My offer is still open: a free check of your whole profile with exactly what to fix, and a free review QR card with your shop's name that customers scan to leave a Google review. No cost, no password.\n\n" +
+      "Shall I send it?\n\nIf you'd rather not hear from me, just say so and I won't message again.";
   }
   if(isWA(f.c)){
+    if(f.manual) return "السلام علیکم، میں " + me.ur + "، MapPeak Local سے۔ چند دن پہلے گوگل کمیونٹی والی آپ کی پوسٹ کے بارے میں پیغام بھیجا تھا۔\n\n" +
+      "کیا مسئلہ حل ہو گیا؟ اگر ابھی بھی ہے تو میں مفت میں دیکھ کر بتا سکتا ہوں کہ آگے کیا کرنا ہے، کسی پاس ورڈ کی ضرورت نہیں۔\n\n" +
+      "اگر ضرورت نہیں تو بتا دیں، دوبارہ پیغام نہیں کروں گا۔";
     return "السلام علیکم،\n" +
-      "چند دن پہلے میں نے گوگل پر آپ کے کاروبار " + f.n + " کے بارے میں پیغام بھیجا تھا" + (f.ur ? "، کہ " + f.ur : "") + "۔\n\n" +
-      "اگر آپ چاہیں تو میں ایک کمی مفت میں ٹھیک کر کے دکھا دیتا ہوں، پسند آئے تو آگے بات کر لیں گے۔\n\n" +
-      "اگر ابھی فرصت نہیں تو کوئی بات نہیں۔ شکریہ۔";
+      "چند دن پہلے میں نے گوگل میپس پر آپ کے کاروبار " + f.n + " کے بارے میں پیغام بھیجا تھا" + (f.ur ? "، کہ " + f.ur : "") + "۔\n\n" +
+      "میری پیشکش ابھی بھی ہے: آپ کے پورے پروفائل کی مفت جانچ کہ کیا کیا ٹھیک کرنا ہے، اور آپ کی دکان کے نام کا ریویو والا کیو آر کارڈ مفت۔ نہ کوئی پیسے، نہ کوئی پاس ورڈ۔\n\n" +
+      "کارڈ بھیج دوں؟\n\n" +
+      "اگر ضرورت نہیں تو بتا دیں، دوبارہ پیغام نہیں کروں گا۔\n" + me.ur + "، MapPeak Local";
   }
   /* email reminder: sent as a Reply in the same Gmail thread, so no subject line */
   var first = f.first ? f.first.replace(/\.$/, "") : "";
